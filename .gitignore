@@ -1,0 +1,5 @@
+node_modules/
+*.tgz
+.dsh-team-template.json
+.dsh-team-launcher.json
+prepared-team/

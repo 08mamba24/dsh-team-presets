@@ -1,0 +1,24 @@
+{
+  "archivePath": "/Applications/DeepSeek Harness.app/Contents/Resources/app.asar",
+  "archiveModule": "dsh/node_modules/@deepseek-ai/dsh-app-boot/lib/index.js",
+  "moduleSha256": "a8d2138bb274bd982079df14a615f6c0d5d7589c9faeae81973128a72293b6de",
+  "functions": [
+    {
+      "name": "applyPatches",
+      "firstLine": 506,
+      "lastLine": 556,
+      "sha256": "e953dd42529472f85c82f73968fad893856bb307570e63eeaeeb4f8207195241",
+      "bodyUnmodified": true
+    },
+    {
+      "name": "composeEntries",
+      "firstLine": 1870,
+      "lastLine": 1875,
+      "sha256": "3225d55fd7e6ace981b8c60168a2cb6e1f017b6642a332118c85ddbf9e3036ed",
+      "bodyUnmodified": true
+    }
+  ],
+  "adapterSha256": "1cd242dba5af1726d93f0ceb7ff23c0ab661102c5de4d7bde914433851c0c021",
+  "adapterOnlyAddition": "export { composeEntries }",
+  "hostImportedOrStarted": false
+}

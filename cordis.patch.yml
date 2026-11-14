@@ -1,0 +1,11 @@
+[
+  {
+    "insert": [
+      {
+        "id": "dsh-native-team-launcher",
+        "name": "dsh-subagent-live-rc2-local/launcher",
+        "config": {}
+      }
+    ]
+  }
+]

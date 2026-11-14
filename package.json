@@ -1,0 +1,14 @@
+{
+  "name": "dsh-subagent-live-rc2-local",
+  "version": "0.4.0-rc.1",
+  "private": true,
+  "type": "module",
+  "description": "Policy-authorized native roles with bounded dispatch, scoped AgentPresets and native Team handoff.",
+  "repository": { "type": "git", "url": "git+https://github.com/08mamba24/dsh-team-presets.git" },
+  "bin": { "dsh-team-prepare": "./scripts/prepare-launcher.mjs" },
+  "engines": { "node": ">=22", "dsh": "0.2.2-rc.2" },
+  "exports": { ".": "./index.js", "./role": "./role.js", "./team": "./team-entry.js", "./team-role": "./team-role.js", "./launcher": "./launcher-entry.js", "./launcher-role": "./launcher-role.js" },
+  "files": ["index.js", "role.js", "team-entry.js", "team-role.js", "launcher-entry.js", "launcher-role.js", "src", "scripts", "examples", "docs", "licenses", "THIRD_PARTY_NOTICES.md", "cordis.patch.yml", "README.md", "README.zh-CN.md"],
+  "scripts": { "test": "node --test test/*.test.mjs" },
+  "dsh": { "manifestVersion": 1, "bundle": { "patch": "./cordis.patch.yml", "platforms": ["darwin"] } }
+}
