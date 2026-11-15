@@ -5,13 +5,15 @@
 ## 版本与支持范围
 
 - **0.3.2 已完成首版限定实机验收**：双角色首次建队并就绪、重复启动安全冲突、恢复原 Team 模式、官方正常卸载和环境恢复；独立裁定为 Pro 1183。
-- **0.4.0-rc.1 是新增离线准备入口的待审候选**。旧版本验收不代表新安装包已经通过审查或实机验证。
+- **0.4.0-rc.1 已通过独立差分复审1284，仅覆盖离线准备与PRIVATE候选**。作者本地测试193/193通过；Pro独立核实际包与源码，没有运行Node测试。本候选尚未做新的Harness安装或模型实测。
 - 当前仅支持 macOS、固定的 Harness `0.2.2-rc.2` App 及归档校验值。App 升级或替换后会拒绝加载，不会自动放宽检查。
 - 能力限于模板声明的原生任务与消息工具，不包含文件或 shell 工具。正向复用已有成员、冷恢复和复杂业务续接尚未实机验收。
 
 ## 一次性准备
 
 需要 Node.js 22 或更新版本、npm，以及一个**已经存在**的 Harness 根会话。准备好该会话准确的 `session-…` ID 和工作目录。会检查工作目录及父路径权限，共享可写目录会被拒绝；准备期间不要移动或替换目录。该会话的原生 Session policy 必须允许模板里的两条不同模型路由；模板或安装本插件都不会授予模型权限。
+
+**Session ID由用户提供，离线prepare不验证其存在或原生授权。** 这些条件仍由安装后的原生运行准入检查，准备成功不能替代它们。
 
 1. 下载通用 TGZ 并解压，进入解压得到的 `package` 目录。这个通用包不含任何用户会话绑定。尚未配置时，直接安装只会得到惰性的 launcher，不会创建成员。
 2. 复制 `examples/team-template.json` 为自己的模板，编辑两名成员的 `provider`、`model`、`persona_prompt`、启动 `prompt` 与 `native_tool_allowlist`。示例使用 Flash／Pro；实际可用性由原生配置和 policy 决定。
@@ -31,6 +33,8 @@ node scripts/prepare-launcher.mjs \
 
 只有准备命令以退出码 `0` 完成，且最终 `PREPARED.json` 的状态为 `PREPARED_FOR_OFFICIAL_INSTALL`，才能进入安装步骤。如果准备过程中报告部分完成，先按错误报告核对已创建的文件；不要仅凭某个文件存在就安装。不要覆盖、删除既有标记或盲目重跑。准备成功只证明本地文件与打包合同成立，不证明 Session 存在、模型已获授权或真实运行成功。
 
+`PARTIAL_PREPARATION`仅表示workspace已有本次创建的文件；其他失败也可能留下输出目录产物，始终核对报告中的`outputDir`与`createdWorkspacePaths`。目录检查不隔离恶意同UID进程；收据完整写入后的原子发布也不代表完整断电恢复保证。
+
 ## 安装与启动
 
 1. 在 Harness 官方插件管理器中，选择准备命令生成的**本地绑定 TGZ**。不要安装另一会话的绑定包。与其他任务共享 Desktop/profile 时，先协调操作窗口。
@@ -43,10 +47,10 @@ node scripts/prepare-launcher.mjs \
 
 ## 下载与隐私
 
-目标仓库为 [08mamba24/dsh-team-presets](https://github.com/08mamba24/dsh-team-presets)，目前是私有暂存仓库，尚未发布下载版本。公开分发只应包含通用包；`prepared-team` 中的绑定安装包、配置和收据，以及工作目录中的模板与标记，都属于本地会话产物。
+源码已推送到 [08mamba24/dsh-team-presets](https://github.com/08mamba24/dsh-team-presets)，[0.4.0-rc.1 私有候选下载](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.4.0-rc.1)已提供通用TGZ与SHA256SUMS。需要登录有仓库权限的GitHub账号；尚未公开发行。`prepared-team` 中的绑定安装包、配置和收据，以及工作目录中的模板与标记，都属于本地会话产物，不作为发行资产上传。
 
 不要上传 profile、凭据、原始会话日志或个人生成的绑定包。源码与发布树的审查、离线测试、真实运行验收分别记录，不能互相替代。
 
 ## 验证
 
-源码目录运行 `npm test`。测试覆盖离线准备、配置拒绝、打包入口及模拟 Host 下的运行守卫；测试不会代替真实 Harness／provider 验收。0.4.0-rc.1 的实际差分及安装包需经独立 Review 后才能升级为可用发行版。
+源码目录运行 `npm test`。测试覆盖离线准备、配置拒绝、打包入口及模拟 Host 下的运行守卫；测试不会代替真实 Harness／provider 验收。RC安装包保持送审时的冻结字节，包内README是当时快照；本仓库README与发行页记录后续1284裁定和下载状态，不改写已审TGZ。

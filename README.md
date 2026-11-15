@@ -2,7 +2,7 @@
 
 [中文安装与使用说明](README.zh-CN.md)
 
-Version 0.4.0-rc.1 is a distribution candidate adding an offline `dsh-team-prepare` command and an inert launcher as the generic bundle's default entry. It is not covered by the earlier 0.3.2 artifact verdict. The new setup validates an explicitly supplied existing Session/workspace and template, then prepares a local bound installation package without starting Harness, editing a profile or calling a model. See the Chinese setup guide for the installation sequence and current review status.
+Version 0.4.0-rc.1 adds an offline `dsh-team-prepare` command and an inert launcher as the generic bundle's default entry. Independent delta review1284 approved the exact source/package for offline preparation and PRIVATE candidate use; the author ran 193/193 offline tests. The reviewer checked the actual package and source, without executing Node tests. This candidate has not had a new native Harness installation or inference test. The new setup prepares a local bound package for a caller-supplied existing Session/workspace and template without starting Harness, editing a profile or calling a model. See the Chinese guide and [private candidate release](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.4.0-rc.1).
 
 Version 0.1.2 passed its first real one-child run and restoration in independent acceptance764. Version 0.2.3 passed the real two-model native Team workflow and restoration in independent acceptance991. Launcher 0.3.2 passed independent code/config review1149 and bounded live acceptance1183, against production commit `3bc81fbc34f0522cf0d126e4c92732d1fba8375b`. The original default entry, `./team` and `./launcher` remain separate.
 
@@ -10,14 +10,14 @@ Launcher acceptance covered first creation of a Flash implementer and Pro review
 
 ## Distribution and setup status (2026-11-15)
 
-The user authorized creation of [08mamba24/dsh-team-presets](https://github.com/08mamba24/dsh-team-presets), a private staging repository. No production GitHub Release or plugin-catalog download has been issued. The package remains `private: true`; no npm publication is intended.
+The sanitized source snapshot is pushed to [08mamba24/dsh-team-presets](https://github.com/08mamba24/dsh-team-presets), with a private prerelease containing only the generic TGZ and SHA256SUMS. No public, production or plugin-catalog release has been issued. The package remains `private: true`; no npm publication is intended. Upload authorization came from the user's continuation and repository-creation instructions, separately from the code-review verdict.
 
 - The 0.4.0-rc.1 generic bundle registers the launcher with empty, inert configuration. Installing it does not bind a Session or create members. The original one-child and pair exports remain available; older generic bundles selected the one-child entry.
 - The accepted bound TGZ targets one exact test Session and workspace. Its bindings cannot be reused as setup for another user's Session.
 - Launcher setup requires the pinned macOS Harness 0.2.2-rc.2 App and archive checksum, an existing root whose native Session policy permits both model routes, an explicit launcher configuration, and owned mode0600 template and marker files. The plugin does not create those files or grant native model authorization.
-- The new preparation path and package still need delta review and their own evidence before release. Any future runtime operation needs a fresh shared maintenance window. Only the generic package may be distributed; generated bound packages and their configuration remain local.
+- The new preparation path has passed delta review1284 and offline checks; native 0.4.0 acceptance remains pending. Any future runtime operation needs its own scope and a fresh shared maintenance window. Only the generic package is uploaded; generated bound packages and their configuration remain local.
 
-The archived 0.3.2 acceptance TGZ and receipts remain unchanged. This README now records the later verdict; repacking this working tree would produce a different artifact and would not inherit the archived TGZ's checksum or acceptance.
+The archived 0.3.2 acceptance TGZ and receipts remain unchanged. The released RC TGZ is also frozen at SHA256 `8cb6b24f7381798a7f6aa8b2fc41668400487c96b42f343b9fe5f65678dd6d69`. Its bundled docs reflect the submission snapshot; this repository README and the release page record the later verdict. Repacking after documentation updates produces different bytes and does not inherit that artifact's checksum or review binding.
 
 ## Accepted launcher (0.3.2; bounded first version)
 

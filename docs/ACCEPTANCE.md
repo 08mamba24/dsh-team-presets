@@ -18,6 +18,8 @@ Positive reuse, another paid continuation turn, cold recovery, complex business 
 
 ## Distribution candidate
 
-Version 0.4.0-rc.1 adds offline preparation and changes the generic bundle to an inert launcher entry. It has its own source and package bytes. It must pass delta review and the relevant offline checks before release; it does not inherit the old artifact's checksum or runtime verdict.
+Version 0.4.0-rc.1 adds offline preparation and changes the generic bundle to an inert launcher entry. Independent delta review1284 approved source `8c0bec21946edd2cb60341216e72550405fe34dd` and generic TGZ SHA256 `8cb6b24f7381798a7f6aa8b2fc41668400487c96b42f343b9fe5f65678dd6d69` for offline preparation and PRIVATE candidate scope. The reviewer reconstructed the 128399-byte evidence submission and checked actual package/source bytes; it did not execute the requested Node tests. The author's full offline suite passed 193/193, with separate extraction/prepare smoke. No new native installation or inference was performed. These facts do not inherit or expand the older runtime verdicts.
+
+The private prerelease is available at [v0.4.0-rc.1](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.4.0-rc.1). Its source tag is a sanitized standalone snapshot whose tree equals the reviewed plugin subtree; it has no monorepo ancestry. Upload authority came from the user's separate continuation/repository instructions. The frozen package includes submission-time documentation; repository docs and release notes carry the later verdict without replacing the approved artifact.
 
 Only generic source/package files belong in a download release. Local bound packages, configuration receipts, owned workspace markers, raw session logs and profiles are excluded. A preparation receipt proves local validation and packaging, not native Session existence, policy authorization or model execution.
