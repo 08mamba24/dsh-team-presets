@@ -1,5 +1,5 @@
 import { LiveError, fail } from './config.js';
-import { parseLauncherConfig, readLauncherTemplate, assertLauncherOwned } from './launcher-config.js';
+import { parseLauncherConfig, readLauncherTemplate, assertLauncherOwned, validateLauncherTemplate } from './launcher-config.js';
 import { launcherTemplateFingerprint } from './launcher-template.js';
 import { planLauncherMembers } from './launcher-plan.js';
 import { observeLauncherMembers, registerLauncherPresets, makeLauncherSpawnCall, parseLauncherSpawnBatch } from './launcher-native.js';
@@ -40,7 +40,11 @@ function startupPrompt(member, op, template) {
 }
 
 /** Startup operations use native catalog/tasks only. Snapshots below grant cleanup authority, not member identity. */
-export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry) {
+export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry, currentBinding) {
+  if (rawConfig?.mode === 'current-session') {
+    const { applyCurrentLauncher } = await import('./launcher-current.js');
+    return applyCurrentLauncher(ctx, rawConfig, nativeSubagent, controlEntry);
+  }
   const config = parseLauncherConfig(rawConfig);
   if (!config) {
     ctx.commands.register({ name: 'dsh-team-launcher', description: 'Unconfigured native team launcher',
@@ -50,12 +54,16 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
   }
   if (typeof nativeSubagent?.apply !== 'function' || typeof ctx.on !== 'function' || typeof ctx.effect !== 'function'
     || typeof ctx.sessionProjections?.stateOf !== 'function' || typeof ctx.agentPresets?.composedPreset !== 'function'
-    || typeof ctx.subagents?.interrupt !== 'function'
+    || typeof ctx.subagents?.interrupt !== 'function' || typeof ctx.workingDirectory?.get !== 'function'
     || ['isEnabled', 'setEnabled', 'createTask', 'getTask', 'listTasks'].some(key => typeof ctx.agentTeams?.[key] !== 'function')) {
     fail('HOST_CONTRACT_UNAVAILABLE');
   }
   let closing = false, active, restoreAuthority, template, fingerprint;
   let presetDisposers = [];
+  const loadTemplate = () => currentBinding
+    ? validateLauncherTemplate(currentBinding.template) : readLauncherTemplate(config);
+  const assertOwned = agent => currentBinding
+    ? currentBinding.assertOwned(agent) : assertLauncherOwned(ctx, config, agent);
   const setup = deferred();
   const stop = (op, reason) => {
     if (!op) return;
@@ -83,14 +91,15 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     if (op.failure) fail(op.failure);
     if (ctx.agents.get(config.ownedSessionId) !== op.agent || op.agent.id !== config.ownedSessionId
       || op.agent.session?.id !== config.ownedSessionId || op.agent.session.header?.origin === 'subagent') fail('WRONG_AGENT');
-    if (op.agent.session.header?.cwd !== config.workspace) fail('WRONG_WORKSPACE');
+    if (currentBinding) currentBinding.assertOwned(op.agent);
+    else if (op.agent.session.header?.cwd !== config.workspace) fail('WRONG_WORKSPACE');
   };
   function liveChildMatches(op, record, status) {
     try {
       const live = ctx.agents.get(record.id), member = op.members[record.role], route = op.controls.roles[record.role].route;
       return !!live && live === record.agent && live.status === status
         && live.id === record.id && live.session?.id === record.id && live.session.header?.origin === 'subagent'
-        && live.session.header.parentSession === config.ownedSessionId && live.session.header.cwd === config.workspace
+        && live.session.header.parentSession === config.ownedSessionId && ctx.workingDirectory.get(live.session) === config.workspace
         && ctx.agentPresets.composedPreset(live.ctx) === member.agentPreset
         && live.model.current()?.provider === route.provider && live.model.current()?.model === route.model
         && live.model.current()?.reasoningEffort === route.reasoningEffort && live.options?.maxTokens === 1024;
@@ -100,7 +109,8 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     const original = record.agent, live = ctx.agents.get(record.id);
     return record.ended === true && original?.status === 'idle' && original.id === record.id
       && original.session?.id === record.id && original.session.header?.origin === 'subagent'
-      && original.session.header.parentSession === rootId && original.session.header.cwd === config.workspace
+      && original.session.header.parentSession === rootId
+      // A directory is mutable runtime configuration; it cannot invalidate exact run-end and idle evidence.
       // Native natural settlement unregisters its Agent before publishing the exact end event.
       && (live === undefined || live === original && live.status === 'idle');
   }
@@ -146,7 +156,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
   }
   ctx.effect(function* () { yield unload; });
   try {
-    template = await readLauncherTemplate(config);
+    template = await loadTemplate();
     if (closing) fail('UNLOADING');
     fingerprint = launcherTemplateFingerprint(template);
     presetDisposers = await registerLauncherPresets(ctx, config, template, controlEntry);
@@ -333,7 +343,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
         op.gate.track(role, info.id);
         if (!child || child.id !== info.id || child.session?.id !== info.id
           || child.session.header?.origin !== 'subagent' || child.session.header.parentSession !== config.ownedSessionId
-          || child.session.header.cwd !== config.workspace
+          || ctx.workingDirectory.get(child.session) !== config.workspace
           || ctx.agentPresets.composedPreset(child.ctx) !== member.agentPreset
           || child.model.current()?.provider !== route.provider || child.model.current()?.model !== route.model
           || child.model.current()?.reasoningEffort !== route.reasoningEffort || child.options?.maxTokens !== 1024
@@ -471,7 +481,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
           await mounted; assertCurrent(op, op.signal);
           await preflightTeam(op.controls, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'), ctx.llm, op.signal);
           assertCurrent(op, op.signal);
-          await assertLauncherOwned(ctx, config, agent); assertCurrent(op, op.signal);
+          await assertOwned(agent); assertCurrent(op, op.signal);
           authorizeTeam(op.controls, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'));
           toolSet = await agent.ctx.tools.resolve({ agent, modelSelection: agent.model.current(), signal: op.signal });
           assertCurrent(op, op.signal);
@@ -639,9 +649,9 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       const command = rawInput?.trim();
       if (!['plan', 'launch', 'restore'].includes(command) || !Array.isArray(attachments) || attachments.length) fail('USAGE_PLAN_LAUNCH_RESTORE_ONLY');
       if (active) fail('BUSY');
-      await assertLauncherOwned(ctx, config, agent);
+      await assertOwned(agent);
       if (closing) fail('UNLOADING'); signal.throwIfAborted(); if (active) fail('BUSY');
-      const fresh = await readLauncherTemplate(config);
+      const fresh = await loadTemplate();
       if (closing) fail('UNLOADING'); signal.throwIfAborted(); if (active) fail('BUSY');
       if (launcherTemplateFingerprint(fresh) !== fingerprint) fail('LAUNCHER_TEMPLATE_CHANGED');
       op = { agent, command, controller: new AbortController(), children: {}, tasks: new Map(), confirmed: new Map(),
@@ -683,6 +693,10 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
         reconciliationReasons: op?.reconciliationReasons ?? [], teamModeRestored: op?.teamModeRestored === true,
         interruptFailed: op?.interruptFailed === true, stopFurtherMutation: true, noAutomaticRetry: true }) };
     }
+  }
+  if (currentBinding) {
+    currentBinding.capture(handler);
+    return;
   }
   const unregister = ctx.commands.register({ name: 'dsh-team-launcher', description: 'Plan, launch or restore an owned native team',
     input: { hint: 'plan | launch | restore', attachments: false }, handler });

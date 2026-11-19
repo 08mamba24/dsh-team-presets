@@ -20,6 +20,8 @@ const emit = (hooks, name, ...values) => { for (const fn of hooks.get(name) ?? [
 /** Bounded synthetic native contracts, never an Electron/provider/session-persistence implementation. */
 export async function launcherHost(t, applyLauncher, options = {}) {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'dsh-launcher-host-')));
+  let effectiveWorkspace = workspace;
+  const childWorkspaces = new Map();
   const template = {
     template_schema: 'dsh-team-template/1', template_meta: { live_verified: false }, version: 1,
     name: 'owned-launcher-test', members: ROLES.map((role, index) => ({
@@ -34,7 +36,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     ],
   };
   const bytes = JSON.stringify(template);
-  const config = { mode: 'launcher', ownedSessionId: 'session-11111111-1111-4111-8111-111111111111', workspace,
+  const config = { mode: 'launcher', ownedSessionId: options.sessionId ?? 'session-11111111-1111-4111-8111-111111111111', workspace,
     runTag: 'launcher-owned-test', timeoutMs: options.hang ? 25 : 3000,
     templateSha256: createHash('sha256').update(bytes).digest('hex'),
     startup: { maxTokens: 1024, maxStreams: { implementer: 8, reviewer: 7 } } };
@@ -274,11 +276,14 @@ export async function launcherHost(t, applyLauncher, options = {}) {
 
   async function spawn(input) {
     assert.equal(input.agent, root); assert.equal(input.calls.length, 1);
-    const call = input.calls[0], args = JSON.parse(call.arguments), member = template.members.find(row => row.name === args.name);
+    const call = input.calls[0], args = JSON.parse(call.arguments), original = template.members.find(row => row.name === args.name);
+    const member = options.sessionScopedPresets ? { ...original, agent_preset: args.agent_preset } : original;
     assert.equal(call.name, 'dsh_team_launcher_spawn'); assert.ok(member);
-    assert.deepEqual([...mount.spec.allowedAgentPresets].sort(), template.members.map(row => row.agent_preset).sort());
+    const presetIds = options.sessionScopedPresets ? [...presets.keys()] : template.members.map(row => row.agent_preset);
+    assert.deepEqual([...mount.spec.allowedAgentPresets].sort(), presetIds.sort());
     assert.equal(args.provider, member.provider); assert.equal(args.model, member.model); assert.equal(args.reasoning_effort, 'low');
-    assert.equal(args.agent_preset, member.agent_preset); assert.equal(args.cwd, workspace);
+    assert.equal(args.agent_preset, member.agent_preset);
+    assert.equal(args.cwd, options.sessionScopedPresets ? effectiveWorkspace : workspace);
     assert.ok(args.prompt.includes(member.prompt)); assert.ok(!args.prompt.includes(member.persona_prompt));
     assert.ok(preflights.some(route => route.model === 'deepseek-flash') && preflights.some(route => route.model === 'deepseek-v4-pro'));
     if (options.unauthorized) throw nativeError('SESSION_ROUTE_NOT_AUTHORIZED');
@@ -293,7 +298,8 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     const id = `22222222-2222-4222-8222-${String(spawnAttempts).padStart(12, '0')}`;
     const agent = child.agent = { id, status: 'running', options: { maxTokens: mount.spec.agentOptions.maxTokens },
       async whenIdle() { order.push(`whenIdle-first:${member.name}`); await child.idle.promise; },
-      session: { id, header: { origin: 'subagent', parentSession: root.id, cwd: workspace, agentPreset: member.agent_preset } },
+      // rc.2 inherits the initial project in metadata, then commits the requested effective cwd separately.
+      session: { id, header: { origin: 'subagent', parentSession: root.id, cwd: root.session.header.cwd, agentPreset: member.agent_preset } },
       model: { current: () => child.route }, inbox: { nextStep: [], nextTurn: [] }, ctx: { preset: member.agent_preset,
         on: (name, fn) => listen(localHooks, name, fn), tools: {
           restrict(filter) {
@@ -337,6 +343,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
         startNewWork([...children.values()].find(row => row.role === 'reviewer'), options.replaceAfterEnd === true, 'external-continuation');
       }
     };
+    childWorkspaces.set(id, options.childWorkspaceDrift ? join(args.cwd, 'unexpected-child-directory') : args.cwd);
     agents.set(id, agent); children.set(id, child); child.published = true;
     catalog.set(id, { kind: 'child', id, parentId: root.id, depth: 1, hasChildren: false, mode: 'continuable',
       activity: 'running', name: member.name, path: member.name, label: args.description });
@@ -359,6 +366,11 @@ export async function launcherHost(t, applyLauncher, options = {}) {
   };
   const nativeSubagent = { apply() {} };
   const ctx = {
+    plugin(module) { return Promise.resolve(module.apply(ctx)); },
+    workingDirectory: {
+      get(session) { return session.id === root.id ? effectiveWorkspace : childWorkspaces.get(session.id) ?? session.header.cwd; },
+      async set(agent, cwd) { assert.equal(agent, root); effectiveWorkspace = cwd; return cwd; },
+    },
     agents: { get: id => agents.get(id) }, agentTeams: board,
     sessionProjections: { stateOf(_session, key) {
       if (key === 'agentTeam') return { ...(enabled ? { enabled: true } : options.rawEnabledMissing ? {} : { enabled: false }),
@@ -415,7 +427,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     requestChildStream: id => providerStep(children.get(id)),
     emitWrongRunEnd(id) { emit(hooks, 'subagent/end', { parentSessionId: root.id, id, runId: 'wrong-run',
       provider: 'spawn', local: true, stopReason: 'aborted' }); },
-    invoke: (command, extra = {}) => commands.get('dsh-team-launcher').handler({ agent: root, rawInput: command,
+    invoke: (command, extra = {}) => commands.get(options.commandName ?? 'dsh-team-launcher').handler({ agent: root, rawInput: command,
       attachments: [], signal: new AbortController().signal, ...extra }),
     counts: () => ({ spawnAttempts, wakeCalls, taskCreates: writes.filter(write => write.kind === 'create').length,
       modeWrites: writes.filter(write => write.kind === 'mode').length, providerCalls: providerCalls.length }),

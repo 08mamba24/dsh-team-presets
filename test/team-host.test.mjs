@@ -11,6 +11,7 @@ import { nativeTeamFromHost } from '../src/team-host.js';
 
 const archive = '/Applications/DeepSeek Harness.app/Contents/Resources/app.asar';
 const pin = '1535941c163698d68a0cf45dd06e1ce1a18a308108d9b84076074f35a6e9c39d';
+const rc5Pin = '6f019878f523428f452957dbaad601c6468051df4093eda8af751ec65226f88e';
 const control = '@deepseek-ai/dsh-tool-subagent-control';
 const controlRoot = `${archive}/dsh/node_modules/${control}`;
 
@@ -94,6 +95,20 @@ test('the original ASAR and subagent-version guards run before any control resol
       assert.equal(stats.controlMetadataReads, 0);
     });
   }
+});
+
+test('rc.5 loads the matching public native control entry', async t => {
+  const stats = await fixture(t, { archiveDigest: rc5Pin,
+    subagentVersion: '0.2.2-rc.5', controlVersion: '0.2.2-rc.5' });
+  const result = await nativeTeamFromHost();
+  assert.equal(typeof result.nativeSubagent.apply, 'function');
+  assert.equal(result.controlEntry.name, pathToFileURL(`${controlRoot}/lib/index.js`).href);
+  assert.equal(stats.controlMetadataReads, 1);
+});
+
+test('rc.5 refuses an rc.2 control package even though that version is supported on its own archive', async t => {
+  await fixture(t, { archiveDigest: rc5Pin, subagentVersion: '0.2.2-rc.5' });
+  await assert.rejects(nativeTeamFromHost(), /WRONG_CONTROL_HOST_VERSION/);
 });
 
 test('outside, traversing or mismatched public paths refuse before control metadata reads', async t => {

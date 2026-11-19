@@ -106,6 +106,11 @@ export async function readLauncherTemplate(rawConfig) {
   let raw;
   try { raw = JSON.parse(bytes.toString('utf8')); }
   catch { fail('INVALID_LAUNCHER_TEMPLATE_JSON'); }
+  return validateLauncherTemplate(raw);
+}
+
+/** The same role and route restrictions apply to file-bound and current-session templates. */
+export function validateLauncherTemplate(raw) {
   const template = parseLauncherTemplate(raw);
   if (template.members.length !== 2 || ROLES.some(role => !template.members.some(member => member.name === role))) {
     fail('LAUNCHER_EXACT_ROLES_REQUIRED');

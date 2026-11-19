@@ -3,9 +3,9 @@ import { readFile } from 'node:fs/promises';
 import { dirname, isAbsolute, join, normalize } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { fail } from './config.js';
-import { nativeSubagentFromHost } from './host.js';
+import { nativeHostFromApp } from './host.js';
+import { HOST_ARCHIVE as ARCHIVE } from './host-support.js';
 
-const ARCHIVE = '/Applications/DeepSeek Harness.app/Contents/Resources/app.asar';
 const HOST_MODULES = `${ARCHIVE}/dsh/node_modules/`;
 const CONTROL = '@deepseek-ai/dsh-tool-subagent-control';
 
@@ -18,7 +18,7 @@ function assertControlPath(path, suffix) {
 
 /** M2-only native control entry; reuse the accepted Host guard before any new resolution. */
 export async function nativeTeamFromHost() {
-  const nativeSubagent = await nativeSubagentFromHost();
+  const { nativeSubagent, version } = await nativeHostFromApp();
   const host = createRequire(`${ARCHIVE}/dsh/package.json`);
   const metadataPath = host.resolve(`${CONTROL}/package.json`);
   const entryPath = host.resolve(CONTROL);
@@ -29,7 +29,7 @@ export async function nativeTeamFromHost() {
   try { metadata = JSON.parse(await readFile(metadataPath, 'utf8')); }
   catch { fail('CONTROL_PACKAGE_METADATA_INVALID'); }
   if (metadata?.name !== CONTROL) fail('WRONG_CONTROL_PACKAGE');
-  if (metadata.version !== '0.2.2-rc.2') fail('WRONG_CONTROL_HOST_VERSION');
+  if (metadata.version !== version) fail('WRONG_CONTROL_HOST_VERSION');
   return Object.freeze({ nativeSubagent, controlEntry: Object.freeze({
     name: pathToFileURL(entryPath).href, config: Object.freeze({ interrupt: false }),
   }) });

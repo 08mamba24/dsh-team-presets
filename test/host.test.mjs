@@ -10,6 +10,7 @@ import { nativeSubagentFromHost } from '../src/host.js';
 
 const archive = '/Applications/DeepSeek Harness.app/Contents/Resources/app.asar';
 const pin = '1535941c163698d68a0cf45dd06e1ce1a18a308108d9b84076074f35a6e9c39d';
+const rc5Pin = '6f019878f523428f452957dbaad601c6468051df4093eda8af751ec65226f88e';
 
 // Synthetic Electron filesystem contract; never starts Electron or reads the installed App.
 async function hostFixture(t, { digest = pin, version = '0.2.2-rc.2' } = {}) {
@@ -70,6 +71,18 @@ test('a changed raw archive is refused before resolving a native package', async
   const stats = await hostFixture(t, { digest: '0'.repeat(64) });
   await assert.rejects(nativeSubagentFromHost(), /HOST_ARCHIVE_CHANGED/);
   assert.deepEqual(stats(), { virtualReads: 0, rawReads: 1, metadataResolutions: 0, entryResolutions: 0 });
+});
+
+test('the reviewed rc.5 archive loads its matching native package', async t => {
+  const stats = await hostFixture(t, { digest: rc5Pin, version: '0.2.2-rc.5' });
+  assert.equal(typeof (await nativeSubagentFromHost()).apply, 'function');
+  assert.equal(stats().entryResolutions, 1);
+});
+
+test('an rc.5 version cannot borrow the reviewed rc.2 archive identity', async t => {
+  const stats = await hostFixture(t, { version: '0.2.2-rc.5' });
+  await assert.rejects(nativeSubagentFromHost(), /WRONG_HOST_VERSION/);
+  assert.equal(stats().entryResolutions, 0);
 });
 
 test('native package version remains checked after reading the raw pinned archive', async t => {

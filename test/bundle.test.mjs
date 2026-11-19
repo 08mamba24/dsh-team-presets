@@ -28,7 +28,7 @@ test('the actual TGZ patch inserts one complete live entry without changing exis
   t.after(() => rm(scratch, { recursive: true, force: true }));
   let tgz = process.env.DSH_LIVE_CANDIDATE_TGZ;
   const generic = !tgz;
-  let expected = {};
+  let expected = { mode: 'current-session' };
   if (tgz) {
     assert.ok(process.env.DSH_LIVE_EXPECTED_CONFIG, 'a bound TGZ requires its independent expected config');
     expected = JSON.parse(await readFile(process.env.DSH_LIVE_EXPECTED_CONFIG, 'utf8'));
@@ -52,9 +52,9 @@ test('the actual TGZ patch inserts one complete live entry without changing exis
     { id: 'dsh-native-team-smoke-zero', name: 'dsh-team-smoke-rc2-local', config: { mode: 'dry-run' } },
     { id: 'unrelated-existing-entry', name: 'fixture', config: { nested: { keep: [1, 2] } } },
   ] }];
-  const entryId = generic || expected.mode === 'launcher' ? 'dsh-native-team-launcher'
+  const entryId = generic ? 'dsh-native-current-team' : expected.mode === 'launcher' ? 'dsh-native-team-launcher'
     : expected.mode === 'team' ? 'dsh-native-team-live-pair' : 'dsh-native-subagent-live-one';
-  const entryName = generic || expected.mode === 'launcher' ? 'dsh-subagent-live-rc2-local/launcher'
+  const entryName = generic ? 'dsh-subagent-live-rc2-local/current' : expected.mode === 'launcher' ? 'dsh-subagent-live-rc2-local/launcher'
     : expected.mode === 'team' ? 'dsh-subagent-live-rc2-local/team' : 'dsh-subagent-live-rc2-local';
   const original = structuredClone(baseline), warnings = [];
   const before = composeEntries([baseline]);
@@ -90,8 +90,9 @@ test('the actual TGZ patch inserts one complete live entry without changing exis
       assert.ok(payload.length > 0, `missing launcher payload: ${path}`);
     }
     if (generic) {
+      assert.equal(manifest.exports['./current'], './current-entry.js');
       assert.equal(manifest.bin['dsh-team-prepare'], './scripts/prepare-launcher.mjs');
-      for (const path of ['scripts/prepare-launcher.mjs', 'src/launcher-prepare.js', 'examples/team-template.json', 'README.zh-CN.md']) {
+      for (const path of ['current-entry.js', 'src/launcher-current.js', 'scripts/prepare-launcher.mjs', 'src/launcher-prepare.js', 'examples/team-template.json', 'README.zh-CN.md']) {
         const { stdout: payload } = await exec('tar', ['-xOzf', tgz, `package/${path}`]);
         assert.ok(payload.length > 0, `missing setup payload: ${path}`);
       }

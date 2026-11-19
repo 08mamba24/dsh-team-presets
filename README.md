@@ -1,111 +1,84 @@
-# Native role presets and team launcher (rc.2)
+# Native role presets and team launcher
+
+Create an implementer and a reviewer in the current DeepSeek Harness root session, with separate model routes, persistent role prompts, and native task/message tools.
+
+**Current release: 0.5.0-rc.2.** Independent live review on 2026-11-19 accepted first launch, two-member task collaboration, and duplicate-launch protection on macOS Harness 0.2.2-rc.5. The source/package support matrix contains the inspected rc.2 and rc.5 archives; this release's current-session live evidence comes from rc.5. See [acceptance and limits](docs/ACCEPTANCE.md).
 
 [中文安装与使用说明](README.zh-CN.md)
 
-Version 0.4.0-rc.1 adds an offline `dsh-team-prepare` command and an inert launcher as the generic bundle's default entry. Independent delta review1284 approved the exact source/package for offline preparation and PRIVATE candidate use; the author ran 193/193 offline tests. The reviewer checked the actual package and source, without executing Node tests. This candidate has not had a new native Harness installation or inference test. The new setup prepares a local bound package for a caller-supplied existing Session/workspace and template without starting Harness, editing a profile or calling a model. See the Chinese guide and [private candidate release](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.4.0-rc.1).
+## Install and launch
 
-Version 0.1.2 passed its first real one-child run and restoration in independent acceptance764. Version 0.2.3 passed the real two-model native Team workflow and restoration in independent acceptance991. Launcher 0.3.2 passed independent code/config review1149 and bounded live acceptance1183, against production commit `3bc81fbc34f0522cf0d126e4c92732d1fba8375b`. The original default entry, `./team` and `./launcher` remain separate.
+Download the generic TGZ and `SHA256SUMS` from the [private v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2). Repository access requires an authorized GitHub account. This package is not published to npm or a plugin marketplace.
 
-Launcher acceptance covered first creation of a Flash implementer and Pro reviewer with distinct client routes, persistent role prompts and role-specific native tools; both initial turns settled. Repeating launch reported a conflict without creating or waking another member. Explicit restore and official normal uninstall restored the prior environment. Positive reuse, another paid continuation turn, cold recovery, complex business work and all partial-failure recovery paths were not live-accepted. See [acceptance scope](docs/ACCEPTANCE.md) for the verdict and evidence boundary.
+```text
+d36abb42f68c9c2a179aebf797233f94e0c44ad900ead86dbf5787a90708d3dc  dsh-subagent-live-rc2-local-0.5.0-rc.2.tgz
+```
 
-## Distribution and setup status (2026-11-15)
+Install the complete generic TGZ through the native plugin manager. Its default entry uses the invoking session, so no Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not the rc.5 installation target.
 
-The sanitized source snapshot is pushed to [08mamba24/dsh-team-presets](https://github.com/08mamba24/dsh-team-presets), with a private prerelease containing only the generic TGZ and SHA256SUMS. No public, production or plugin-catalog release has been issued. The package remains `private: true`; no npm publication is intended. Upload authorization came from the user's continuation and repository-creation instructions, separately from the code-review verdict.
+The release asset retains the exact reviewed and live-tested bytes. Its bundled README is the submission-time snapshot; repository docs and release notes provide the current instructions without repacking the accepted artifact.
 
-- The 0.4.0-rc.1 generic bundle registers the launcher with empty, inert configuration. Installing it does not bind a Session or create members. The original one-child and pair exports remain available; older generic bundles selected the one-child entry.
-- The accepted bound TGZ targets one exact test Session and workspace. Its bindings cannot be reused as setup for another user's Session.
-- Launcher setup requires the pinned macOS Harness 0.2.2-rc.2 App and archive checksum, an existing root whose native Session policy permits both model routes, an explicit launcher configuration, and owned mode0600 template and marker files. The plugin does not create those files or grant native model authorization.
-- The new preparation path has passed delta review1284 and offline checks; native 0.4.0 acceptance remains pending. Any future runtime operation needs its own scope and a fresh shared maintenance window. Only the generic package is uploaded; generated bound packages and their configuration remain local.
+Enable native Agent model selection and allow both default routes:
 
-The archived 0.3.2 acceptance TGZ and receipts remain unchanged. The released RC TGZ is also frozen at SHA256 `8cb6b24f7381798a7f6aa8b2fc41668400487c96b42f343b9fe5f65678dd6d69`. Its bundled docs reflect the submission snapshot; this repository README and the release page record the later verdict. Repacking after documentation updates produces different bytes and does not inherit that artifact's checksum or review binding.
+| Role | Client route | Native tools |
+| --- | --- | --- |
+| implementer | `deepseek-account/deepseek-flash` | `team_task_get`, `team_task_update`, `send_message` |
+| reviewer | `deepseek-account/deepseek-v4-pro` | `team_task_get`, `team_task_update`, `wait_agent` |
 
-## Accepted launcher (0.3.2; bounded first version)
+Create a new root session after saving the selection. Existing sessions keep their durable policy; changing a global preference does not retroactively authorize them. The plugin checks that native policy and never grants model permissions. An official-provider Pro entry labelled as routing to Flash is not a substitute for account/Pro. Client route evidence does not establish backend model weights or billing. Keep the selected routes if you intend to continue using them; reverting temporary preferences is a separate settings operation.
 
-The exported `./launcher` entry registers `/dsh-team-launcher`. It loads a pinned, owned `.dsh-team-template.json` from the configured workspace. Each role has an explicit provider/model, a one-time startup `prompt`, a persistent `persona_prompt` kept as literal text, and its own `native_tool_allowlist`. The first version supports the two names `implementer` and `reviewer`, low effort and maxTokens1024. The available capability names are the four native Team/message tools already verified on the pinned App. File and shell tools are outside this template's current capability set.
+In the target root, run:
 
-| Command | Behavior |
-| --- | --- |
-| `plan` | Reads the native catalog and observable live fields; creates and wakes no member. |
-| `launch` | Creates both roles only when the complete native catalog shows both names absent. Seeds optional native tasks and waits for the initial turns to settle. |
-| `restore` | Restores the previous Team mode only with confirmed child settlement, no active replacement and an unchanged full raw board. Sessions and tasks remain. |
+```text
+/dsh-team plan
+```
 
-Existing members with unknown or changed configuration produce a conflict with their IDs and the unverified fields. The pinned public API cannot narrowly read a current persona section, so this launcher does **not** automatically reuse an existing member or resend its startup prompt. It reports a conflict with zero new members and zero extra wakes. A template fingerprint or matching Preset ID is not substituted for current persona evidence. Anonymous foreign members and valid foreign descendants remain untouched.
+Check each role's create/conflict decision. Read model routes from the configured template and the working directory from the native session; plan does not output those values or verify model authorization. Launch performs the native policy and route-resolution admission checks. Planning makes no model call and creates or wakes no member. The initial binding uses the native effective working directory; changing that directory afterward refuses launch until you return to the planned directory.
 
-Role Presets use the original App's native control module and remain registered after startup, so native member continuation can use the role configuration while the plugin stays installed. Optional seed tasks may remain pending or in progress after startup; launching the team does not require finishing a business task. Startup task writes are limited to the new tasks assigned to that role, with native revisions and native approval retained.
+Then run:
 
-The stream and task guards apply to the initial launch operation. They drain before removal; they do not quarantine the root for the plugin's lifetime. Later native continuation uses the configured role capabilities and native policy. Successful launch keeps Team mode enabled for that work. The explicit `restore` command checks its cleanup authority before restoring the prior mode; concurrent or uncertain state is reported without a compensating write. Timeout, cancellation and unload close new startup admission before interrupting only the exact new children, and retain the guard until their actual operations settle.
+```text
+/dsh-team launch
+```
 
-Cleanup compares the entire native Team projection, including deleted records, the next task number and metadata. Only confirmed writes by this operation advance its expected state. Startup messages require the exact peer to remain active before and after native approval. A later native message-body race is tracked and drained rather than treated as a successful startup. The pinned native manager disposes and unregisters a local Agent before publishing its final end event, so confirmed settlement can normally leave no live registry entry. That absence is cleanup evidence only; it proves no current persona or route. Startup hooks and their drain barrier share one native effect group so ordinary unload retains the hooks until drain completes.
+Launch invokes the models and creates two ready role members. Seed tasks remain pending until you assign work. Each root receives its own scoped role Presets, so one installation serves multiple roots.
 
-Configuration binds an existing root/workspace, a template SHA256, timeout and per-role startup stream limits. The separate `.dsh-team-launcher.json` marker and template must already exist as owned regular files, mode0600; this module never creates them or edits native policy, daily model defaults or the Host allowlist. Template metadata grants no authorization or budget. All runtime installation and validation still require the actual delta review and a fresh shared maintenance window.
+A repeated launch with existing names can return `LAUNCHER_MEMBER_CONFLICT`. The accepted test retained the original members/tasks and created no member, wake, or model step during that command's observation window. This is conservative duplicate rejection; equivalent-member reuse has not been accepted.
 
-Both generic and bound `cordis.patch.yml` files must contain a top-level array of loader patch entries. The official installer validates this shape before activation; a composition-only check cannot replace that entry check. A rejected installation consumes that attempt and must be reconciled before any newly reviewed attempt.
+Command results may appear in expandable command records. The first result's delayed display remains unresolved. Inspect the command record/trace before submitting a greeting or another launch as a diagnostic.
 
-## Accepted pair workflow (0.2.3)
+## Assign work and preserve dependencies
 
-The accepted pair entry used two role-specific AgentPresets and the original native subagent executor. Its one approved 0.2.3 invocation completed implementation/review tasks and a native peer handoff, then restored Team mode and the profile through official uninstall. It does not add a task store. The consumed validation scope must not be replayed. Earlier 0.2.1 and 0.2.2 failures, including their tasks and partial Session, remain in the receipts. `/dsh-team-live run-pair` is distinct from the one-child and launcher commands.
+The default roles have task-board and messaging tools, with no file or shell capability. Assign the executable implementation task first. The implementer writes evidence, completes it, then sends the reviewer the actual task IDs. The reviewer reads the completed prerequisite, keeps the dependency edge, claims the now-unblocked review task, independently verifies it, and writes the result. A rejected tool operation should stop the flow and be reported.
 
-The planned client routes are `deepseek-account/deepseek-flash` and `deepseek-account/deepseek-v4-pro`, both listed by the authenticated native UI. The official-provider Pro entry is labelled as a Flash alias and is excluded. Native resolution and the new root's real durable policy must still accept both routes; a menu listing does not prove provider execution or server weights.
+The live test completed `17 × 23 = 391`, direct peer handoff, and independent verification by another method. It also exposed a P2 orchestration deviation: after a blocked assignment, Lead briefly cleared and restored a dependency instead of stopping. Core collaboration passed; strict instruction compliance did not. The clarified workflow above has not had a separate live rerun.
 
-Tool-driven collaboration needs several model steps. The candidate therefore limits the implementer to six ordinary stream admissions and the reviewer to five, each with low effort and maxTokens1024. These are request/output ceilings, not a total-token or monetary cap. Auxiliary requests, causal mismatches, changed routes and unexpected tools are refused. No automatic retry is added.
+## Configure, restore, and upgrade
 
-The actual child tool set is limited to `team_task_get`, `team_task_update`, `send_message` and `wait_agent`. Child-scoped `tools/pre-execute` checks reserve a call once and continue through the remaining native policy. The public monotonic `tools.guard` checks its operation, board and task prerequisites again after native approval, before dispatch; it cannot grant permission or override native deny/ask. Native task CAS remains the write authority; this is not an atomic board lock across arbitrary middleware waits. No task store or messaging implementation replaces the native services. Task-list access, deletion and lead messages are refused.
+The optional component `template` takes a complete object in the format of [examples/team-template.json](examples/team-template.json). Configure the roles' routes, persona prompts, startup prompts, and native tool allowlists there. `timeoutMs` and per-role `maxStreams` bound startup; the default is one ordinary stream per role, configurable from 1 to 12. Native policy and tool permissions remain authoritative.
 
-Restoration independently compares confirmed task state, including after invalid model output. Concurrent board/mode/ownership changes and uncertain persistence stop further Team-mode writes and report the remaining state for reconciliation. Timeout, cancellation, unloading and terminal failure synchronously close both roles' future stream admission before attempting interruption. Existing requests and the exact child lifecycles still drain under retained guards; settled children and their tasks remain as evidence.
+Startup uses low effort and `maxTokens=1024`. These are startup request limits, not lifetime, total-token, or monetary caps. The observed later task and introduction turns used native continuation configuration with `maxTokens=256000`.
 
-The native task-board read service requires Team mode to be enabled. Before enabling it, the driver copies the public raw Team projection's task state, excluding deleted records. It compares that baseline with normalized native task views after the enable flush, so a concurrent task change during the await is detected rather than adopted as the baseline. Raw projection state is never mutated.
+```text
+/dsh-team restore
+```
 
-The custom role Presets need the original App's native subagent-control module for messaging and waiting; they do not automatically inherit the standard Preset. The pair entry resolves that module's public export under the existing App archive and version checks, and declares it in each Preset with `interrupt:false`. Native Preset mounting settles the declared tree before the role restricts capabilities. The prepared request must still expose only the same four approved tools. No external dependency or Host setting is added.
+Restore can return Team mode to its pre-launch value only while the original operation retains restoration authority, the root has no queued input, the original root and members are idle and unreplaced, and the entire task board is unchanged from the end of startup. Ordinary task writeback changes revisions, status, or descriptions and can cause RESTORE_BOARD_CONFLICT; child changes can refuse even earlier. A completed business task therefore does not imply that restore will succeed. On refusal, retain the current Team mode and evidence and stop automatic compensation; do not clear tasks, rewrite dependencies, or replay work to force restoration. The command preserves members and tasks. After plugin/Host reload, run `plan` in the original root to reconstruct Preset registrations before resuming old members. This does not restore prior in-memory restoration authority. Full cold recovery, positive member reuse, automatic Lead wakeup, and all partial-failure paths remain outside this live acceptance. Use the official manager for uninstall after operations and members settle.
 
-Delegation failures retain the existing top-level error code and report which native batch checks failed, together with restricted native error identity and known safe classifications. Arbitrary error text, tool content, stack traces and prompts are omitted. The missing control definitions are a statically reproduced defect; the generic 0.2.2 receipt did not preserve its original startup exception, so it cannot establish that exception retrospectively.
+The explicit bound `/dsh-team-launcher` export and offline preparation CLI remain available. See [legacy bound installation](docs/LEGACY-BOUND-INSTALL.md).
 
-The accepted M1 root is not reused for pair authorization. The only identified native preparation path is a temporary change to `subagent-model-selection-settings` through the native UI's revision-checked preference save, creation of a fresh test root in the existing Harness, readback of its real policy event, and immediate restoration of the previous Host preference. This is a separate proposed configuration delta, not permission inherited from M1 approval. Missing policy, concurrent edits, pending/restart-required states or unsettled children stop further changes. Daily model defaults remain unchanged. See `native-team-m2-candidate-755/CANDIDATE.json` under the acceptance-receipt root for the proposed configuration boundary.
+After each Harness update, run this read-only check from the source package:
 
-## One-child entry
+```sh
+npm run check:compat -- --upstream
+```
 
-The default entry is the separate one-child driver. It does not change the existing zero-inference Team plugin or become a reusable team launcher merely because a pair entry exists.
+It checks the physical App archive, package declaration, and official release feed. Unknown archives/RCs require review. This is an on-demand check, not background monitoring; it installs nothing and makes no model call. See [the host matrix](docs/HOST-COMPATIBILITY.md).
 
-The one-child execution candidate uses an `insert` entry and must bind an exact owned Session, canonical workspace, marker, runTag, member name, AgentPreset, persona nonce and route. Its only execution command is the recognized native descriptor `/dsh-subagent-live run-one`; do not submit an unknown/unconfigured command to test installation. No model call occurs at plugin load. The 0.4.0-rc.1 generic bundle selects the separate inert launcher export instead.
+Source validation needs Node.js 22+ and npm, with no additional npm runtime dependencies:
 
-## Native path
+```sh
+npm test
+```
 
-The driver resolves public `@deepseek-ai/dsh-tool-subagent` package exports from the original App's packaged Host root, verifies its process path, rc.2 and the reviewed app.asar SHA256, and mounts that actual native tool module on **agent.ctx**, not the global profile context. The external profile does not have a base-bundle node_modules link; resolving through that assumed link would fail. This candidate deliberately targets the exact original App path. It imports public package exports, not private IPC or internal activation functions. No new runtime dependency is downloaded. It executes the tool through the native resolved tool set and executor, with explicit provider/model/effort and an allowlisted real AgentPreset. The tool retains its own native Session-policy preflight and managed subagent lifecycle.
-
-The archive checksum reads the physical `app.asar` through Electron's built-in `original-fs`, after checking the Host process path. Public package metadata and module imports keep the normal ASAR-aware APIs. This follows [Electron's archive checksum guidance](https://www.electronjs.org/docs/latest/tutorial/asar-archives#treating-an-asar-archive-as-a-normal-file). The process-wide `noAsar` setting is not changed. Version 0.1.1 reached real installation but failed at activation before registering a command; it was removed through the official manager, restoring the four profile files and bundle order. Version 0.1.2 addresses that filesystem boundary and requires a new code/config review before activation.
-
-The pinned rc.2 public `sessionProjections.stateOf(session, key)` reader is deprecated but still implemented. After awaiting the native tool mount (which registers its actual policy projection), the driver uses it to read the existing durable policy. It never appends a policy event, samples a global preference as Session authorization, or uses configured model defaults to evade explicit-selection checks. A missing/disallowed policy refuses before model metadata lookup or child creation.
-
-The first candidate uses the already recorded `deepseek-account/deepseek-flash` route. The owned Session cache supports preparing that candidate; the handler must re-read the actual live Session projection. The candidate proposes **no allowlist or daily-default change**. A later distinct second model is outside this phase.
-
-## Request and role controls
-
-- A native `resolveCallConfig` preflight checks exact provider/model/low/maxTokens1024 before the delegation tool is invoked. Metadata resolution may perform I/O; it is not a successful inference receipt.
-- The `subagent/start` publication supplies the exact child/run/root identity before its queued prompt begins. Only that child may enter one ordinary `llm/stream`, with the same four controls. Auxiliary, repeated, drifted and causally unattributed streams are rejected. Unrelated traffic keeps its original `next()`.
-- The root is quarantined from model streaming for the plugin's configured lifetime, including idle periods. Do not use this owned test root for ordinary conversation while configured.
-- The separately registered AgentPreset supplies the persona nonce through its scoped system-prompt section. The task prompt does not contain the nonce. Successful output must return that nonce, implementer identity and synthetic result 5.
-- The role module uses `agent.ctx.tools.restrict({allow: []})`, then registers only a scope-local synthetic echo capability. Before the child runs, a serial native Agent-created hook resolves its actual tool set, executes the echo and asks the native executor to reject absent `bash`. The missing shell definition is checked before dispatch; no shell is executed.
-- The driver consumes only the actual correlated `subagent/end`, validates output and usage, refuses a second execution attempt, and never automatically retries. Native sibling-name reservation remains authoritative across a module reload.
-
-The measured limit is one ordinary **hook admission**, max1024 output tokens. It is not a total-token or monetary cap. Lower-level HTTP retries, backend request count, account debit and server model/weight identity remain UNVERIFIED. No routing inference is made from the model describing itself.
-
-## Parent notification and teardown
-
-The native tool hardcodes parent delivery. Its settlement notice would wake a parent model. The driver holds the exact idle root in the official `runMaintenance` boundary while the child runs. After the native end publication, it permits only the expected message with `source.kind=subagent-settled` and matching `senderSessionId`. It removes that single notification through the public durable inbox API before releasing maintenance. This records inbox cancellation; it does not delete the parent log or child Session. Any other pending message fails the run and is preserved. Root `whenIdle()` is awaited afterward.
-
-This notification handling is an explicit review item. It is not silently advertised as a read-only root operation. The first phase performs no Team task writes, message handoffs between members, Session deletion, raw activation, model-default save or policy mutation.
-
-On timeout/cancel, only the correlated child is interrupted with native ancestor authority. The command can report `*_DRAINING_GUARD_RETAINED` while the operation continues draining. Unload stops command admission, waits for the exact native operation/child and root quiescence, then removes hooks and retires the preset. An uncooperative child holds cleanup; never force-remove the plugin, restart, or keep retrying. The test child Session and marker remain as evidence. Resuming that child after removing its temporary preset is not accepted by this phase.
-
-Ownership checks perform asynchronous filesystem I/O. The handler rechecks unload and cancellation afterward, then claims its operation without another await. An unloading plugin cannot admit a new operation when an earlier check resumes. Already claimed operations also check cancellation after tool-set resolution. The pinned native interrupt API returns `void`; synchronous interrupt errors are recorded in the error receipt and never skip waiting for the correlated child end and operation drain.
-
-## Applying and restoring the candidate
-
-The separately reviewed bound TGZ contains only this package and its one new entry. Install it once through the official manager as the actual live driver; do not reinstall the existing generic Team smoke. Preserve the four profile files and bundle order immediately beforehand and coordinate the shared Desktop maintenance window with the compression thread. Any pending/restart-required/unsettled result stops further mutation.
-
-Before the single call, create the separate `.dsh-subagent-live.json` marker exclusively, mode0600, with exact `purpose=dsh-subagent-live-one`, ownedSessionId and runTag. A conflicting marker stops execution. This does not replace the existing zero-inference marker.
-
-After success or a settled failure, restoration addresses only this new bundle through the official manager. Keep the existing generic package and other bundles unchanged; do not restore an old whole profile over concurrent changes. Preserve receipts. Do not test restoration by prompting a paid model. The native scoped tool is already removed at operation settlement; removing the new bundle subsequently retires its role declaration and lifetime root quarantine.
-
-## Tests and limits
-
-Run `npm test`. The admission/gate tests exercise refusal before lookup/activation, exact dispatch controls, the one-request allowance and unrelated routing. Driver tests run the actual driver and role modules against synthetic Host services: successful completion/output/usage, policy and control refusal, unrelated inbox preservation, unload during ownership validation, cancellation during tool resolution, and a non-settling child that prevents guard disposal even if interrupt throws. The bundle test reads an actual TGZ and uses the provenance-pinned rc.2 composition functions to check first insertion and preservation of existing entries. It packs the generic package by default; set `DSH_LIVE_CANDIDATE_TGZ` and `DSH_LIVE_EXPECTED_CONFIG` to test a bound artifact against its independent binding JSON. These tests do not establish Desktop/HMR, native-tool activation, native persona injection, real provider or billing acceptance. The separate bounded live verdicts above apply only to their exact artifacts and scopes; an offline test run does not extend them.
+Offline tests do not replace live Host acceptance. Publish generic source/packages only; keep bound packages, profiles, credentials, raw sessions, and workspace markers local. See [third-party notices](THIRD_PARTY_NOTICES.md). The historical `rc2-local` package name remains unchanged.

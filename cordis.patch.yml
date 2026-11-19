@@ -2,9 +2,9 @@
   {
     "insert": [
       {
-        "id": "dsh-native-team-launcher",
-        "name": "dsh-subagent-live-rc2-local/launcher",
-        "config": {}
+        "id": "dsh-native-current-team",
+        "name": "dsh-subagent-live-rc2-local/current",
+        "config": { "mode": "current-session" }
       }
     ]
   }

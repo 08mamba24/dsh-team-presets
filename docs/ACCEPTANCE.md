@@ -1,25 +1,54 @@
 # Acceptance and release scope
 
-## Accepted runtime baseline
+## 0.5.0-rc.2 current-session entry
 
-The original project independently accepted three stages on a pinned macOS DeepSeek Harness `0.2.2-rc.2` App:
+On 2026-11-19, independent source/package review accepted integration baseline `4a73cf95feed4c615993950473907dfda4d81b39` and the complete generic TGZ. The full offline suite passed 207/207. A later independent review accepted the original narrow live scope on macOS Harness 0.2.2-rc.5:
 
-| Stage | Version | Independent verdict | Scope |
-| --- | --- | --- | --- |
-| M1 | 0.1.2 | 764 | One real native role member, role controls, settlement and environment restoration. |
-| M2 | 0.2.3 | 991 | Distinct Flash/Pro client routes, native task/message collaboration and restoration. |
-| M3 | 0.3.2 | 1183 | First template launch, both roles ready, repeated launch safely conflicting, explicit mode restoration and official normal uninstall. |
+| Check | Accepted evidence |
+| --- | --- |
+| First launch | The invoking root created implementer and reviewer with native parent identity and scoped Presets; startup requests used account/Flash and account/Pro, low effort, maxTokens1024, and completed. |
+| Small task | Implementer wrote and completed 17×23=391, directly messaged reviewer, and reviewer read the actual task and independently checked it with a different method. Both original tasks completed; the final prerequisite edge was preserved. |
+| Duplicate launch | The next launch returned LAUNCHER_MEMBER_CONFLICT in 13ms. Across the root and original two child logs, the 30.441-second window before the next explicit user request contained no new member, member wake, or model step. Task, catalog, and Team projections were unchanged. |
+| Additional interaction | Both original members later completed introductions in response to a separate user request within the same Host. This was not a duplicate-launch side effect or a cold-reload test. |
 
-M3 binds production source commit `3bc81fbc34f0522cf0d126e4c92732d1fba8375b` and its exact locally bound artifact. Each new member made one ordinary startup stream/turn with low effort and maxTokens1024. The initial template asked for readiness; seed business tasks remained pending. A command-input usage rejection was preserved separately and did not enter a launch operation.
+The reviewer checked the exact 11-file evidence manifest, three stable compressed session snapshots, installed package bytes, and source identity. It did not start Harness or rerun models. These receipts remain local; this document publishes the conclusions and scope, not personal session logs.
 
-The independent reviewer reconstructed the bounded evidence submission and checked 46 cross-object assertions. Local original logs and environment receipts were supplied by the operator; this was not a second independent Mac execution. Client route evidence does not establish server model weights, total backend HTTP requests or account charges.
+## Retained P2 orchestration deviation
 
-Positive reuse, another paid continuation turn, cold recovery, complex business tasks and all partial-failure recovery paths were not included in the live acceptance. Existing sessions, tasks and unrelated plugins were preserved. Consumed acceptance operations must not be replayed to demonstrate an installation.
+The submitted brief asked Lead to assign the review task while its prerequisite was still pending. Native assignment returned TEAM_TASK_BLOCKED. Lead then removed the dependency, assigned the reviewer, and restored the edge rather than stopping. The edge was absent for 2.579 seconds.
 
-## Distribution candidate
+This violates the brief's dependency-preservation and stop-on-error requirements. Strict instruction compliance is **false**. It did not block the narrow core verdict because the edge was restored 14.752 seconds before the implementer was actually woken, and reviewer execution began 1.666 seconds after the prerequisite completed and read its completion evidence. No out-of-order review occurred, and the final dependency was intact.
 
-Version 0.4.0-rc.1 adds offline preparation and changes the generic bundle to an inert launcher entry. Independent delta review1284 approved source `8c0bec21946edd2cb60341216e72550405fe34dd` and generic TGZ SHA256 `8cb6b24f7381798a7f6aa8b2fc41668400487c96b42f343b9fe5f65678dd6d69` for offline preparation and PRIVATE candidate scope. The reviewer reconstructed the 128399-byte evidence submission and checked actual package/source bytes; it did not execute the requested Node tests. The author's full offline suite passed 193/193, with separate extraction/prepare smoke. No new native installation or inference was performed. These facts do not inherit or expand the older runtime verdicts.
+Future briefs should assign only the implementation task first. After completion and peer handoff, the reviewer should claim the now-executable review task while its blockedBy edge remains present. This wording correction has not had a new live execution; no paid rerun was used to erase the original deviation.
 
-The private prerelease is available at [v0.4.0-rc.1](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.4.0-rc.1). Its source tag is a sanitized standalone snapshot whose tree equals the reviewed plugin subtree; it has no monorepo ancestry. Upload authority came from the user's separate continuation/repository instructions. The frozen package includes submission-time documentation; repository docs and release notes carry the later verdict without replacing the approved artifact.
+## Limits and unsupported conclusions
 
-Only generic source/package files belong in a download release. Local bound packages, configuration receipts, owned workspace markers, raw session logs and profiles are excluded. A preparation receipt proves local validation and packaging, not native Session existence, policy authorization or model execution.
+- The accepted current-session run used rc.5. The loader also supports the inspected rc.2 archive, but this is not a new rc.2 current-session live acceptance.
+- Duplicate protection is conservative rejection, not proven equivalent-member reuse.
+- Same-Host member continuation does not establish full cold recovery, automatic Lead wakeup, complex file/shell work, or every partial-failure recovery path.
+- Startup maxTokens1024 is not a continuation or monetary cap. Observed later turns used maxTokens256000. Continuation budget propagation was explicitly excluded from this iteration.
+- The first slash-command result's delayed UI display remains unresolved.
+- Restore requires the original idle/unreplaced root and children, no queued root input, retained operation authority, and an entire task board unchanged since startup ended. Business-task writeback changes that snapshot, so this release cannot promise successful restore after task completion; refusal preserves the current mode and evidence.
+- Provider/model request metadata establishes client routing, not server weight identity, lower-level HTTP retry count, total account debit, or global zero-request claims.
+- Global model-choice preferences and each session's durable policy are separate. Keeping authorized Flash/Pro choices for continued use is supported; no preference restoration is claimed by the functional verdict.
+
+## Frozen release artifact
+
+`dsh-subagent-live-rc2-local-0.5.0-rc.2.tgz` contains 36 files, is 72659 bytes, and has SHA256:
+
+```text
+d36abb42f68c9c2a179aebf797233f94e0c44ad900ead86dbf5787a90708d3dc
+```
+
+The asset remains byte-identical to the source/package and runtime reviews. Repository documentation was updated afterward, so its README supersedes the package's submission-time README. Runtime source, manifest, and configuration remain at the accepted baseline. This is a private prerelease, not npm/marketplace or public publication.
+
+## Earlier stages
+
+| Version | Historical scope |
+| --- | --- |
+| 0.1.2 | One native role, request/role controls, settlement and environment restoration on pinned rc.2. |
+| 0.2.3 | Distinct configured Flash/Pro routes, native task/message collaboration and restoration on pinned rc.2. |
+| 0.3.2 | Bound template launch, role readiness, safe repeated conflict, explicit mode restoration and normal uninstall on pinned rc.2. |
+| 0.4.0-rc.1 | Offline binding preparation and the private distribution candidate; it added no new native runtime acceptance. |
+
+These historical verdicts cover their exact artifacts and scopes; they do not expand the 0.5 verdict. Existing sessions, tasks, unrelated plugins, and raw evidence were preserved. Do not replay consumed acceptance runs to demonstrate an installation.
