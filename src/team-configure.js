@@ -76,7 +76,7 @@ export async function applyTeamConfigurator(ctx, launcher, { defineTool, approve
           exec.signal.throwIfAborted();
           if (closing) fail('UNLOADING');
           return JSON.stringify({ ok: true, provider: args.provider,
-            models: models.map(model => ({ id: model.id, name: model.name, reasoning: model.reasoning })) });
+            models: models.map(model => ({ id: model.id, name: model.name })) });
         }
         const before = snapshot();
         if (args.action === 'inspect') {

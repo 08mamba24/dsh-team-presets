@@ -10,7 +10,7 @@ rc.4 包含 rc.3 的配置改动：默认成员为 implementer（deepseek-accoun
 
 skill 先读取模板、provider、当前会话授权和设置版本，然后只修改指定字段。支持 `provider`、`model`、`reasoning_effort`、`description`、`persona_prompt` 和 `prompt`；保留工具白名单、Preset、种子任务与未指定字段。目前只有 implementer/reviewer 两个稳定角色，可调整职责和提示词，不能借改名增加任意成员。
 
-配置工具有四个动作：`inspect` 查看现状，`models` 查询一个 provider 的模型及 effort 元数据，`preview` 预检局部修改，`apply` 保存同一预览。只有明确修改的路由或 effort 才查询原生 adapter；只改提示词不需要模型元数据调用。预览使用设置 revision，保存还核对完整模板 fingerprint；他人同时改配置会返回冲突，不覆盖。保存遵循 Harness 原生审批，读取回验成功才返回 `persisted: true`。配置阶段不执行模型推理。
+配置工具有四个动作：`inspect` 查看现状，`models` 查询一个 provider 的模型目录，`preview` 预检局部修改，`apply` 保存同一预览。模型目录不返回可选 effort 清单；所选 effort 由预检按原生 adapter 验证。只有明确修改的路由或 effort 才查询原生 adapter；只改提示词不需要模型元数据调用。预览使用设置 revision，保存还核对完整模板 fingerprint；他人同时改配置会返回冲突，不覆盖。保存遵循 Harness 原生审批，读取回验成功才返回 `persisted: true`。配置阶段不执行模型推理。
 
 用户已明确要求保存时，Agent 可在预览成功后直接保存同一修改；仅询问方案则停在预览。审批拒绝、取消或结果不确定时停止，不退回手改文件绕过。保存失败不代表一定未写入，应先读取现状核对。
 
