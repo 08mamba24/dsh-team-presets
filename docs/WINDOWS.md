@@ -37,7 +37,7 @@ npm run check:compat -- --app-executable "C:\Users\me\AppData\Local\Programs\Dee
 
 ## 旧入口边界
 
-历史 `/dsh-live-one`、`/dsh-team-live`、显式绑定的 `/dsh-team-launcher` 与离线 prepare 依赖 POSIX 所有权／权限位，仅保留 macOS 支持。Windows 返回 `LEGACY_BOUND_ENTRY_REQUIRES_MACOS`；不要改权限检查来强行使用。Windows 使用通用 TGZ 的 `/dsh-team` 当前会话入口。
+历史 `/dsh-subagent-live`、`/dsh-team-live`、显式绑定的 `/dsh-team-launcher` 与离线 prepare 依赖 POSIX 所有权／权限位，仅保留 macOS 支持。Windows 返回 `LEGACY_BOUND_ENTRY_REQUIRES_MACOS`；不要改权限检查来强行使用。Windows 使用通用 TGZ 的 `/dsh-team` 当前会话入口。
 
 ## 在独立 Windows 环境复现
 
