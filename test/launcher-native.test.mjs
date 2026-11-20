@@ -2,8 +2,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { observeLauncherMembers, registerLauncherPresets, makeLauncherSpawnCall, parseLauncherSpawnBatch } from '../src/launcher-native.js';
 import { planLauncherMembers } from '../src/launcher-plan.js';
+import { CONTROL } from './fixtures/control-entry.mjs';
 
-const CONTROL = { name: 'file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent-control/lib/index.js', config: { interrupt: false } };
 const ROOT = { id: 'session-launcher-owned' };
 const member = () => ({ name: 'implementer', description: 'Implementation role', prompt: 'Perform the supplied task',
   provider: 'deepseek-account', model: 'deepseek-flash', reasoningEffort: 'low', agentPreset: 'dsh-team-implementer',

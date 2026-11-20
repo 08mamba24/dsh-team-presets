@@ -4,8 +4,7 @@ import { parseTeamConfig, preflightTeam, TEAM_ROLE_TOOLS } from '../src/team-con
 import { createTeamGate } from '../src/team-gate.js';
 import { apply as applyRole } from '../team-role.js';
 import { applyTeam } from '../src/team-driver.js';
-
-const CONTROL_ENTRY = 'file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent-control/lib/index.js';
+import { CONTROL_ENTRY } from './fixtures/control-entry.mjs';
 
 // Native tools.restrict validates ancestor/global definitions, not just a requested allow array.
 // Preset registrations are ancestor layers of a composed child; agent-own registrations are exempt from masking.

@@ -5,8 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { apply as applyLauncherRole } from '../../launcher-role.js';
 import { nativeEffectOwner } from './native-effect-owner.mjs';
+import { CONTROL } from './control-entry.mjs';
 
-export const CONTROL = { name: 'file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent-control/lib/index.js', config: { interrupt: false } };
+export { CONTROL };
 const ROLES = ['implementer', 'reviewer'];
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 const clone = value => structuredClone(value);
