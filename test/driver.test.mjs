@@ -1,5 +1,7 @@
-import { test } from 'node:test';
+// The historical file-bound entry relies on POSIX ownership and mode bits.
+import { test as nodeTest } from 'node:test';
 import assert from 'node:assert/strict';
+const test = (name, fn) => nodeTest(name, { skip: process.platform === 'win32' ? 'Legacy macOS file-bound entry' : false }, fn);
 import { mkdtemp, realpath, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

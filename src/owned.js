@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fail } from './config.js';
 
 export async function assertOwned(ctx, c, agent) {
+  if (process.platform === 'win32') fail('LEGACY_BOUND_ENTRY_REQUIRES_MACOS');
   if (!agent || agent.id !== c.ownedSessionId || agent.session?.id !== agent.id
     || ctx.agents.get(agent.id) !== agent || agent.session.header?.origin === 'subagent') fail('WRONG_AGENT');
   if (await realpath(c.workspace) !== c.workspace || await realpath(agent.session.header.cwd) !== c.workspace) fail('WRONG_WORKSPACE');

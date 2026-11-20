@@ -16,7 +16,7 @@
       "agent_preset": "dsh-team-implementer",
       "provider": "deepseek-account",
       "model": "deepseek-flash",
-      "reasoning_effort": "low",
+      "reasoning_effort": "max",
       "native_tool_allowlist": [
         "team_task_get",
         "team_task_update",
@@ -31,7 +31,7 @@
       "agent_preset": "dsh-team-reviewer",
       "provider": "deepseek-account",
       "model": "deepseek-v4-pro",
-      "reasoning_effort": "low",
+      "reasoning_effort": "max",
       "native_tool_allowlist": [
         "team_task_get",
         "team_task_update",

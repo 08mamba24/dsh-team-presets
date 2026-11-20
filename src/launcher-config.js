@@ -67,6 +67,7 @@ async function canonicalWorkspace(config) {
 
 /** Read just the fixed owned file, with bounded memory and no final-symlink following. */
 async function ownedBytes(config, basename, maxSize, code) {
+  if (process.platform === 'win32') fail('LEGACY_BOUND_ENTRY_REQUIRES_MACOS');
   await canonicalWorkspace(config);
   let file;
   try {
@@ -109,7 +110,7 @@ export async function readLauncherTemplate(rawConfig) {
   return validateLauncherTemplate(raw);
 }
 
-/** The same role and route restrictions apply to file-bound and current-session templates. */
+/** Both launcher entries require complete roles; native policy and metadata own route admission. */
 export function validateLauncherTemplate(raw) {
   const template = parseLauncherTemplate(raw);
   if (template.members.length !== 2 || ROLES.some(role => !template.members.some(member => member.name === role))) {
@@ -118,10 +119,7 @@ export function validateLauncherTemplate(raw) {
   for (const member of template.members) {
     if (!own(member, 'personaPrompt') || !own(member, 'agentPreset') || !own(member, 'nativeToolAllowlist')
       || !own(member, 'reasoningEffort')) fail('LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE');
-    if (member.reasoningEffort !== 'low') fail('LAUNCHER_STARTUP_EFFORT_UNSUPPORTED');
-    if (member.provider === 'deepseek-official' && member.model === 'deepseek-v4-pro') fail('KNOWN_MODEL_ALIAS');
   }
-  if (template.members[0].model === template.members[1].model) fail('DISTINCT_MODELS_REQUIRED');
   return template;
 }
 

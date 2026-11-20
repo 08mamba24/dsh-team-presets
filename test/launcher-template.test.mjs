@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { parseLauncherTemplate, launcherTemplateFingerprint } from '../src/launcher-template.js';
 
-const example = JSON.parse(await readFile(new URL('../../../team-presets/templates/team-template.example.json', import.meta.url), 'utf8'));
+const example = JSON.parse(await readFile(new URL('../examples/team-template.json', import.meta.url), 'utf8'));
 const clone = value => structuredClone(value);
 const rejects = (raw, code) => assert.throws(() => parseLauncherTemplate(raw), error => {
   assert.equal(error.code, code); assert.equal(error.message, code); return true;
@@ -59,7 +59,7 @@ test('names, presets, explicit routes and effort are checked before any executio
     [x => { delete x.members[0].provider; delete x.members[0].model; }, 'EXPLICIT_MEMBER_ROUTE_REQUIRED'],
     [x => { delete x.members[0].model; }, 'EXPLICIT_MEMBER_ROUTE_REQUIRED'],
     [x => { x.members[0].provider = ' '; }, 'INVALID_MEMBER_ROUTE'],
-    [x => { x.members[0].reasoning_effort = 'max'; }, 'INVALID_MEMBER_EFFORT'],
+    [x => { x.members[0].reasoning_effort = ''; }, 'INVALID_MEMBER_EFFORT'],
     [x => { x.max_members = 1; }, 'INVALID_TEMPLATE_MEMBERS'],
     [x => { x.max_members = 9; }, 'INVALID_MAX_MEMBERS'],
   ]) { const input = clone(example); change(input); rejects(input, code); }

@@ -2,26 +2,21 @@
 
 在 DeepSeek Harness 的目标会话中，一次创建 implementer 和 reviewer，为两者分别配置模型路由、持久角色提示词与原生任务／消息工具。
 
-**当前版本：0.5.0-rc.2。** macOS Harness 0.2.2-rc.5 上的首次建队、两成员小任务协作、重复启动保护已于 2026-11-19 通过独立实机复核。源码与包支持矩阵只包含已检查的 rc.2、rc.5；本版本的当前会话实机结果来自 rc.5。[验收范围与已知限制](docs/ACCEPTANCE.md)。
+**当前源码：0.5.0-rc.4 Windows 候选。** 两个默认角色均使用 `max` effort；模型和 effort 由实际配置的原生 adapter 验证，不再受插件的模型名单限制。本次更新尚未进行付费实机运行。已发布的 0.5.0-rc.2 在 2026-11-19 通过了 macOS Harness rc.5 的独立实机复核，当时使用 low；该结果仍只覆盖 rc.2。[验收范围与已知限制](docs/ACCEPTANCE.md)。
+
+Windows x64 适配面向已检查的 Harness 0.2.2-rc.5 和当前会话 `/dsh-team` 入口，见 [Windows 安装与 CI 验收](docs/WINDOWS.md)。旧的本地文件绑定入口仍只支持 macOS。
 
 ## 下载与安装
 
-从 [v0.5.0-rc.2 私有预发行](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) 下载：
+在本源码包目录执行以下命令，生成 rc.4 Windows 候选：
 
-- `dsh-subagent-live-rc2-local-0.5.0-rc.2.tgz`
-- `SHA256SUMS`
-
-需要登录具有本私有仓库访问权限的 GitHub 账号。该版本未发布到 npm 或插件市场。包名中的 `rc2-local` 是历史名称。
-
-通用 TGZ 的 SHA256 为：
-
-```text
-d36abb42f68c9c2a179aebf797233f94e0c44ad900ead86dbf5787a90708d3dc
+```sh
+npm pack
 ```
 
-在 Harness 官方插件管理器中安装这个完整通用 TGZ。0.5 通用包默认注册当前会话入口，无需填写 Session ID，也无需运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 rc.5 安装源。
+在 Harness 官方插件管理器中安装生成的 `dsh-subagent-live-rc2-local-0.5.0-rc.4.tgz`。打包不会更新已安装副本。0.5 通用包默认注册当前会话入口，无需填写 Session ID，也无需运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 rc.5 安装源。
 
-发行 TGZ 保持独立审查及实机验收时的原字节。包内 README 是送审快照；本仓库 README、验收说明与发行页记录最新使用流程和裁定。更新文档不会替换这个已验收包。
+[已发布的 v0.5.0-rc.2 私有预发行](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) 保持原先实机验收时的 low 配置，不包含本次 max 更新。该插件未发布到 npm 或插件市场。包名中的 `rc2-local` 是历史名称。
 
 ## 允许两条模型路由
 
@@ -73,9 +68,9 @@ DeepSeek 官方提供方的 Pro 菜单项可能标注路由到 Flash；它不能
 
 ## 配置、恢复与限制
 
-`examples/team-template.json` 是完整两角色模板。可在当前组件配置中将可选 `template` 替换为同格式对象，调整角色提示词、模型、启动提示与原生工具白名单。组件支持 `timeoutMs` 和每角色 `maxStreams`；默认每角色一次普通启动 stream，可配置 1～12 次。模板只表达配置，真实准入仍由原生 policy 和工具权限决定。
+`examples/team-template.json` 是完整两角色模板。可在当前组件配置中将可选 `template` 替换为同格式对象，调整角色提示词、模型、启动提示与原生工具白名单。组件支持 `timeoutMs` 和每角色 `maxStreams`；默认每角色一次普通启动 stream，可配置 1～12 次。模板只表达配置，真实准入仍由原生 policy 和工具权限决定。逐字段说明见[修改模型与提示词](docs/MODELS-AND-PROMPTS.md)。
 
-启动请求使用 low、`maxTokens=1024`。它只约束首次启动请求，不是团队生命周期、总 token 或金额上限；本次后续任务和自我介绍的原生续接配置实际回到了 `maxTokens=256000`。
+默认模板的 `reasoning_effort` 已改为 `max`，也可逐角色填入其原生模型支持的 effort ID。两名角色可以使用同一个 provider/model。原生 `resolveCallConfig` 会在修改 Team 或创建成员前拒绝路由解析失败、不支持的 effort，不会偷偷降档；元数据检查不代表远端模型一定执行成功。启动请求的 `maxTokens=1024` 是独立限制，不是团队生命周期、总 token 或金额上限；历史 rc.2 验收中的后续任务和自我介绍曾使用 `maxTokens=256000`。本次更新不修改续接 token 预算。
 
 ```text
 /dsh-team restore

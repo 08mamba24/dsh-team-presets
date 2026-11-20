@@ -1,5 +1,7 @@
-import { test } from 'node:test';
+// The historical file-bound entry relies on POSIX ownership and mode bits.
+import { test as nodeTest } from 'node:test';
 import assert from 'node:assert/strict';
+const test = (name, fn) => nodeTest(name, { skip: process.platform === 'win32' ? 'Legacy macOS file-bound entry' : false }, fn);
 import fs from 'node:fs/promises';
 import { constants } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -81,10 +83,8 @@ test('existing template or marker, including symlinks and hardlinks, is never re
 
 test('invalid routes, capabilities, roles and effort are refused without any workspace writes', async t => {
   const cases = [
-    [x => { x.members[1].model = x.members[0].model; }, 'DISTINCT_MODELS_REQUIRED'],
-    [x => { x.members[1].provider = 'deepseek-official'; }, 'KNOWN_MODEL_ALIAS'],
     [x => { x.members[0].native_tool_allowlist.push('bash'); }, 'UNSUPPORTED_MEMBER_TOOL'],
-    [x => { x.members[0].reasoning_effort = 'high'; }, 'LAUNCHER_STARTUP_EFFORT_UNSUPPORTED'],
+    [x => { x.members[0].reasoning_effort = ''; }, 'INVALID_MEMBER_EFFORT'],
     [x => { delete x.members[0].persona_prompt; }, 'LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE'],
     [x => { x.members.pop(); x.seed_tasks = []; }, 'LAUNCHER_EXACT_ROLES_REQUIRED'],
   ];

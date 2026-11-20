@@ -2,21 +2,23 @@
 
 Create an implementer and a reviewer in the current DeepSeek Harness root session, with separate model routes, persistent role prompts, and native task/message tools.
 
-**Current release: 0.5.0-rc.2.** Independent live review on 2026-11-19 accepted first launch, two-member task collaboration, and duplicate-launch protection on macOS Harness 0.2.2-rc.5. The source/package support matrix contains the inspected rc.2 and rc.5 archives; this release's current-session live evidence comes from rc.5. See [acceptance and limits](docs/ACCEPTANCE.md).
+**Current source: 0.5.0-rc.4 Windows candidate.** Both default roles use `max` effort. Provider/model and effort ids are validated by the configured native adapter, rather than a plugin model shortlist. This update has not had a paid live run. The published 0.5.0-rc.2 passed independent live review on 2026-11-19 with low effort on macOS Harness 0.2.2-rc.5; that evidence remains scoped to rc.2. See [acceptance and limits](docs/ACCEPTANCE.md).
 
 [中文安装与使用说明](README.zh-CN.md)
 
+Windows x64 support targets the reviewed Harness 0.2.2-rc.5 archive and the current-session `/dsh-team` entry. See [Windows installation and CI scope](docs/WINDOWS.md). The historical file-bound entries remain macOS-only.
+
 ## Install and launch
 
-Download the generic TGZ and `SHA256SUMS` from the [private v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2). Repository access requires an authorized GitHub account. This package is not published to npm or a plugin marketplace.
+Build the rc.4 Windows candidate from this package directory:
 
-```text
-d36abb42f68c9c2a179aebf797233f94e0c44ad900ead86dbf5787a90708d3dc  dsh-subagent-live-rc2-local-0.5.0-rc.2.tgz
+```sh
+npm pack
 ```
 
-Install the complete generic TGZ through the native plugin manager. Its default entry uses the invoking session, so no Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not the rc.5 installation target.
+Install `dsh-subagent-live-rc2-local-0.5.0-rc.4.tgz` through the native plugin manager. Building does not update the installed copy. The default entry uses the invoking session, so no Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not the rc.5 installation target.
 
-The release asset retains the exact reviewed and live-tested bytes. Its bundled README is the submission-time snapshot; repository docs and release notes provide the current instructions without repacking the accepted artifact.
+The [published private v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) retains its frozen, live-tested low-effort bytes. It does not contain the max-default change. This package is not published to npm or a plugin marketplace.
 
 Enable native Agent model selection and allow both default routes:
 
@@ -55,9 +57,9 @@ The live test completed `17 × 23 = 391`, direct peer handoff, and independent v
 
 ## Configure, restore, and upgrade
 
-The optional component `template` takes a complete object in the format of [examples/team-template.json](examples/team-template.json). Configure the roles' routes, persona prompts, startup prompts, and native tool allowlists there. `timeoutMs` and per-role `maxStreams` bound startup; the default is one ordinary stream per role, configurable from 1 to 12. Native policy and tool permissions remain authoritative.
+The optional component `template` takes a complete object in the format of [examples/team-template.json](examples/team-template.json). Configure the roles' routes, persona prompts, startup prompts, and native tool allowlists there. `timeoutMs` and per-role `maxStreams` bound startup; the default is one ordinary stream per role, configurable from 1 to 12. Native policy and tool permissions remain authoritative. See [changing models and prompts](docs/MODELS-AND-PROMPTS.md) for the exact fields.
 
-Startup uses low effort and `maxTokens=1024`. These are startup request limits, not lifetime, total-token, or monetary caps. The observed later task and introduction turns used native continuation configuration with `maxTokens=256000`.
+The bundled template defaults to `reasoning_effort: "max"`; each role may select an effort id supported by its configured native model. Both roles may use the same provider/model. Native `resolveCallConfig` rejects unsupported efforts or route-resolution failures before team mutation; no silent downgrade is applied. Native metadata validation does not prove that a remote endpoint will execute a model successfully. Startup still uses `maxTokens=1024`, a separate request limit rather than a lifetime, total-token, or monetary cap. The historical rc.2 later task and introduction turns used native continuation configuration with `maxTokens=256000`; this update does not change continuation token budgets.
 
 ```text
 /dsh-team restore
