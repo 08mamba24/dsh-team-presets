@@ -1,8 +1,22 @@
 # 修改 provider、模型、effort 与提示词
 
-**当前需要手动编辑用户 profile 的 `cordis.patch.yml`。** rc.4 没有可直接选择 provider、模型和 effort 的模板表单；“支持配置”指组件读取这些字段。修改用户配置即可，无需改安装目录的文件或重新打包插件。
+**rc.5 提供会话配置 skill，无需手工编辑 YAML。** 安装新包后，`dsh-team-configure` 与 `dsh_team_configure` 工具在该 Harness profile 的根会话中可用。rc.4 仍使用下方手动方式；它不会通过仓库文档更新自动获得新工具。两种方式均无需修改安装目录或重新打包插件。
 
 rc.4 包含 rc.3 的配置改动：默认成员为 implementer（deepseek-account/deepseek-flash）与 reviewer（deepseek-account/deepseek-v4-pro），两者默认 effort 为 max。各角色可以独立选 provider、model 和 effort，也可以使用相同模型；这不代表使用了不同后端权重。
+
+## 推荐：在 Agent 会话中配置
+
+可以直接说：“使用 dsh-team-configure，列出 codeagent 的模型；把实现角色设为我选的模型 A、max，复核设为模型 B、high，提示词要求先读证据再复核，保存默认配置。”示例里的 A/B 需要换成你的真实选择，Agent 可先从本机模型目录查找实际 ID。
+
+skill 先读取模板、provider、当前会话授权和设置版本，然后只修改指定字段。支持 `provider`、`model`、`reasoning_effort`、`description`、`persona_prompt` 和 `prompt`；保留工具白名单、Preset、种子任务与未指定字段。目前只有 implementer/reviewer 两个稳定角色，可调整职责和提示词，不能借改名增加任意成员。
+
+配置工具有四个动作：`inspect` 查看现状，`models` 查询一个 provider 的模型及 effort 元数据，`preview` 预检局部修改，`apply` 保存同一预览。只有明确修改的路由或 effort 才查询原生 adapter；只改提示词不需要模型元数据调用。预览使用设置 revision，保存还核对完整模板 fingerprint；他人同时改配置会返回冲突，不覆盖。保存遵循 Harness 原生审批，读取回验成功才返回 `persisted: true`。配置阶段不执行模型推理。
+
+用户已明确要求保存时，Agent 可在预览成功后直接保存同一修改；仅询问方案则停在预览。审批拒绝、取消或结果不确定时停止，不退回手改文件绕过。保存失败不代表一定未写入，应先读取现状核对。
+
+保存范围是当前 profile 的默认模板，不扩大旧会话的授权，也不修改已有成员。当前 Host 中已执行 plan/launch 的根保持原模板；未绑定的根使用新默认值。工具会告知是否需要新根。若所选路由不在当前会话 policy，先在原生子智能体模型选择中授权，保存后再建新根。配置成功不会自动 launch。
+
+模板持久化不等于旧团队冷恢复。完整 Host 重启后的旧成员续接尚未验收；改默认值后不要用旧根 plan/launch 强行迁移团队。完整模板、工具或任务的高级修改仍可使用手动配置。
 
 <a id="windows-manual-configuration"></a>
 

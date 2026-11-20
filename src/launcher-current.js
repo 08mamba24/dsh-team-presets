@@ -40,14 +40,20 @@ function assertRoot(ctx, agent, binding) {
 }
 
 /** One installed command; every root gets native-owned, independently scoped role Presets. */
-export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntry) {
+export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntry, liveConfig) {
   const config = options(raw);
   if (typeof ctx.plugin !== 'function' || typeof ctx.commands?.register !== 'function'
     || typeof ctx.agents?.get !== 'function' || typeof ctx.effect !== 'function'
     || typeof ctx.workingDirectory?.get !== 'function') fail('HOST_CONTRACT_UNAVAILABLE');
-  const input = config.template ?? JSON.parse(await readFile(new URL('../examples/team-template.json', import.meta.url), 'utf8'));
+  const bundled = JSON.parse(await readFile(new URL('../examples/team-template.json', import.meta.url), 'utf8'));
+  const input = config.template ?? bundled;
   validateLauncherTemplate(input);
   const template = structuredClone(input);
+  const defaultTemplate = () => {
+    const current = liveConfig ? liveConfig.readTemplate() ?? bundled : template;
+    validateLauncherTemplate(current);
+    return structuredClone(current);
+  };
   const instances = new Map();
   let closing = false, busy = false, outstanding = false;
 
@@ -59,7 +65,7 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
       return existing.ready;
     }
     const suffix = digest(agent.id).slice(0, 24);
-    const scoped = structuredClone(template);
+    const scoped = defaultTemplate();
     for (const member of scoped.members) member.agent_preset = `dsh-current-${suffix}-${member.name}`;
     const bound = parseLauncherConfig({ mode: 'launcher', ownedSessionId: agent.id, workspace,
       runTag: `current-${suffix}`, timeoutMs: config.timeoutMs, templateSha256: digest(JSON.stringify(scoped)),
@@ -113,4 +119,5 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
   ctx.effect(function* () {
     yield () => { closing = true; return unregister(); };
   });
+  return { defaultTemplate, hasBinding: id => instances.has(id), assertRoot: agent => assertRoot(ctx, agent) };
 }

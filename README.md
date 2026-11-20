@@ -2,7 +2,7 @@
 
 Create an implementer and a reviewer in the current DeepSeek Harness root session, with separate model routes, persistent role prompts, and native task/message tools.
 
-**Current source: 0.5.0-rc.4 Windows candidate.** Both default roles use `max` effort. Provider/model and effort ids are validated by the configured native adapter, rather than a plugin model shortlist. This update has not had a paid live run. The published 0.5.0-rc.2 passed independent live review on 2026-11-19 with low effort on macOS Harness 0.2.2-rc.5; that evidence remains scoped to rc.2. See [acceptance and limits](docs/ACCEPTANCE.md).
+**Current source: 0.5.0-rc.5.** Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort and prompts in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
 
 [中文安装与使用说明](README.zh-CN.md)
 
@@ -10,15 +10,30 @@ Windows x64 support targets the reviewed Harness 0.2.2-rc.5 archive and the curr
 
 ## Install and launch
 
-Build the rc.4 Windows candidate from this package directory:
+Build from this package directory:
 
 ```sh
 npm pack
 ```
 
-Install `dsh-subagent-live-rc2-local-0.5.0-rc.4.tgz` through the native plugin manager. Building does not update the installed copy. The default entry uses the invoking session, so no Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not the rc.5 installation target.
+Install `dsh-subagent-live-rc2-local-0.5.0-rc.5.tgz` through the native plugin manager. Building does not update the installed copy. Installation registers the current-session command, configuration tool and skill for roots in that profile; no per-project skill copy, Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not an installation target for Harness rc.5.
 
 The [published private v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) retains its frozen, live-tested low-effort bytes. It does not contain the max-default change. This package is not published to npm or a plugin marketplace.
+
+## Configure the team in a conversation
+
+Ask the Agent, for example:
+
+```text
+Use dsh-team-configure to show the models configured for codeagent.
+Set implementer to my chosen model with max effort, and reviewer to another with high effort.
+Add “read the implementation evidence before verifying independently” to the reviewer's persona.
+Save these team defaults.
+```
+
+The Agent reads actual provider/model IDs, previews the requested changes through the native adapter, then saves through native approval and persistent settings. Supply your real model choices, without pasting profiles or credentials. A request for advice alone stops at preview.
+
+The stable roles are `implementer` and `reviewer`; each supports its own duties, model, effort, persona and startup input. Arbitrary role counts are not supported. “Global” means defaults within the installed profile, and does not modify existing teams. Use an unbound root as directed by the result; changes to native model authorization require saving the selection and creating a new root. The skill does not grant authorization or start members. See [models and prompts](docs/MODELS-AND-PROMPTS.md).
 
 Enable native Agent model selection and allow both default routes:
 
@@ -57,7 +72,9 @@ The live test completed `17 × 23 = 391`, direct peer handoff, and independent v
 
 ## Configure, restore, and upgrade
 
-**Configuration currently requires editing the user profile's `cordis.patch.yml` by hand.** The plugin has no form for selecting a provider, model, or effort. See [manual Windows configuration](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration) for the file location, steps, and a complete patch. Each role can set `provider`, `model`, `reasoning_effort`, `persona_prompt`, and `prompt`. Apply the configuration before creating a new team; no package rebuild is needed.
+Use the conversational skill above; rc.4 installations need the new package to gain this capability. There is no dedicated model-picker form. [Manual Windows configuration](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration) remains available, with file locations and a complete patch. Neither configuration path requires rebuilding the package.
+
+Saving through the skill does not reload the launcher: roots already bound by plan/launch keep their template during the current Host lifetime, while unbound roots read the new defaults. Persisting defaults does not establish cold restoration of old teams. After changing defaults, do not use an old root's plan/launch to migrate its members; full cold recovery remains unaccepted.
 
 The optional component `template` takes a complete object in the format of [examples/team-template.json](examples/team-template.json). Configure the roles' routes, persona prompts, startup prompts, and native tool allowlists there. `timeoutMs` and per-role `maxStreams` bound startup; the default is one ordinary stream per role, configurable from 1 to 12. Native policy and tool permissions remain authoritative. See [changing models and prompts](docs/MODELS-AND-PROMPTS.md) for the exact fields.
 

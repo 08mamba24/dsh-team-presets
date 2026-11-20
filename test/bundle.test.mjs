@@ -98,7 +98,8 @@ test('the actual TGZ patch inserts one complete live entry without changing exis
     if (generic) {
       assert.equal(manifest.exports['./current'], './current-entry.js');
       assert.equal(manifest.bin['dsh-team-prepare'], './scripts/prepare-launcher.mjs');
-      for (const path of ['current-entry.js', 'src/launcher-current.js', 'scripts/prepare-launcher.mjs', 'src/launcher-prepare.js', 'examples/team-template.json', 'README.zh-CN.md']) {
+      for (const path of ['current-entry.js', 'src/launcher-current.js', 'src/configure-host.js', 'src/team-configure.js',
+        'skills/dsh-team-configure/SKILL.md', 'scripts/prepare-launcher.mjs', 'src/launcher-prepare.js', 'examples/team-template.json', 'README.zh-CN.md']) {
         const { stdout: payload } = await exec(tar, ['-xOzf', tgz, `package/${path}`]);
         assert.ok(payload.length > 0, `missing setup payload: ${path}`);
       }

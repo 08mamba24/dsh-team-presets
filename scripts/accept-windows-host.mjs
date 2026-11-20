@@ -270,6 +270,9 @@ async function accept(paths) {
     const { sessionId } = await host.rpc('session/create', { request: { cwd: paths.workspace } });
     assert.match(sessionId, /^session-[a-f0-9-]{36}$/);
     report.sessionId = sessionId;
+    const skillCatalog = await host.rpc('skills/list', { request: { sessionId } });
+    assert.ok(skillCatalog.skills.some(skill => skill.name === 'dsh-team-configure'), 'profile-wide configuration skill missing');
+    report.checks.push({ name: 'profile-wide-configuration-skill', passed: true });
     const commands = await host.rpc('commands/list', { agentId: sessionId });
     assert.ok(commands.some(command => command.name === 'dsh-team'), 'dsh-team command not registered');
     const execution = await host.rpc('commands/execute', { agentId: sessionId, line: '/dsh-team plan', submittedAttachments: [] });
@@ -281,12 +284,39 @@ async function accept(paths) {
     report.plan = { commandId: execution.commandId, ...plan };
     const before = await readQuietSession(host, sessionId, execution.commandId);
     report.checks.push({ name: 'real-host-plan-without-model-turn', passed: true, eventTypes: before.events.map(event => event.type) });
+    const settings = await host.rpc('settings/describe', {});
+    const defaults = settings.namespaces.find(row => row.ns === 'dsh-native-current-team');
+    assert.ok(defaults, 'native live-template settings namespace missing');
+    const template = JSON.parse(await readFile(join(paths.profile, 'node_modules', PACKAGE, 'examples', 'team-template.json'), 'utf8'));
+    template.members[0].persona_prompt = 'WINDOWS_CONFIG_PERSISTENCE_PROBE';
+    await host.rpc('settings/update', { ns: defaults.ns, patch: { template }, expectedRevision: defaults.revision });
+    const preserved = await host.rpc('commands/execute', { agentId: sessionId, line: '/dsh-team plan', submittedAttachments: [] });
+    assert.equal(preserved.result.kind, 'success', preserved.result.text);
+    assert.equal(JSON.parse(preserved.result.text).templateFingerprint, plan.templateFingerprint,
+      'live template edit reloaded or changed the already-bound root');
+    const restartBaseline = await readQuietSession(host, sessionId, execution.commandId);
+    const { sessionId: configuredId } = await host.rpc('session/create', { request: { cwd: paths.workspace } });
+    const configured = await host.rpc('commands/execute', { agentId: configuredId, line: '/dsh-team plan', submittedAttachments: [] });
+    assert.equal(configured.result.kind, 'success', configured.result.text);
+    const { parseLauncherTemplate, launcherTemplateFingerprint } = await import(pathToFileURL(join(paths.profile, 'node_modules', PACKAGE, 'src', 'launcher-template.js')).href);
+    const scoped = structuredClone(template), suffix = createHash('sha256').update(configuredId).digest('hex').slice(0, 24);
+    for (const member of scoped.members) member.agent_preset = `dsh-current-${suffix}-${member.name}`;
+    assert.equal(JSON.parse(configured.result.text).templateFingerprint, launcherTemplateFingerprint(parseLauncherTemplate(scoped)));
+    await readQuietSession(host, configuredId, configured.commandId);
+    report.checks.push({ name: 'native-live-template-save-preserves-bound-root', passed: true });
+    report.checks.push({ name: 'fresh-root-uses-saved-template-without-model-call', passed: true });
     await stopHost(host);
 
     host = await startHost('host-restarted');
     const after = await readQuietSession(host, sessionId, execution.commandId);
-    assert.deepEqual(after.events, before.events, 'command history changed across Host restart');
+    assert.deepEqual(after.events, restartBaseline.events, 'command history changed across Host restart');
     report.checks.push({ name: 'persisted-command-history', passed: true, cursor: after.cursor });
+    const restoredSettings = await host.rpc('settings/describe', {});
+    const restoredTemplate = restoredSettings.namespaces.find(row => row.ns === 'dsh-native-current-team')?.value?.template;
+    assert.deepEqual(restoredTemplate, template, 'team template did not persist across Host restart');
+    const restoredSkills = await host.rpc('skills/list', { request: { sessionId } });
+    assert.ok(restoredSkills.skills.some(skill => skill.name === 'dsh-team-configure'));
+    report.checks.push({ name: 'configuration-and-skill-survive-host-restart', passed: true });
     await stopHost(host);
 
     await runCli('remove-plugin', ['remove', PACKAGE]);
@@ -297,6 +327,8 @@ async function accept(paths) {
     const cleanSession = await host.rpc('session/create', { request: { cwd: paths.workspace } });
     const remaining = await host.rpc('commands/list', { agentId: cleanSession.sessionId });
     assert.ok(!remaining.some(command => command.name === 'dsh-team'), 'command still present after removal');
+    const removedSkills = await host.rpc('skills/list', { request: { sessionId: cleanSession.sessionId } });
+    assert.ok(!removedSkills.skills.some(skill => skill.name === 'dsh-team-configure'), 'skill still present after removal');
     await stopHost(host);
     report.checks.push({ name: 'command-removed', passed: true });
     report.status = 'passed';

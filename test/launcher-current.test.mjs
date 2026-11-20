@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { applyLauncher } from '../src/launcher-driver.js';
+import { applyCurrentLauncher } from '../src/launcher-current.js';
 import { launcherHost, CONTROL } from './fixtures/launcher-host.mjs';
 import { nativeEffectOwner } from './fixtures/native-effect-owner.mjs';
 
@@ -12,6 +13,37 @@ const currentHost = (t, options = {}) => launcherHost(t, async (ctx, config, nat
     maxStreams: { implementer: 8, reviewer: 7 } }, native, control);
 }, { cleanupTimeoutMs: 500, ...options, sessionScopedPresets: true, commandName: 'dsh-team' });
 const decode = result => ({ ...result, value: JSON.parse(result.text) });
+
+test('live template defaults affect unbound roots while existing plans and Presets retain their snapshot', async t => {
+  const first = await launcherHost(t, async () => {});
+  const second = await launcherHost(t, async () => {}, { sessionId: 'session-99999999-9999-4999-8999-999999999999' });
+  const hosts = [first, second], commands = new Map();
+  const ownerOf = id => hosts.find(host => host.root.id === id);
+  let value = structuredClone(first.template);
+  const ctx = { ...first.ctx,
+    agents: { get: id => first.agents.get(id) ?? second.agents.get(id) },
+    commands: { register(spec) { commands.set(spec.name, spec); return () => commands.delete(spec.name); } },
+    subagents: { ...first.ctx.subagents, listDescendants(id, signal) { return ownerOf(id).ctx.subagents.listDescendants(id, signal); } },
+    agentPresets: { ...first.ctx.agentPresets,
+      register(spec) { return ownerOf(spec.plugins[1].config.ownedSessionId).ctx.agentPresets.register(spec); } },
+    plugin(module) { return Promise.resolve(module.apply(ctx)); },
+  };
+  const control = await applyCurrentLauncher(ctx, { mode: 'current-session', template: first.template }, { apply() {} }, CONTROL,
+    { readTemplate: () => value });
+  const plan = async host => decode(await commands.get('dsh-team').handler({ agent: host.root, rawInput: 'plan', attachments: [], signal: new AbortController().signal }));
+  const before = await plan(first);
+  const presets = structuredClone([...first.presets.values()]);
+  value.members[0].persona_prompt = 'MARK_NEW_DEFAULT';
+  assert.equal(control.hasBinding(first.root.id), true);
+  assert.equal(control.hasBinding(second.root.id), false);
+  assert.equal((await plan(first)).value.templateFingerprint, before.value.templateFingerprint);
+  assert.deepEqual([...first.presets.values()], presets);
+  assert.equal((await plan(second)).kind, 'success');
+  assert.ok(JSON.stringify([...second.presets.values()]).includes('MARK_NEW_DEFAULT'));
+  assert.equal(first.counts().providerCalls + second.counts().providerCalls, 0);
+  value = undefined;
+  assert.notEqual(control.defaultTemplate().members[0].persona_prompt, 'MARK_NEW_DEFAULT');
+});
 
 test('current-session configuration starts the invoking root without a configured Session ID', async t => {
   const host = await currentHost(t);
