@@ -21,6 +21,14 @@ npm run check:compat -- --app-executable "C:\Users\me\AppData\Local\Programs\Dee
 
 路径以实际安装位置为准。`--upstream` 可选，需要已安装 `gh`；不加该参数时不会联网。
 
+## 安装后手动修改模型和 effort
+
+**当前需要编辑用户配置文件，插件页没有模板编辑表单。** 默认路径为 `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`；自定义 `DSH_HOME` 或 profile 时使用实际路径。
+
+按 [Windows 手动配置步骤](MODELS-AND-PROMPTS.md#windows-manual-configuration) 修改，或从 [完整用户配置补丁](examples/windows-team-config.patch.yml) 开始填写。每个成员可独立设置 `provider`、`model` 和 `reasoning_effort`；effort 默认 `max`，实际支持范围由目标模型的原生 adapter 验证。示例里的两个 model ID 都是待替换占位符。
+
+保留原文件的其他条目和组件的既有选项。配置生效、原生模型选择授权保存后，新建根会话再 plan/launch；重复 launch 不会给已有成员更换模型。修改用户配置无需重新打包或安装插件。
+
 ## GitHub Actions 证明什么
 
 工作流只用 `windows-2022` x64 runner，不需要仓库 secret 或模型账号：

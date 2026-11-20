@@ -68,6 +68,8 @@ DeepSeek 官方提供方的 Pro 菜单项可能标注路由到 Flash；它不能
 
 ## 配置、恢复与限制
 
+**当前修改方式是手动编辑用户 profile 的 `cordis.patch.yml`。** 插件页尚无选择 provider、模型和 effort 的模板表单。Windows 的文件位置、修改步骤和完整补丁见 [Windows 手动配置](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration)；可逐角色修改 `provider`、`model`、`reasoning_effort`、`persona_prompt` 和 `prompt`。配置生效后用于新建团队，无需重新打包插件。
+
 `examples/team-template.json` 是完整两角色模板。可在当前组件配置中将可选 `template` 替换为同格式对象，调整角色提示词、模型、启动提示与原生工具白名单。组件支持 `timeoutMs` 和每角色 `maxStreams`；默认每角色一次普通启动 stream，可配置 1～12 次。模板只表达配置，真实准入仍由原生 policy 和工具权限决定。逐字段说明见[修改模型与提示词](docs/MODELS-AND-PROMPTS.md)。
 
 默认模板的 `reasoning_effort` 已改为 `max`，也可逐角色填入其原生模型支持的 effort ID。两名角色可以使用同一个 provider/model。原生 `resolveCallConfig` 会在修改 Team 或创建成员前拒绝路由解析失败、不支持的 effort，不会偷偷降档；元数据检查不代表远端模型一定执行成功。启动请求的 `maxTokens=1024` 是独立限制，不是团队生命周期、总 token 或金额上限；历史 rc.2 验收中的后续任务和自我介绍曾使用 `maxTokens=256000`。本次更新不修改续接 token 预算。
