@@ -1,0 +1,44 @@
+name: Windows plugin acceptance
+
+on:
+  push:
+    branches: [main, 'feature/windows-*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  windows:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Offline regression and package test
+        run: npm test
+      - name: Real Windows Host lifecycle (no account or model calls)
+        shell: pwsh
+        run: ./scripts/accept-windows.ps1 -WorkDir "$env:RUNNER_TEMP/dsh-windows-acceptance"
+      - name: Preserve bounded acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-host-${{ github.sha }}
+          path: ${{ runner.temp }}/dsh-windows-acceptance/receipts/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Preserve the tested install candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-plugin-${{ github.sha }}
+          path: ${{ runner.temp }}/dsh-windows-acceptance/*.tgz
+          if-no-files-found: error
+          retention-days: 30

@@ -5,8 +5,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { apply as applyLauncherRole } from '../../launcher-role.js';
 import { nativeEffectOwner } from './native-effect-owner.mjs';
+import { CONTROL } from './control-entry.mjs';
 
-export const CONTROL = { name: 'file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent-control/lib/index.js', config: { interrupt: false } };
+export { CONTROL };
 const ROLES = ['implementer', 'reviewer'];
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
 const clone = value => structuredClone(value);
@@ -35,6 +36,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       { key: 'review', subject: 'Review implementation', description: 'Wait for the peer, independently check 5, then complete.', owner: 'reviewer', blocked_by: ['implement'] },
     ],
   };
+  for (const member of template.members) Object.assign(member, options.memberConfig?.[member.name]);
   const bytes = JSON.stringify(template);
   const config = { mode: 'launcher', ownedSessionId: options.sessionId ?? 'session-11111111-1111-4111-8111-111111111111', workspace,
     runTag: 'launcher-owned-test', timeoutMs: options.hang ? 25 : 3000,
@@ -281,11 +283,12 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     assert.equal(call.name, 'dsh_team_launcher_spawn'); assert.ok(member);
     const presetIds = options.sessionScopedPresets ? [...presets.keys()] : template.members.map(row => row.agent_preset);
     assert.deepEqual([...mount.spec.allowedAgentPresets].sort(), presetIds.sort());
-    assert.equal(args.provider, member.provider); assert.equal(args.model, member.model); assert.equal(args.reasoning_effort, 'low');
+    assert.equal(args.provider, member.provider); assert.equal(args.model, member.model); assert.equal(args.reasoning_effort, member.reasoning_effort);
     assert.equal(args.agent_preset, member.agent_preset);
     assert.equal(args.cwd, options.sessionScopedPresets ? effectiveWorkspace : workspace);
     assert.ok(args.prompt.includes(member.prompt)); assert.ok(!args.prompt.includes(member.persona_prompt));
-    assert.ok(preflights.some(route => route.model === 'deepseek-flash') && preflights.some(route => route.model === 'deepseek-v4-pro'));
+    assert.ok(template.members.every(member => preflights.some(route => route.provider === member.provider
+      && route.model === member.model && route.reasoningEffort === member.reasoning_effort)));
     if (options.unauthorized) throw nativeError('SESSION_ROUTE_NOT_AUTHORIZED');
     spawnAttempts++; order.push(`spawn:${member.name}`);
     if (options.failSecondCreate && spawnAttempts === 2) return { results: [{ callId: call.id,
@@ -378,6 +381,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       if (key === 'subagentModelSelectionPolicy') return options.unauthorized ? [] : template.members.map(member => ({ provider: member.provider, model: member.model }));
     } },
     llm: { async resolveCallConfig(route, signal) { signal.throwIfAborted(); preflights.push(clone(route)); order.push(`preflight:${route.model}`);
+      if (options.resolveCallConfig) return options.resolveCallConfig(route, signal);
       if (options.preflightUnexpected && preflights.length === 1) {
         await new Promise(resolve => setImmediate(resolve));
         emit(hooks, 'subagent/start', { parentSessionId: root.id, id: 'unexpected-child', runId: 'unexpected-run', provider: 'spawn', local: true });

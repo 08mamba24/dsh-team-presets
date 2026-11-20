@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import { fail, LiveError } from './config.js';
 import { parseTeamConfig, authorizeTeam, preflightTeam, TEAM_ROLE_TOOLS } from './team-config.js';
 import { createTeamGate } from './team-gate.js';
+import { isHostControlPath } from './host-support.js';
 
 const ROLES = ['implementer', 'reviewer'];
 const TOOL = 'dsh_live_team_spawn';
@@ -27,10 +28,9 @@ export function checkedControlEntry(entry) {
   try {
     if (!entry || Object.keys(entry).sort().join(',') !== 'config,name' || typeof entry.name !== 'string'
       || !entry.config || Object.keys(entry.config).join(',') !== 'interrupt' || entry.config.interrupt !== false) throw new Error();
-    const url = new URL(entry.name), path = fileURLToPath(url);
+    const url = new URL(entry.name), path = fileURLToPath(url, { windows: process.platform === 'win32' });
     if (url.protocol !== 'file:' || url.host || url.search || url.hash
-      || !path.startsWith('/Applications/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/')
-      || !path.endsWith('/@deepseek-ai/dsh-tool-subagent-control/lib/index.js')) throw new Error();
+      || !isHostControlPath(path, 'lib/index.js')) throw new Error();
     return { name: entry.name, config: { interrupt: false } };
   } catch { fail('NATIVE_CONTROL_ENTRY_UNAVAILABLE'); }
 }
@@ -74,6 +74,7 @@ export function delegationFailure(batch, child, role, memberName) {
 
 /** A separate marker and command keep the accepted M1 path inert and unchanged. */
 async function assertTeamOwned(ctx, config, agent) {
+  if (process.platform === 'win32') fail('LEGACY_BOUND_ENTRY_REQUIRES_MACOS');
   if (!agent || agent.id !== config.ownedSessionId || agent.session?.id !== agent.id
     || ctx.agents.get(agent.id) !== agent || agent.session.header?.origin === 'subagent') fail('WRONG_AGENT');
   if (await realpath(config.workspace) !== config.workspace

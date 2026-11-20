@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { basename, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 import { composeEntries } from './fixtures/compose-rc2.mjs';
@@ -15,6 +15,8 @@ import { apply as applyLauncherEntry } from '../launcher-entry.js';
 
 const exec = promisify(execFile);
 const root = fileURLToPath(new URL('../', import.meta.url));
+// Windows CI supplies native tar.exe; no shell or archive parser dependency is needed.
+const tar = process.platform === 'win32' ? 'tar.exe' : 'tar';
 
 test('the generic launcher stays inert outside Harness and requires explicit configuration', async () => {
   let command;
@@ -36,13 +38,17 @@ test('the actual TGZ patch inserts one complete live entry without changing exis
       : expected.mode === 'team' ? parseTeamConfig(expected) : parseConfig(expected),
       'the candidate must contain the complete independent expected binding');
   } else {
-    const { stdout } = await exec('npm', ['pack', '--ignore-scripts', '--json', '--pack-destination', scratch], { cwd: root });
+    const packArgs = ['pack', '--ignore-scripts', '--json', '--pack-destination', scratch];
+    // npm test supplies its CLI path. Running it with Node also avoids invoking
+    // the npm.cmd shim through execFile, which is unsupported on Windows.
+    const npmCli = basename(process.env.npm_execpath || '') === 'npm-cli.js' ? process.env.npm_execpath : undefined;
+    const { stdout } = await exec(npmCli ? process.execPath : 'npm', npmCli ? [npmCli, ...packArgs] : packArgs, { cwd: root });
     const [packed] = JSON.parse(stdout);tgz = join(scratch, packed.filename);
   }
   const provenance = JSON.parse(await readFile(new URL('./fixtures/compose-rc2.provenance.json', import.meta.url), 'utf8'));
   const source = await readFile(new URL('./fixtures/compose-rc2.mjs', import.meta.url));
   assert.equal(createHash('sha256').update(source).digest('hex'), provenance.adapterSha256);
-  const { stdout } = await exec('tar', ['-xOzf', tgz, 'package/cordis.patch.yml']);
+  const { stdout } = await exec(tar, ['-xOzf', tgz, 'package/cordis.patch.yml']);
   // This bundle uses JSON, a YAML subset, so no test/runtime parser dependency is needed.
   const patch = JSON.parse(stdout);
   // The native installer validates this before composing entries. The
@@ -69,31 +75,31 @@ test('the actual TGZ patch inserts one complete live entry without changing exis
   assert.deepEqual(baseline, original);
   assert.deepEqual(warnings, []);
   if (expected.mode === 'team') {
-    const { stdout: metadata } = await exec('tar', ['-xOzf', tgz, 'package/package.json']);
+    const { stdout: metadata } = await exec(tar, ['-xOzf', tgz, 'package/package.json']);
     const manifest = JSON.parse(metadata);
     assert.equal(manifest.exports['./team'], './team-entry.js');
     assert.equal(manifest.exports['./team-role'], './team-role.js');
     for (const path of ['team-entry.js', 'team-role.js', 'src/team-config.js', 'src/team-driver.js', 'src/team-gate.js']) {
-      const { stdout: payload } = await exec('tar', ['-xOzf', tgz, `package/${path}`]);
+      const { stdout: payload } = await exec(tar, ['-xOzf', tgz, `package/${path}`]);
       assert.ok(payload.length > 0, `missing pair payload: ${path}`);
     }
   }
   if (generic || expected.mode === 'launcher') {
-    const { stdout: metadata } = await exec('tar', ['-xOzf', tgz, 'package/package.json']);
+    const { stdout: metadata } = await exec(tar, ['-xOzf', tgz, 'package/package.json']);
     const manifest = JSON.parse(metadata);
     assert.equal(manifest.exports['./launcher'], './launcher-entry.js');
     assert.equal(manifest.exports['./launcher-role'], './launcher-role.js');
     for (const path of ['launcher-entry.js', 'launcher-role.js', 'src/launcher-driver.js', 'src/launcher-board.js',
       'src/launcher-config.js', 'src/launcher-template.js', 'src/launcher-plan.js',
       'src/launcher-native.js', 'src/team-host.js', 'src/team-gate.js']) {
-      const { stdout: payload } = await exec('tar', ['-xOzf', tgz, `package/${path}`]);
+      const { stdout: payload } = await exec(tar, ['-xOzf', tgz, `package/${path}`]);
       assert.ok(payload.length > 0, `missing launcher payload: ${path}`);
     }
     if (generic) {
       assert.equal(manifest.exports['./current'], './current-entry.js');
       assert.equal(manifest.bin['dsh-team-prepare'], './scripts/prepare-launcher.mjs');
       for (const path of ['current-entry.js', 'src/launcher-current.js', 'scripts/prepare-launcher.mjs', 'src/launcher-prepare.js', 'examples/team-template.json', 'README.zh-CN.md']) {
-        const { stdout: payload } = await exec('tar', ['-xOzf', tgz, `package/${path}`]);
+        const { stdout: payload } = await exec(tar, ['-xOzf', tgz, `package/${path}`]);
         assert.ok(payload.length > 0, `missing setup payload: ${path}`);
       }
     }

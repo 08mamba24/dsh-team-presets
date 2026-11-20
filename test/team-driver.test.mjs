@@ -1,5 +1,8 @@
-import { test } from 'node:test';
+import { test as nodeTest } from 'node:test';
 import assert from 'node:assert/strict';
+// This fixture drives the historical file-bound entry and its POSIX marker checks.
+// Windows current-session and control-entry tests run in their dedicated suites.
+const test = (name, fn) => nodeTest(name, { skip: process.platform === 'win32' ? 'Legacy macOS file-bound entry' : false }, fn);
 import { mkdtemp, realpath, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';

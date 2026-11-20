@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { types } from 'node:util';
+import { parse } from 'node:path';
 import { fail } from './config.js';
 import { parseLauncherConfig, validateLauncherTemplate } from './launcher-config.js';
 import { applyLauncher } from './launcher-driver.js';
@@ -22,7 +23,7 @@ function options(raw) {
   const streams = raw.maxStreams ?? { implementer: 1, reviewer: 1 };
   // Reuse the startup bounds parser; these placeholders are never a runtime binding.
   const bounds = parseLauncherConfig({ mode: 'launcher', ownedSessionId: 'session-00000000-0000-4000-8000-000000000000',
-    workspace: '/', runTag: 'current-config', timeoutMs, templateSha256: '0'.repeat(64),
+    workspace: parse(process.cwd()).root, runTag: 'current-config', timeoutMs, templateSha256: '0'.repeat(64),
     startup: { maxTokens: 1024, maxStreams: streams } });
   return { timeoutMs, maxStreams: bounds.startup.maxStreams, template: raw.template };
 }

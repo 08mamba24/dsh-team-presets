@@ -133,6 +133,7 @@ async function copyPayload(sourceRoot, stage, entries) {
 
 /** Offline preparation only. No Host/profile access, installation or native authorization is performed. */
 export async function prepareLauncher(options, packageRoot = PACKAGE_ROOT) {
+  if (process.platform === 'win32') fail('LEGACY_BOUND_ENTRY_REQUIRES_MACOS');
   const state = { status: 'PREPARING', outputDir: null, createdWorkspacePaths: [], packagePath: null,
     installed: false, nativeAuthorizationVerified: false, modelCalls: 0 };
   let phase = 'INVALID_PREPARE_OPTIONS';

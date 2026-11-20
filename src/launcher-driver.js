@@ -477,7 +477,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
           assertCurrent(op, op.signal);
           mounted = agent.ctx.plugin(nativeSubagent, { provider: 'spawn', toolName: SPAWN, modelSelection: true,
             modelDiscovery: false, allowedAgentPresets: template.members.map(member => member.agentPreset),
-            agentOptions: { reasoningEffort: 'low', maxTokens: 1024 }, maxDepth: 1 });
+            agentOptions: { maxTokens: 1024 }, maxDepth: 1 });
           await mounted; assertCurrent(op, op.signal);
           await preflightTeam(op.controls, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'), ctx.llm, op.signal);
           assertCurrent(op, op.signal);

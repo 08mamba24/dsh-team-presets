@@ -153,7 +153,8 @@ export async function registerLauncherPresets(ctx, config, spec, nativeControlEn
 export function makeLauncherSpawnCall(member, { workspace, prompt } = {}) {
   if (!member || !roleName(member.name) || !text(member.description, 200) || !text(member.provider, 200)
     || member.provider.trim() !== member.provider || !text(member.model, 200) || member.model.trim() !== member.model
-    || !['low', 'medium', 'high'].includes(member.reasoningEffort) || typeof member.agentPreset !== 'string'
+    || !text(member.reasoningEffort, 200) || member.reasoningEffort.trim() !== member.reasoningEffort
+    || typeof member.agentPreset !== 'string'
     || !ID.test(member.agentPreset) || typeof workspace !== 'string' || !isAbsolute(workspace) || !text(prompt, 8000)) fail('LAUNCHER_SPAWN_INPUT_INVALID');
   return { type: 'tool-call', id: `dsh-team-launcher-${randomUUID()}`, name: SPAWN,
     arguments: JSON.stringify({ name: member.name, description: member.description, cwd: workspace,

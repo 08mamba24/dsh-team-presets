@@ -1,10 +1,12 @@
 # Legacy bound installation (0.4)
 
+This historical file-bound workflow is macOS-only. On Windows use the current-session `/dsh-team` entry described in [WINDOWS.md](WINDOWS.md). The prepare command and bound-file readers reject Windows before using POSIX ownership checks.
+
 This historical flow uses the explicit bound launcher export. The 0.5 generic bundle uses the current-session entry; follow the repository README for a new installation. Existing bound installations need a checked migration before replacement.
 
 ## 一次性准备
 
-需要 Node.js 22 或更新版本、npm，以及一个**已经存在**的 Harness 根会话。准备好该会话准确的 `session-…` ID 和工作目录。会检查工作目录及父路径权限，共享可写目录会被拒绝；准备期间不要移动或替换目录。该会话的原生 Session policy 必须允许模板里的两条不同模型路由；模板或安装本插件都不会授予模型权限。
+需要 Node.js 22 或更新版本、npm，以及一个**已经存在**的 Harness 根会话。准备好该会话准确的 `session-…` ID 和工作目录。会检查工作目录及父路径权限，共享可写目录会被拒绝；准备期间不要移动或替换目录。该会话的原生 Session policy 必须允许模板里的模型路由；模板或安装本插件都不会授予模型权限。rc.3 起两角色可选择相同路由，provider/model/effort 的支持情况由原生配置验证。
 
 **Session ID由用户提供，离线prepare不验证其存在或原生授权。** 这些条件仍由安装后的原生运行准入检查，准备成功不能替代它们。
 
@@ -22,7 +24,7 @@ node scripts/prepare-launcher.mjs \
 
 输出目录必须位于解压的 `package` 目录之外；上例使用它的同级目录。准备命令不会启动 Harness、安装插件、修改 profile 或调用模型。它校验模板，以独占方式在指定工作目录创建 `.dsh-team-template.json` 和 `.dsh-team-launcher.json`，并输出绑定该会话的本地安装包与准备收据。模板和标记文件为 `0600`，输出目录为 `0700`；已有同名文件或输出目录会被拒绝，不会覆盖。
 
-默认启动预算为每角色最多一次普通 stream、low、maxTokens1024；这不是总 token 或金额上限。模板里的种子任务默认只作为就绪后的工作背景，启动不会要求自动完成业务任务。
+rc.3 默认模板使用 max；启动预算仍为每角色最多一次普通 stream、maxTokens1024，这不是总 token 或金额上限。自定义模板显式填写各角色的 reasoning_effort，原生 adapter 不支持时会拒绝。模板里的种子任务默认只作为就绪后的工作背景，启动不会要求自动完成业务任务。
 
 只有准备命令以退出码 `0` 完成，且最终 `PREPARED.json` 的状态为 `PREPARED_FOR_OFFICIAL_INSTALL`，才能进入安装步骤。如果准备过程中报告部分完成，先按错误报告核对已创建的文件；不要仅凭某个文件存在就安装。不要覆盖、删除既有标记或盲目重跑。准备成功只证明本地文件与打包合同成立，不证明 Session 存在、模型已获授权或真实运行成功。
 

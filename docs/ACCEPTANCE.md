@@ -1,5 +1,17 @@
 # Acceptance and release scope
 
+## 0.5.0-rc.4 Windows candidate
+
+This candidate adds Windows x64 Host loading for the reviewed 0.2.2-rc.5 archive and includes the rc.3 configuration change below. [Windows Actions](https://github.com/08mamba24/dsh-team-presets/actions/workflows/windows.yml) records each commit's offline tests and real official CLI/Host install, plan, persisted command history and removal checks. Consult that run's `acceptance.json`; source inspection alone is not a Windows pass. See [Windows scope and reproduction](WINDOWS.md).
+
+The current-session entry is the Windows path. Historical POSIX file-bound entries remain macOS-only. Windows GUI interaction, paid launch and member collaboration are outside the automated no-account acceptance. No daily profile or existing team is migrated.
+
+## 0.5.0-rc.3 configuration update
+
+The source defaults both launcher roles to max and allows configured provider/model/effort ids, including the same model for both roles. Native Session policy and adapter resolution remain mandatory; unsupported controls stop before team/task mutation or child creation. The startup maxTokens1024 limit is unchanged. The legacy single-role and fixed M2 drivers retain their historical bounded configuration.
+
+This update has no paid live execution or installed-profile change. The rc.2 evidence below is historical low-effort acceptance, not max-effort or arbitrary-provider live acceptance. Existing teams are not migrated by building this package.
+
 ## 0.5.0-rc.2 current-session entry
 
 On 2026-11-19, independent source/package review accepted integration baseline `4a73cf95feed4c615993950473907dfda4d81b39` and the complete generic TGZ. The full offline suite passed 207/207. A later independent review accepted the original narrow live scope on macOS Harness 0.2.2-rc.5:

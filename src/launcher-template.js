@@ -59,7 +59,9 @@ function member(raw, names, presets) {
     if (value[key].trim() !== value[key]) fail('INVALID_MEMBER_ROUTE');
   }
   optional(value, raw, 'reasoning_effort', 'reasoningEffort', effort => {
-    if (!['low', 'medium', 'high'].includes(effort)) fail('INVALID_MEMBER_EFFORT');
+    // Effort ids belong to the configured adapter; native preflight validates support.
+    text(effort, 200, 'INVALID_MEMBER_EFFORT');
+    if (effort.trim() !== effort) fail('INVALID_MEMBER_EFFORT');
     return effort;
   });
   optional(value, raw, 'persona_prompt', 'personaPrompt', persona => text(persona, 8000, 'INVALID_MEMBER_PERSONA'));
