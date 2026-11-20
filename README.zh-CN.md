@@ -2,21 +2,35 @@
 
 在 DeepSeek Harness 的目标会话中，一次创建 implementer 和 reviewer，为两者分别配置模型路由、持久角色提示词与原生任务／消息工具。
 
-**当前源码：0.5.0-rc.4 Windows 候选。** 两个默认角色均使用 `max` effort；模型和 effort 由实际配置的原生 adapter 验证，不再受插件的模型名单限制。本次更新尚未进行付费实机运行。已发布的 0.5.0-rc.2 在 2026-11-19 通过了 macOS Harness rc.5 的独立实机复核，当时使用 low；该结果仍只覆盖 rc.2。[验收范围与已知限制](docs/ACCEPTANCE.md)。
+**当前源码：0.5.0-rc.5。** 安装后提供 profile 全局的 `dsh-team-configure` skill，可以在 Agent 会话中配置两角色的 provider、模型、effort 与提示词，无需手工编辑 YAML。默认 effort 为 `max`，由实际配置的原生 adapter 验证。本次更新未进行付费模型运行；历史 rc.2 的 macOS low 实机结果不代表本版本的任意模型已验。[验收范围与已知限制](docs/ACCEPTANCE.md)。
 
 Windows x64 适配面向已检查的 Harness 0.2.2-rc.5 和当前会话 `/dsh-team` 入口，见 [Windows 安装与 CI 验收](docs/WINDOWS.md)。旧的本地文件绑定入口仍只支持 macOS。
 
 ## 下载与安装
 
-在本源码包目录执行以下命令，生成 rc.4 Windows 候选：
+在本源码包目录执行以下命令打包：
 
 ```sh
 npm pack
 ```
 
-在 Harness 官方插件管理器中安装生成的 `dsh-subagent-live-rc2-local-0.5.0-rc.4.tgz`。打包不会更新已安装副本。0.5 通用包默认注册当前会话入口，无需填写 Session ID，也无需运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 rc.5 安装源。
+在 Harness 官方插件管理器中安装生成的 `dsh-subagent-live-rc2-local-0.5.0-rc.5.tgz`。打包不会更新已安装副本。安装会同时注册当前会话入口、配置工具和 skill；该 profile 的根会话均可发现 skill，不必另拷到每个项目。无需填写 Session ID 或运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 Harness rc.5 的安装源。
 
 [已发布的 v0.5.0-rc.2 私有预发行](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) 保持原先实机验收时的 low 配置，不包含本次 max 更新。该插件未发布到 npm 或插件市场。包名中的 `rc2-local` 是历史名称。
+
+## 在会话中配置团队
+
+向 Agent 说明需要的角色配置，例如：
+
+```text
+使用 dsh-team-configure：查看本机 codeagent 可用模型。
+把实现角色设为我指定的模型，effort 用 max；复核角色用另一模型和 high。
+复核提示词加上“先读取实现证据，再独立验证”。保存为团队默认配置。
+```
+
+Agent 会读取实际 provider/model ID，预检明确修改的路由与 effort，再通过原生审批和持久设置保存。只需提供本机真实模型选择；不需要贴整份 profile 或凭据。仅询问方案时只预览，不保存。
+
+当前支持 `implementer` 与 `reviewer` 两个稳定角色，可分别改职责、模型、effort、持久提示词和首次启动输入。任意角色数量尚不支持。“全局”指当前安装 profile 的默认模板；已有团队不随默认值变更。保存后按工具提示使用尚未绑定团队的根会话；若模型授权也有变化，须保存原生授权并新建根会话。skill 不自动授权或启动成员。完整说明见[模型与提示词](docs/MODELS-AND-PROMPTS.md)。
 
 ## 允许两条模型路由
 
@@ -68,7 +82,9 @@ DeepSeek 官方提供方的 Pro 菜单项可能标注路由到 Flash；它不能
 
 ## 配置、恢复与限制
 
-**当前修改方式是手动编辑用户 profile 的 `cordis.patch.yml`。** 插件页尚无选择 provider、模型和 effort 的模板表单。Windows 的文件位置、修改步骤和完整补丁见 [Windows 手动配置](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration)；可逐角色修改 `provider`、`model`、`reasoning_effort`、`persona_prompt` 和 `prompt`。配置生效后用于新建团队，无需重新打包插件。
+推荐使用上面的会话 skill；rc.4 用户须安装新包才能获得该能力。没有专用的模型选择表单。手动配置仍可使用，Windows 文件位置和完整补丁见 [Windows 手动配置](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration)。两种方式都无需重新打包插件。
+
+skill 保存不会重载当前 launcher；当前 Host 中已执行 plan/launch 的根继续使用原模板，未绑定的根读取新默认值。模板持久化与完整旧团队冷恢复是不同能力；改默认值后不要用旧根 plan/launch 强行迁移成员，完整冷恢复仍未验收。
 
 `examples/team-template.json` 是完整两角色模板。可在当前组件配置中将可选 `template` 替换为同格式对象，调整角色提示词、模型、启动提示与原生工具白名单。组件支持 `timeoutMs` 和每角色 `maxStreams`；默认每角色一次普通启动 stream，可配置 1～12 次。模板只表达配置，真实准入仍由原生 policy 和工具权限决定。逐字段说明见[修改模型与提示词](docs/MODELS-AND-PROMPTS.md)。
 

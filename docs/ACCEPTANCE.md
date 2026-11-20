@@ -1,6 +1,14 @@
 # Acceptance and release scope
 
-## 0.5.0-rc.4 Windows candidate
+## 0.5.0-rc.5 conversational configuration
+
+This version adds the profile-wide `dsh-team-configure` skill and the root-only `dsh_team_configure` tool. The tool inspects providers, lists a selected provider's models, previews partial role edits and saves through native approval and revision-checked persistent settings. It supports the two stable implementer/reviewer roles, including provider, model, effort, description, persona and startup input. It neither expands native session authorization nor launches or replaces members.
+
+Isolated tool tests cover native approval delegation, exact route/effort validation, preserved template fields, concurrent settings edits, cancellation and uncertain writes without automatic retry. The Windows workflow adds actual Host skill discovery, a native settings RPC save, preservation of the current bound root, adoption by a fresh root, persistence after restart and skill removal on uninstall. Consult the exact commit's `acceptance.json`; a description of these checks is not itself a successful run.
+
+The Windows checks use no model account or inference. They do not establish an LLM-driven skill conversation, real-provider metadata behavior, paid launch or arbitrary role counts. Defaults persist across restart; preservation of a bound root's template is limited to the current Host lifetime. Old-team cold restoration after changing defaults remains unaccepted.
+
+## 0.5.0-rc.4 Windows release
 
 This candidate adds Windows x64 Host loading for the reviewed 0.2.2-rc.5 archive and includes the rc.3 configuration change below. [Windows Actions](https://github.com/08mamba24/dsh-team-presets/actions/workflows/windows.yml) records each commit's offline tests and real official CLI/Host install, plan, persisted command history and removal checks. Consult that run's `acceptance.json`; source inspection alone is not a Windows pass. See [Windows scope and reproduction](WINDOWS.md).
 
