@@ -35,7 +35,7 @@ test('takeover needs an authenticated successful native call/result pair with th
 
 function fixture({ cold = false, activeJob = false, status = 'idle', queued = false, openTurn = false } = {}) {
   const order = [], root = { id: ROOT }, agents = new Map([[ROOT, root]]);
-  const old = { id: OLD, session: { id: OLD, header: { parentSession: ROOT } }, status,
+  const old = { id: OLD, session: { id: OLD, header: { parentSession: ROOT }, snapshotEvents: () => [] }, status,
     inbox: { nextStep: [], nextTurn: queued ? [{ id: 'waiting-input' }] : [] },
     async runMaintenance(body) { order.push('old-maintenance'); return body(new AbortController().signal); } };
   if (!cold) agents.set(OLD, old);

@@ -13,3 +13,7 @@ description: Replace an idle implementer or reviewer and recover the same handof
 6. 超时、取消、部分移交或落盘不确定时，报告原 operationId 并 inspect/recover 同一操作。候选尚未创建或尚未改派任务时，可对同一 operationId 明确调用 `action: cancel`；只有候选已停止、任务 owner 仍安全时才解冻旧成员。首次 owner 写入之后不允许 cancel，不复活旧成员，不重复 spawn，不删除任务、依赖或进度。工具仍经过原生沙箱和审批；已有工具体和任意自行脱离管理的后台进程不能通过替换撤销。
 
 这次替换只作用于当前根团队，不改 profile 默认模板。用户要求修改以后新团队的默认配置时，使用 `dsh-team-configure`。
+
+旧版本已存在的团队若返回 `REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED`，必须找到原先实际使用的完整模板，再调用 `action: adopt, template: 原模板`。系统会用本根原生启动回执的指纹、成员身份和 Session header 验证后才保存绑定、注册 Preset；不能用后来改过的 defaults 代替，也不能虚构原模板。找不到可信原配置时保留现场并报告缺口。未改变的原模板可在首次绑定时自动验证。
+
+`REPLACEMENT_SNAPSHOT_STALE` 也可能表示冷旧成员在观察与冻结之间又完成了一次 turn。此时保留冻结，不创建候选或改派任务；先 inspect 原 operationId，核实新增事实后按取消／恢复合同处理。

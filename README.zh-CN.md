@@ -107,6 +107,8 @@ Agent 先调用 `dsh_team_replace action: inspect`，再将精确的 `expectedOl
 
 遇到超时、部分改派或写入不确定，先 inspect，再对原 operationId 调用 `recover`。恢复会重新核对当前 owner/status，并续接同一个候选 Session，不重复创建。首次 owner 写入意图之前可明确调用 `cancel`，包括候选尚未创建的冻结计划；确认候选已停止、任务 owner 安全后才解冻旧成员。首次 owner 意图之后只能恢复对账，旧成员持续退役。
 
+旧版本团队可在原生启动指纹和 child header 均验证原绑定后自动迁移。默认值已改变时会返回 `REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED`，需向 `dsh_team_replace action: adopt` 提供完整原模板，由工具验证后才注册受管 Preset；无法找回原配置时保留现场，不猜旧 persona。
+
 原生 profile 持久保留各根的原配置、完整候选配置和生命周期记录，重载后先恢复相应 Preset。手工改配置须保留 `replacementRecords`；新默认值不改变这些团队。实际工具仍服从原生沙箱、审批与限制。替换无法撤销已进入工具体的副作用或任意自行脱离管理的后台进程，也不改变续接 `maxTokens`。新路径面向已检查的 Harness rc.5，证据范围见[验收说明](docs/ACCEPTANCE.md)。
 
 ## 配置、恢复与限制
@@ -123,7 +125,9 @@ Agent 先调用 `dsh_team_replace action: inspect`，再将精确的 `expectedOl
 /dsh-team restore
 ```
 
-该命令仅在原操作的恢复权限仍在、根会话无排队输入、原根与成员均空闲且未被替换、完整任务板自启动结束后保持不变时，才可还原先前 Team 模式。普通业务写回会改变任务 revision、状态或描述，导致 `RESTORE_BOARD_CONFLICT`；成员条件不满足时可能更早拒绝。因此，业务完成后不能承诺 `restore` 成功。遇拒绝应保留当前 Team 模式与证据，停止自动补偿；不要清空任务、倒改依赖或重跑工作来强行恢复。命令保留成员和任务。插件或 Host 重载后，应先在原根会话执行 `plan` 重建角色预设注册；它不会重建先前的内存恢复权限。本次没有验收完整冷恢复、正向成员复用、自动 Lead 唤醒或所有部分失败恢复路径。卸载使用官方管理器，等待已有操作和成员结束。
+该命令仅在原操作的恢复权限仍在、根会话无排队输入、原根与成员均空闲且未被替换、完整任务板自启动结束后保持不变时，才可还原先前 Team 模式。普通业务写回会改变任务 revision、状态或描述，导致 `RESTORE_BOARD_CONFLICT`；成员条件不满足时可能更早拒绝。因此，业务完成后不能承诺 `restore` 成功。遇拒绝应保留当前 Team 模式与证据，停止自动补偿；不要清空任务、倒改依赖或重跑工作来强行恢复。命令保留成员和任务。
+
+插件或 Host 重载后，保留的 rc.7 绑定会在成员续接前自动注册原始及候选 Preset。这与 `/dsh-team restore` 的启动模式还原不同；后者的内存恢复权限不会由 `plan` 重建。旧版本绑定按上文的原模板验证步骤迁移。冷续接和部分恢复故障已由隔离原生检查覆盖；正向成员复用、自动 Lead 唤醒及任意部分失败仍未验收。卸载使用官方管理器，等待已有操作和成员结束。
 
 旧的显式绑定入口 `/dsh-team-launcher` 及离线 prepare 继续保留，流程见 [旧版绑定安装](docs/LEGACY-BOUND-INSTALL.md)。
 

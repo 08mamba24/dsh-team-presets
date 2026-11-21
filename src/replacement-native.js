@@ -90,15 +90,17 @@ export async function quietReplacementTree(ctx, root, childId, signal) {
   }
   if (!subtree.length || subtree[0].id !== childId || subtree[0].parentId !== root.id) fail('REPLACEMENT_MEMBER_UNOBSERVABLE');
   const jobs = ctx.get?.('jobs');
-  const live = [];
+  const live = [], observations = [];
   for (const row of subtree) {
     signal.throwIfAborted();
     if (row.mode !== 'continuable') fail('REPLACEMENT_MEMBER_UNOBSERVABLE');
+    let jobSnapshot;
     if (jobs !== undefined) {
       if (typeof jobs.list !== 'function') fail('REPLACEMENT_BACKGROUND_UNOBSERVABLE');
       const work = jobs.list(row.id);
       if (!Array.isArray(work)) fail('REPLACEMENT_BACKGROUND_UNOBSERVABLE');
       if (work.some(job => job.owner === row.id && ['running', 'stopping'].includes(job.status))) fail('REPLACEMENT_BACKGROUND_ACTIVE');
+      jobSnapshot = structuredClone(work);
     }
     const agent = ctx.agents.get(row.id);
     if (agent !== undefined) {
@@ -106,6 +108,9 @@ export async function quietReplacementTree(ctx, root, childId, signal) {
         || agent.status !== 'idle' || queued(agent).length !== 0
         || typeof agent.runMaintenance !== 'function') fail('REPLACEMENT_MEMBER_NOT_QUIET');
       live.push(agent);
+      const events = agent.session.snapshotEvents();
+      observations.push({ row: structuredClone(row), events: events.length,
+        lastSeq: events.at(-1)?.seq ?? null, jobs: jobSnapshot });
     } else {
       if (row.activity !== 'inactive') fail('REPLACEMENT_MEMBER_NOT_QUIET');
       const { events, inbox } = await replacementSession(ctx, row.id, signal);
@@ -115,18 +120,26 @@ export async function quietReplacementTree(ctx, root, childId, signal) {
       const end = events.findLast(event => event.type === 'turn/end');
       if (start && (!end || start.seq > end.seq)) fail('REPLACEMENT_MEMBER_NOT_QUIET');
       if (ctx.agents.get(row.id) !== undefined) fail('REPLACEMENT_MEMBER_NOT_QUIET');
+      observations.push({ row: structuredClone(row), events: events.length,
+        lastSeq: events.at(-1)?.seq ?? null, jobs: jobSnapshot });
     }
   }
   if (ctx.agents.get(root.id) !== root) fail('WRONG_AGENT');
-  return { ids: subtree.map(row => row.id), live };
+  return { ids: subtree.map(row => row.id), live, observations };
 }
 
 /** Claim all resident idle phases; cold members remain fenced by the durable
  * frozen write and the post-write re-observation. The root may be in a tool. */
-export async function maintainReplacementTree(ctx, root, childId, signal, body) {
+export async function maintainReplacementTree(ctx, root, childId, signal, body, expected) {
   const before = await quietReplacementTree(ctx, root, childId, signal);
+  if (expected && !isDeepStrictEqual(expected.observations, before.observations)) fail('REPLACEMENT_SNAPSHOT_STALE');
   const enter = index => {
-    if (index === before.live.length) return body();
+    if (index === before.live.length) return (async () => {
+      const result = await body();
+      const after = await quietReplacementTree(ctx, root, childId, signal);
+      if (!isDeepStrictEqual(before.observations, after.observations)) fail('REPLACEMENT_SNAPSHOT_STALE');
+      return result;
+    })();
     const agent = before.live[index];
     if (ctx.agents.get(agent.id) !== agent) fail('REPLACEMENT_MEMBER_NOT_QUIET');
     return agent.runMaintenance(async maintenanceSignal => {
@@ -210,7 +223,7 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
     host(root, requestSignal, { expectedOldChildId } = {}) {
       const signal = AbortSignal.any([requestSignal, lifetime.signal]);
       const store = createReplacementStore(ctx.settings, config.ownedSessionId);
-      let observedChildId;
+      let observedChildId, observedTree;
       const assertRoot = () => {
         if (root.id !== config.ownedSessionId || ctx.agents.get(root.id) !== root
           || root.session?.id !== root.id || root.session.header?.origin === 'subagent') fail('WRONG_AGENT');
@@ -285,7 +298,7 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
           const member = (await catalog()).find(item => current ? item.id === current.newChildId : item.name === role);
           if (!member || (expectedOldChildId !== undefined && member.id !== expectedOldChildId)
             || (expectedChildId !== undefined && member.id !== expectedChildId)) return { available: false };
-          await quietReplacementTree(ctx, root, member.id, signal);
+          observedTree = await quietReplacementTree(ctx, root, member.id, signal);
           observedChildId = member.id;
           return { available: true, quiet: true, childId: member.id };
         },
@@ -308,7 +321,7 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
           await ctx.agentTeams.updateTask(root, { taskId, expectedRevision, action: 'reassign', owner }, signal);
           return true;
         },
-        runMaintenanceExclusive: (childId, body) => maintainReplacementTree(ctx, root, childId, signal, body),
+        runMaintenanceExclusive: (childId, body) => maintainReplacementTree(ctx, root, childId, signal, body, observedTree),
         async assertMemberStillQuiet(_role, childId, evidence) {
           await quietReplacementTree(ctx, root, childId, signal);
           if (evidence?.phase === 'post-freeze') {

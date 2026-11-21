@@ -1,10 +1,10 @@
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import { fail } from './config.js';
-import { parseReplacementRequest } from './member-replacement.js';
+import { parseReplacementRequest, REPLACEMENT_CHILD_ID } from './member-replacement.js';
 
 const codeOf = error => /^[A-Z][A-Z0-9_]{0,95}$/.test(error?.code) ? error.code : 'TEAM_REPLACEMENT_FAILED';
-const ID = /^session-[a-zA-Z0-9][a-zA-Z0-9-]{6,62}$/;
+const ID = REPLACEMENT_CHILD_ID;
 
 /** Root-only Agent entry. The native tool pipeline still owns permissions. */
 export async function applyTeamReplacement(ctx, launcher, { defineTool }) {
@@ -14,9 +14,11 @@ export async function applyTeamReplacement(ctx, launcher, { defineTool }) {
   ctx.effect(() => () => { closing = true; });
   ctx.tools.register(defineTool({
     name: 'dsh_team_replace',
-    description: 'Inspect this root team, replace one idle implementer/reviewer with explicit model/effort/persona/prompt/tools, or recover one existing replacement operation. Preserves task IDs and history. Replacement may call the candidate model and continue its work; native authorization, sandbox and approvals remain in force. Inspect first and bind expectedOldChildId. Recover the existing operation after an uncertain result.',
+    description: 'Inspect this root team, replace one idle implementer/reviewer with explicit model/effort/persona/prompt/tools, recover/cancel an existing operation, or authenticate an original legacy template with adopt. Preserves task IDs and history. Replacement may call the candidate model and continue its work; native authorization, sandbox and approvals remain in force. Inspect first and bind expectedOldChildId. Recover the existing operation after an uncertain result.',
     parameters: {
-      action: { type: 'string', required: true, enum: ['inspect', 'replace', 'recover', 'cancel'] },
+      action: { type: 'string', required: true, enum: ['inspect', 'replace', 'recover', 'cancel', 'adopt'] },
+      template: { type: 'object', additionalProperties: true,
+        description: 'For adopt: exact original legacy team template, authenticated against its retained native launch fingerprint.' },
       role: { type: 'string', enum: ['implementer', 'reviewer'] },
       expectedOldChildId: { type: 'string', description: 'For replace: exact current member id returned by inspect.' },
       operationId: { type: 'string', description: 'For recover: existing operation id returned by inspect or replacement.' },
@@ -37,6 +39,9 @@ export async function applyTeamReplacement(ctx, launcher, { defineTool }) {
           if (operationId !== undefined || !ID.test(expectedOldChildId ?? '')
             || !['implementer', 'reviewer'].includes(input.role)) fail('REPLACEMENT_REQUEST_INVALID');
           request = { action, expectedOldChildId, request: parseReplacementRequest(input) };
+        } else if (action === 'adopt') {
+          if (Object.keys(args).length !== 2 || !args.template) fail('REPLACEMENT_REQUEST_INVALID');
+          request = { action, originalTemplate: args.template };
         } else if (action === 'recover' || action === 'cancel') {
           if (Object.keys(args).length !== 2 || typeof operationId !== 'string'
             || !/^replace-[0-9a-f-]{36}$/.test(operationId)) fail('REPLACEMENT_REQUEST_INVALID');

@@ -415,6 +415,7 @@ test('cached transferred tasks that became terminal are refreshed before takeove
   for (const id of ['task-1', 'task-3']) {
     const current = host.__tasks.get(id); current.status = 'completed'; current.revision += 1;
   }
+  host.__tasks.get('task-1').ownerId = OTHER;
   const recovered = await reconcileReplacement(host, first.operationId);
   assert.equal(recovered.ok, true);
   assert.equal(recovered.takeoverProof.kind, 'not-required');

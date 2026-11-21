@@ -2,7 +2,7 @@ import { isDeepStrictEqual } from 'node:util';
 import { fail } from './config.js';
 import { parseReplacementRequest, readReplacementRecord, startReplacement, transitionReplacement,
   buildHandoffSnapshot, verifyReadinessAck, verifyTakeoverProof, eligibilityOf, currentRoleOwner,
-  replacementRequestOf, replacementCandidateOf, recordOwnerWriteAttempt, recordTaskOutcome } from './member-replacement.js';
+  replacementRequestOf, replacementCandidateOf, recordOwnerWriteAttempt, recordTaskOutcome, REPLACEMENT_CHILD_ID } from './member-replacement.js';
 
 const TERMINAL_TASK = new Set(['completed', 'deleted']);
 
@@ -39,7 +39,7 @@ function resultFor(operation) {
 }
 
 function validateChildId(childId) {
-  if (typeof childId !== 'string' || !/^session-[a-zA-Z0-9][a-zA-Z0-9-]{6,62}$/.test(childId)) {
+  if (typeof childId !== 'string' || !REPLACEMENT_CHILD_ID.test(childId)) {
     fail('REPLACEMENT_CHILD_INVALID');
   }
   return childId;
@@ -172,9 +172,8 @@ async function transferTasks(state, record, operationId) {
         continue;
       }
       if (cached.kind === 'transferred') {
-        const invalidOwner = current.ownerId !== operation.newChildId;
         const invalidRevision = !Number.isInteger(current.revision) || current.revision < cached.revision;
-        if (invalidOwner || invalidRevision) {
+        if (invalidRevision) {
           record = await enterRecovering(state, record, operationId);
           return { record, error: 'REPLACEMENT_SNAPSHOT_STALE', taskId: ref.taskId };
         }
@@ -186,6 +185,10 @@ async function transferTasks(state, record, operationId) {
           record = await persistOutcome(state, record, operationId,
             { taskId: ref.taskId, kind: current.status, revision: current.revision });
           continue;
+        }
+        if (current.ownerId !== operation.newChildId) {
+          record = await enterRecovering(state, record, operationId);
+          return { record, error: 'REPLACEMENT_SNAPSHOT_STALE', taskId: ref.taskId };
         }
         if (current.revision === cached.revision && !taskPreserved(ref, current)) {
           record = await enterRecovering(state, record, operationId);

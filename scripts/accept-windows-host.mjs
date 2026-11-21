@@ -27,6 +27,7 @@ const usage = 'node scripts/accept-windows-host.mjs --install-dir <installed app
 const { values } = parseArgs({ options: {
   'install-dir': { type: 'string' }, tgz: { type: 'string' },
   'previous-tgz': { type: 'string' },
+  'legacy-plugin': { type: 'string' },
   'lab-dir': { type: 'string' }, 'receipt-dir': { type: 'string' },
   'electron-stage': { type: 'boolean', default: false }, help: { type: 'boolean', default: false },
 }, allowPositionals: false });
@@ -61,6 +62,7 @@ function pathsFor(options) {
   return { install, lab, resources, runtime, home, harness,
     executable: join(install, 'DeepSeek Harness.exe'), tgz: resolve(options.tgz),
     previousTgz: options['previous-tgz'] ? resolve(options['previous-tgz']) : undefined,
+    legacyPlugin: options['legacy-plugin'] ? resolve(options['legacy-plugin']) : undefined,
     receipts: resolve(options['receipt-dir']), profile: join(harness, 'profiles', 'desktop'),
     agents: join(lab, 'agents'), workspace: join(lab, 'workspace'), temporary: join(lab, 'tmp'),
     cli: join(runtime, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js'),
@@ -181,10 +183,10 @@ async function accept(paths) {
     }
   }
 
-  async function runNativeAcceptance(installedRoot, script, receiptName) {
+  async function runNativeAcceptance(installedRoot, script, receiptName, extra = []) {
     const receipt = join(paths.receipts, receiptName);
     const handle = childProcess(script, [join(installedRoot, 'scripts', script),
-      paths.runtime, installedRoot, receipt, `tgz-sha256:${report.plugin.tgzSha256}`]);
+      paths.runtime, installedRoot, receipt, `tgz-sha256:${report.plugin.tgzSha256}`, ...extra]);
     try {
       const result = await bounded(handle.exit, TIMEOUT, script);
       assert.equal(result.code, 0, `${script} failed; see ${handle.log}`);
@@ -309,6 +311,12 @@ async function accept(paths) {
     await runNativeAcceptance(installedRoot, 'accept-native-admission.mjs', 'native-admission.json');
     await runNativeAcceptance(installedRoot, 'accept-native-replacement-store.mjs', 'native-replacement-store.json');
     await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement.json');
+    if (paths.legacyPlugin) {
+      const legacy = JSON.parse(await readFile(join(paths.legacyPlugin, 'package.json'), 'utf8'));
+      assert.equal(legacy.name, PACKAGE); assert.equal(legacy.version, '0.5.0-rc.6');
+      await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement-legacy.json', [paths.legacyPlugin]);
+      await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement-legacy-unchanged.json', [paths.legacyPlugin, 'unchanged']);
+    }
 
     let host = await startHost('host-installed');
     const { sessionId } = await host.rpc('session/create', { request: { cwd: paths.workspace } });

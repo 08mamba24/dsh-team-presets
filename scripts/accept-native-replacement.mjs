@@ -11,17 +11,19 @@ const plugin = resolve(process.argv[3] ?? join(dirname(fileURLToPath(import.meta
 const runtime = resolve(process.argv[2] ?? '/Applications/DeepSeek Harness.app/Contents/Resources/app.asar/dsh');
 const receipt = resolve(process.argv[4] ?? 'native-replacement.json');
 const sourceHead = process.argv[5] ?? 'working-tree';
+const legacyPlugin = process.argv[6] && resolve(process.argv[6]);
+const unchangedLegacyDefaults = process.argv[7] === 'unchanged';
 const require = createRequire(join(runtime, 'package.json'));
 const load = name => import(pathToFileURL(require.resolve('@deepseek-ai/' + name)).href);
 const modules = await Promise.all(['cordis', 'cordis-plugin-loader', 'dsh-config-editor', 'dsh-settings',
   'dsh-app-boot', 'dsh-session', 'dsh-session-projection', 'dsh-session-persistence-jsonl', 'dsh-session-query-sqlite',
   'dsh-agent', 'dsh-agent-loop', 'dsh-system-prompt', 'dsh-tools', 'dsh-tool-executor-native',
   'dsh-agent-preset-registry', 'dsh-subagent', 'dsh-subagent-spawn-in-process', 'dsh-agent-team',
-  'dsh-tool-agent-team', 'dsh-skill'].map(load));
+  'dsh-tool-agent-team', 'dsh-skill', 'dsh-commands'].map(load));
 const [{ Context }, { Loader }, { ConfigEditor }, { SettingsForms }, boot, { SessionStore },
   { SessionProjectionRegistry }, persistence, query, { AgentRegistry }, { AgentLoop }, { SystemPrompt },
   { ToolsService, defineTool }, { NativeToolExecutor }, { AgentPresetRegistry }, subagent, spawn,
-  { TeamService }, teamTools, { SkillRegistry }] = modules;
+  { TeamService }, teamTools, { SkillRegistry }, { CommandRuntime }] = modules;
 const fromPlugin = path => import(pathToFileURL(join(plugin, path)).href);
 const [{ Config }, { applyCurrentLauncher }, { applyTeamReplacement }, { nativeTeamFromHost },
   { createReplacementStore, REPLACEMENT_OWNER }, { pollReplacement, ownSessionEvents },
@@ -38,10 +40,11 @@ await writeFile(join(profileDir, 'package.json'), JSON.stringify({ private: true
 await writeFile(basePath, '[]\n');
 await writeFile(patchPath, JSON.stringify([{ insert: [{ id: REPLACEMENT_OWNER,
   name: 'cordis:replacement-profile', config: { mode: 'current-session' } }] }]));
-const ROOT = 'session-' + randomUUID(), OLD = 'session-' + randomUUID();
+const ROOT = 'session-' + randomUUID();
+let OLD = 'session-' + randomUUID(), legacyStarting = false, simulateOldWrite = false, raceOnFreeze = false;
 const route = { provider: 'isolated-provider', model: 'scripted-model', reasoningEffort: 'max' };
 const timeoutMs = 5000, signal = AbortSignal.timeout(30000);
-const checks = [], errors = [], expectedErrors = [], providerCalls = [], writes = [], stages = new Map(), commands = new Map(), faults = [];
+const checks = [], errors = [], expectedErrors = [], providerCalls = [], writes = [], originalWrites = [], stages = new Map(), commands = new Map(), faults = [];
 let failFirstActivation = true;
 let ctx, rootHandle, taskId, profileRecords, profileTemplate, control, faultTaskId;
 const check = (name, evidence = {}) => checks.push({ name, passed: true, ...evidence });
@@ -56,7 +59,8 @@ function* toolCall(name, args) {
 async function* stream(request) {
   const id = request.sessionId, operation = currentOperation(id);
   providerCalls.push({ childId: id, phase: operation?.phase ?? 'original' });
-  if (id !== OLD && id !== ROOT) {
+  if (id === OLD && simulateOldWrite) { simulateOldWrite = false; yield* toolCall('write', { content: 'Observable old work before the frozen CAS.' }); }
+  if (!legacyStarting && id !== OLD && id !== ROOT) {
     if (!operation) throw new Error('UNPLANNED_PROVIDER_CALL');
     const work = ['activating', 'active'].includes(operation.phase), key = id + ':' + (work ? 'work' : 'ready');
     const step = (stages.get(key) ?? 0) + 1; stages.set(key, step);
@@ -80,9 +84,9 @@ async function* stream(request) {
   yield { type: 'usage', usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 } };
   yield { type: 'finish', reason: { kind: 'stop' } };
 }
-async function startFixture(resumeRoot = false) {
+async function startFixture(resumeRoot = false, legacy = false) {
   ctx = new Context();
-  const packageUrl = pathToFileURL(join(plugin, 'package.json')).href;
+  const packageUrl = pathToFileURL(join(legacy ? legacyPlugin : plugin, 'package.json')).href;
   ctx.baseUrl = packageUrl;
   await ctx.plugin(Loader, { baseUrl: packageUrl });
   ctx.loader.builtins['replacement-profile'] = { Config, apply(_scope, raw) { profileRecords = raw.replacementRecords; profileTemplate = raw.template; } };
@@ -91,18 +95,29 @@ async function startFixture(resumeRoot = false) {
   await boot.mountRootInclude(ctx, basePath, boot.readProfilePatches('dsh', ctx.profileContext));
   await ctx.loader.await();
   await ctx.plugin(ConfigEditor); await ctx.plugin(SettingsForms);
-  ctx.provide('commands', { register(spec) { commands.set(spec.name, spec); return () => commands.delete(spec.name); } });
+  const mutate = ctx.settings.mutate;
+  ctx.settings.mutate = async function(ns, ops, revision) {
+    if (raceOnFreeze && ns === REPLACEMENT_OWNER && ops.some(item => item.value?.operations?.at(-1)?.phase === 'frozen')) {
+      raceOnFreeze = false; simulateOldWrite = true;
+      await ctx.subagents.sendMessage(rootHandle.agent, OLD, [{ type: 'text', text: 'An old turn arrives just before freeze.' }], { signal });
+      await pollReplacement(signal, timeoutMs, async () => ctx.agents.get(OLD) === undefined ? true : undefined, 'OLD_RACE_TURN_NOT_SETTLED');
+    }
+    return Reflect.apply(mutate, this, [ns, ops, revision]);
+  };
   const directories = new Map();
   ctx.provide('workingDirectory', { get: session => directories.get(session.id) ?? session.header.cwd ?? workspace,
     async ensure(agent) { return this.get(agent.session); },
     async set(agent, cwd) { directories.set(agent.id, cwd); return cwd; } });
   ctx.provide('llm', { async resolveCallConfig(config) { return { ...config }; },
-    async prepareCall(config) { return { config, stream }; } });
+    async prepareCall(config) { return { config, stream(options) {
+      const request = { ...config, ...options };
+      return ctx.waterfall(ctx.llm, 'llm/stream', request, () => stream(request));
+    } }; } });
   ctx.provide('approval', { async request() { return 'allowed-once'; } });
   await ctx.plugin(SessionStore); await ctx.plugin(SessionProjectionRegistry);
   await ctx.plugin(persistence.default ?? persistence, { root: join(lab, 'sessions'), compression: 'none' });
   await ctx.plugin(query.default, { path: join(lab, 'query.sqlite'), openAt: 'never' });
-  await ctx.plugin(AgentRegistry); await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false });
+  await ctx.plugin(AgentRegistry); await ctx.plugin(CommandRuntime); await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false });
   await ctx.plugin(ToolsService); ctx.tools.setExecutor(new NativeToolExecutor(ctx));
   new SkillRegistry(ctx);
   await ctx.plugin(AgentPresetRegistry, { default: 'standard' });
@@ -128,7 +143,7 @@ async function startFixture(resumeRoot = false) {
     parameters: { content: { type: 'string', required: true } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
-      writes.push({ childId: exec.agent.id, phase: currentOperation(exec.agent.id)?.phase });
+      (exec.agent.id === OLD ? originalWrites : writes).push({ childId: exec.agent.id, phase: currentOperation(exec.agent.id)?.phase });
       await writeFile(join(workspace, 'replacement-result.txt'), args.content);
       return args.content;
     } }));
@@ -142,9 +157,15 @@ async function startFixture(resumeRoot = false) {
     reasoning_effort: route.reasoningEffort, native_tool_allowlist: ['team_task_get', 'team_task_update', 'send_message', 'write'] });
   const native = await nativeTeamFromHost();
   const selected = profileTemplate?.get() ?? template;
-  control = await applyCurrentLauncher(ctx, { mode: 'current-session', template: selected, timeoutMs }, native.nativeSubagent, native.controlEntry,
-    { readTemplate: () => profileTemplate?.get() ?? template, readRecords: () => profileRecords.get() });
-  await applyTeamReplacement(ctx, control, { defineTool });
+  const applyCurrent = legacy ? (await import(pathToFileURL(join(legacyPlugin, 'src/launcher-current.js')).href)).applyCurrentLauncher : applyCurrentLauncher;
+  await ctx.plugin({ name: 'native-current-entry-fixture',
+    inject: ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections',
+      'agentTeams', 'workingDirectory', 'settings', 'sessionQuery', 'sessions', 'skills'],
+    async apply(scope) {
+      control = await applyCurrent(scope, { mode: 'current-session', template: selected, timeoutMs }, native.nativeSubagent, native.controlEntry,
+        { readTemplate: () => profileTemplate?.get() ?? template, readRecords: () => profileRecords.get() });
+      if (!legacy) await applyTeamReplacement(scope, control, { defineTool });
+    } });
   rootHandle = resumeRoot
     ? await ctx.agents.resume({ resumeSessionId: ROOT, agentOptions: route })
     : await ctx.agents.create({ sessionId: ROOT, meta: { cwd: workspace }, agentOptions: route });
@@ -169,13 +190,43 @@ async function invokeReplacement(args) {
 }
 
 try {
-  const template = await startFixture();
-  const plan = await commands.get('dsh-team').handler({ agent: rootHandle.agent, signal, rawInput: 'plan', attachments: [] });
+  const template = await startFixture(false, Boolean(legacyPlugin));
+  if (legacyPlugin) {
+    legacyStarting = true;
+    const launch = await ctx.commands.execute(rootHandle.agent, '/dsh-team launch', [], signal);
+    assert.equal(launch.result.kind, 'success', launch.result.text);
+    const original = JSON.parse(launch.result.text);
+    OLD = original.members.find(member => member.name === 'implementer').id;
+    legacyStarting = false;
+    assert.equal(Object.hasOwn(profileRecords.get(), ROOT), false, 'old release did not retain a root binding');
+    const changed = structuredClone(template); changed.members[0].persona_prompt += '\nFUTURE DEFAULT ONLY';
+    const row = ctx.settings.describe({ redactSecrets: true }).find(row => row.ns === REPLACEMENT_OWNER);
+    if (!unchangedLegacyDefaults) await ctx.settings.update(REPLACEMENT_OWNER, { template: changed }, row.revision);
+    await stopFixture(); await startFixture(true);
+    const before = providerCalls.length;
+    if (unchangedLegacyDefaults) {
+      const planned = await ctx.commands.execute(rootHandle.agent, '/dsh-team plan', [], signal);
+      assert.equal(planned.result.kind, 'success', planned.result.text);
+    } else {
+    const attempt = await invokeReplacement({ action: 'replace', role: 'implementer', expectedOldChildId: OLD, ...route,
+      personaPrompt: 'New explicit persona.', prompt: 'Continue.', tools: ['team_task_get', 'team_task_update', 'send_message', 'write'], progressFacts: 'Original team retained.' });
+    assert.equal(attempt.code, 'REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED');
+    const rejected = await invokeReplacement({ action: 'adopt', template: changed });
+    assert.equal(rejected.code, 'REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED');
+    const adopted = await invokeReplacement({ action: 'adopt', template });
+    assert.equal(adopted.ok, true, JSON.stringify(adopted));
+    }
+    const retained = JSON.parse(createReplacementStore(ctx.settings, ROOT).read().value.baseBinding);
+    assert.equal(retained.template.members[0].persona_prompt, template.members[0].persona_prompt);
+    assert.equal(providerCalls.length, before, 'bootstrap neither resumes a member nor invokes its model');
+    check(unchangedLegacyDefaults ? 'an actual rc.6 team automatically bootstraps an unchanged original binding before managed Presets'
+      : 'an actual rc.6 team with changed defaults adopts its original template only after authenticating native launch history and child headers');
+  }
+  const plan = (await ctx.commands.execute(rootHandle.agent, '/dsh-team plan', [], signal)).result;
   assert.equal(plan.kind, 'success', plan.text);
   const roster = await ctx.agentPresets.list();
   for (const member of template.members) member.agent_preset = roster.find(preset => preset.name === `Launcher role ${member.name}`).id;
   const store = createReplacementStore(ctx.settings, ROOT);
-  await store.ensure(JSON.stringify({ workspace, template }));
   await ctx.agentTeams.setEnabled(rootHandle.agent, true, signal);
   const dependency = await ctx.agentTeams.createTask(rootHandle.agent, { subject: 'Existing completed prerequisite', description: 'Retain this dependency.' }, signal);
   const claimed = await ctx.agentTeams.updateTask(rootHandle.agent, { taskId: dependency.id, expectedRevision: dependency.revision, action: 'claim' }, signal);
@@ -183,6 +234,7 @@ try {
   const task = await ctx.agentTeams.createTask(rootHandle.agent, { subject: 'Continue existing business task',
     description: 'Existing progress and files must survive replacement.', blockedBy: [dependency.id], writeScopes: ['replacement-result.txt'] }, signal);
   taskId = task.id;
+  if (!legacyPlugin) {
   const original = await ctx.subagents.startActivation({ provider: 'spawn', parent: rootHandle.agent,
     childId: OLD, name: 'implementer', label: 'Existing implementer', cwd: workspace,
     agentPreset: template.members.find(member => member.name === 'implementer').agent_preset,
@@ -190,9 +242,11 @@ try {
     signal, delivery: 'parent', maxDepth: 1 });
   assert.equal((await original.result).stopReason, 'completed');
   await rootHandle.agent.whenIdle();
+  }
   await ctx.agentTeams.updateTask(rootHandle.agent, { taskId, expectedRevision: task.revision,
     action: 'reassign', owner: OLD }, signal);
-  const beforeTask = ctx.agentTeams.getTask(rootHandle.agent, taskId), oldCalls = providerCalls.filter(call => call.childId === OLD).length;
+  const beforeTask = ctx.agentTeams.getTask(rootHandle.agent, taskId);
+  let oldCalls = providerCalls.filter(call => call.childId === OLD).length;
   assert.equal(ctx.agents.get(OLD), undefined, 'exercise a genuinely cold settled native member');
   check('a real native old member has a durable unfinished task and is naturally cold after settlement');
 
@@ -200,6 +254,17 @@ try {
     personaPrompt: 'Continue the existing task with observable evidence.', prompt: 'Perform useful work, then update the task.',
     tools: ['team_task_get', 'team_task_update', 'send_message', 'write'],
     progressFacts: 'Existing task and description are authoritative; no background jobs or active descendants.' };
+  raceOnFreeze = true;
+  const raced = await invokeReplacement(replacementRequest);
+  assert.equal(raced.code, 'REPLACEMENT_SNAPSHOT_STALE', JSON.stringify(raced));
+  const frozenRace = store.read().value.operations.at(-1);
+  assert.equal(frozenRace.phase, 'frozen'); assert.equal(frozenRace.newChildId, null);
+  assert.equal(ctx.agentTeams.getTask(rootHandle.agent, taskId).ownerId, OLD);
+  assert.equal(originalWrites.length, 1, 'the old native turn really produced a non-task side effect before freeze');
+  assert.equal((await invokeReplacement({ action: 'cancel', operationId: frozenRace.id })).cancelled, true);
+  oldCalls = providerCalls.filter(call => call.childId === OLD).length;
+  replacementRequest.progressFacts += ' Reconciled the observable old pre-freeze file write; the previous frozen plan was explicitly cancelled.';
+  check('a completed cold old turn between observation and frozen CAS keeps the plan frozen and creates no candidate or owner transfer');
   const firstAttempt = await invokeReplacement(replacementRequest);
   assert.notEqual(firstAttempt.ok, true);
   const failedActivation = store.read().value.operations.at(-1);
@@ -247,7 +312,7 @@ try {
   assert.equal(cancelAfterTransfer.code, 'REPLACEMENT_CANNOT_CANCEL_AFTER_TRANSFER');
   const activeId = recovered.newChildId;
   const abandoned = startReplacement(readReplacementRecord(store.read().value), { role: 'implementer', oldChildId: activeId,
-    handoffDigest: 'c'.repeat(64), taskRefs: [], instanceName: 'implementer-r3', candidateConfig: JSON.stringify({
+    handoffDigest: 'c'.repeat(64), taskRefs: [], instanceName: 'implementer-r99', candidateConfig: JSON.stringify({
       ...route, role: 'implementer', personaPrompt: 'Never spawned.', prompt: 'Never executed.' }) });
   await store.write(abandoned.record, store.read().revision);
   const cancelled = await invokeReplacement({ action: 'cancel', operationId: abandoned.operationId });
@@ -305,7 +370,7 @@ for (const name of ['src/launcher-current.js', 'src/launcher-driver.js', 'src/la
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }
 const result = { sourceHead, runtime, isolatedDataRemoved: true, passed: checks.length > 0 && checks.every(check => check.passed) && errors.length === 0,
-  hashes, checks, errors, expectedErrors, providerCalls, writes, faults };
+  hashes, checks, errors, expectedErrors, providerCalls, writes, originalWrites, faults };
 await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
 process.stdout.write(JSON.stringify(result) + '\n');
 if (!result.passed) process.exitCode = 1;

@@ -44,7 +44,7 @@ rc.7 推荐使用会话 skill，可逐角色修改 provider、model、effort、�
 - 检查配置 skill 对根会话可见，通过原生设置 RPC 保存模板，验证当前已绑定根不变、新根采用新模板；不通过付费模型驱动工具。
 - 正常停止并重启 Host，被动回读命令记录；再用官方 CLI 卸载插件，重启确认命令消失。
 - 重启后回读已保存模板及配置、替换两个 skill，卸载后确认两个 skill 同时消失。
-- 在官方 Electron 中执行已安装 TGZ 的原生准入、profile 持久化和完整替换脚本。使用本地 scripted provider 与独立临时 Session/profile，覆盖 Standby、真实任务改派／写回、失败同候选恢复、多任务部分移交、依赖拒绝、取消及完整 Loader 重载；无账号或远程推理。
+- 在官方 Electron 中执行已安装 TGZ 的原生准入、profile 持久化和完整替换脚本。使用本地 scripted provider 与独立临时 Session/profile，覆盖 Standby、真实任务改派／写回、失败同候选恢复、多任务部分移交、依赖拒绝、取消及完整 Loader 重载；无账号或远程推理。另下载并校验固定 rc.6 包，以未改旧实现通过原生 Commands 建队，再分别验证原默认值自动迁移、默认值改变后验证 adopt 的完整链路。
 - 在官方 Electron 内导入真实 ToolsService、原生执行器、Scope 与 SkillRegistry，验证角色工具隔离、临时文件读写、父级限制、最终拒绝及旧 skill 缓存替换；该探针使用隔离身份和临时文件处理函数，不声称验证了 OS 沙箱后端。
 
 `windows-host-<commit>` artifact 保存 `artifact.json`、`acceptance.json`、`native-admission.json`、`native-replacement-store.json`、`native-replacement.json` 与有界日志。`acceptance.json.status=passed` 才表示上述 Host 链路全部通过；TGZ artifact 只在全部步骤成功时上传。临时 profile、账号目录和原始会话文件不上传。

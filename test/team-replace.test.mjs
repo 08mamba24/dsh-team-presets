@@ -51,3 +51,12 @@ test('missing old identity, unsupported role and ambiguous recovery input are re
   }
   assert.equal(f.requests.length, 0);
 });
+
+test('native legacy UUID children are exact observed identities and adoption has a separate input contract', async t => {
+  const f = await fixture(t), id = 'dbf7d4bf-931c-4e2c-9517-d2cbdf327c45';
+  assert.equal((await f.invoke({ ...input(), expectedOldChildId: id })).ok, true);
+  assert.equal(f.requests[0].expectedOldChildId, id);
+  assert.equal((await f.invoke({ action: 'adopt', template: { evidence: 'original' } })).ok, true);
+  assert.deepEqual(f.requests[1].originalTemplate, { evidence: 'original' });
+  assert.equal((await f.invoke({ action: 'adopt', template: {}, role: 'implementer' })).ok, false);
+});

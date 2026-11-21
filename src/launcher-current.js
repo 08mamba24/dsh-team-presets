@@ -6,12 +6,34 @@ import { fail } from './config.js';
 import { parseLauncherConfig, validateLauncherTemplate } from './launcher-config.js';
 import { applyLauncher } from './launcher-driver.js';
 import { defaultWorkTemplate } from './role-tools.js';
-import { REPLACEMENT_OWNER, readReplacementRow } from './replacement-store.js';
+import { REPLACEMENT_OWNER, readReplacementRow, createReplacementStore } from './replacement-store.js';
+import { launcherTemplateFingerprint } from './launcher-template.js';
 import { readReplacementRecord, eligibilityOf } from './member-replacement.js';
 import { observeLauncherMembers } from './launcher-native.js';
 
 const digest = value => createHash('sha256').update(value).digest('hex');
 const codeOf = error => /^[A-Z][A-Z0-9_]{0,95}$/.test(error?.code) ? error.code : 'CURRENT_SESSION_SETUP_FAILED';
+
+/** Legacy releases retained a successful native launch receipt, not the whole
+ * template. Only an exact fingerprint plus the original catalog identities can
+ * authenticate a supplied snapshot; changed defaults cannot replace it. */
+export function verifyLegacyBinding(events, members, scoped) {
+  const fingerprint = launcherTemplateFingerprint(validateLauncherTemplate(scoped));
+  const own = events ?? [], runs = new Set(own.filter(event => event.type === 'command/run'
+    && event.data?.name === 'dsh-team' && event.data.args?.trim() === 'launch').map(event => event.data.commandId));
+  for (const event of [...own].reverse()) {
+    if (event.type !== 'command/done' || event.data?.kind !== 'success' || !runs.has(event.data.commandId)) continue;
+    let receipt;
+    try { receipt = JSON.parse(event.data.text); } catch { continue; }
+    if (receipt?.ok !== true || receipt.mode !== 'launch' || receipt.templateFingerprint !== fingerprint
+      || !Array.isArray(receipt.members) || receipt.members.length !== scoped.members.length) continue;
+    if (scoped.members.every(role => {
+      const saved = receipt.members.filter(member => member.name === role.name && member.agentPreset === role.agent_preset);
+      return saved.length === 1 && members.some(member => member.id === saved[0].id && member.name === role.name);
+    })) return true;
+  }
+  return false;
+}
 
 function options(raw) {
   if (!raw || typeof raw !== 'object' || types.isProxy(raw) || Array.isArray(raw)
@@ -101,7 +123,7 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
     return binding;
   }
 
-  async function bindingFor(agent) {
+  async function bindingFor(agent, originalTemplate, signal) {
     const workspace = assertRoot(ctx, agent), existing = instances.get(agent.id);
     if (existing) {
       assertRoot(ctx, agent, existing.config);
@@ -114,9 +136,32 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
       return installBinding(agent.id, workspace, binding.template, record);
     }
     if (record.operations.length) fail('REPLACEMENT_BASE_BINDING_UNAVAILABLE');
-    const suffix = digest(agent.id).slice(0, 24), scoped = defaultTemplate(agent);
+    const suffix = digest(agent.id).slice(0, 24), scoped = originalTemplate === undefined
+      ? defaultTemplate(agent) : structuredClone(originalTemplate);
+    validateLauncherTemplate(scoped);
     for (const member of scoped.members) member.agent_preset = `dsh-current-${suffix}-${member.name}`;
-    return installBinding(agent.id, workspace, scoped, record);
+    const observation = await observeLauncherMembers(ctx, agent, signal);
+    if (observation.complete !== true) fail('REPLACEMENT_MEMBER_UNOBSERVABLE');
+    if (observation.members.length && !verifyLegacyBinding(agent.session.snapshotEvents?.(), observation.members, scoped)) {
+      fail('REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED');
+    }
+    if (observation.members.length) {
+      for (const role of scoped.members) {
+        const member = observation.members.find(member => member.name === role.name);
+        if (typeof ctx.sessionQuery?.observeSession !== 'function') fail('REPLACEMENT_SESSION_UNOBSERVABLE');
+        const source = await ctx.sessionQuery.observeSession(member.id, { signal });
+        try {
+          if (source.header?.id !== member.id || source.header.parentSession !== agent.id
+            || source.header.agentPreset !== role.agent_preset || source.header.cwd !== workspace) {
+            fail('CURRENT_SESSION_BINDING_CHANGED');
+          }
+        } finally { source[Symbol.dispose](); }
+      }
+    }
+    // Persist before registering a managed Preset: even a plan followed by an
+    // existing native child's continuation must have a verifiable partition.
+    const saved = await createReplacementStore(ctx.settings, agent.id).ensure(JSON.stringify({ workspace, template: scoped }));
+    return installBinding(agent.id, workspace, scoped, saved);
   }
 
   // Restore original and replacement Presets before any cold member can be
@@ -146,7 +191,7 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
       if (restoreFailures.has(request.agent.id)) fail(restoreFailures.get(request.agent.id));
       busy = true;
       try {
-        const handler = await bindingFor(request.agent);
+        const handler = await bindingFor(request.agent, undefined, request.signal);
         if (closing) fail('UNLOADING');
         request.signal.throwIfAborted();
         const result = await handler(request), receipt = JSON.parse(result.text);
@@ -165,9 +210,20 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
     yield () => { closing = true; return unregister(); };
   });
   return { defaultTemplate, hasBinding: id => instances.has(id), assertRoot: agent => assertRoot(ctx, agent),
-    async replacement({ agent, signal, action, request, expectedOldChildId, operationId }) {
+    async replacement({ agent, signal, action, request, expectedOldChildId, operationId, originalTemplate }) {
       assertRoot(ctx, agent); signal.throwIfAborted();
       if (closing) fail('UNLOADING');
+      if (action === 'adopt') {
+        if (busy || outstanding) fail('BUSY');
+        busy = true;
+        try {
+          validateLauncherTemplate(originalTemplate);
+          const existing = readReplacementRecord(readReplacementRow(ctx.settings, agent.id).value);
+          if (instances.has(agent.id) || existing.baseBinding !== undefined || existing.operations.length) fail('CURRENT_SESSION_ALREADY_BOUND');
+          await bindingFor(agent, originalTemplate, signal);
+          return { ok: true, action: 'adopt', revision: readReplacementRow(ctx.settings, agent.id).revision };
+        } finally { busy = false; }
+      }
       if (action === 'inspect') {
         const row = readReplacementRow(ctx.settings, agent.id);
         const record = readReplacementRecord(row.value);

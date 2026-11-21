@@ -121,7 +121,7 @@ export async function apply(ctx, raw) {
               || !['pending', 'in_progress', 'completed', 'deleted'].includes(task.status)) {
               return unavailable('TEAM_TASK_OWNERSHIP_UNVERIFIABLE');
             }
-            if (!['completed', 'deleted'].includes(task.status) && task.ownerId !== childId) {
+            if (task.ownerId !== childId) {
               return unavailable('TEAM_TASK_OWNERSHIP_CHANGED');
             }
           }
