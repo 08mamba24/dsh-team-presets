@@ -20,6 +20,8 @@ const unchangedLegacyDefaults = process.argv[7] === 'unchanged';
 // paths and OS essentials; the operator's profile and credentials are absent.
 if (process.env.DSH_REPLACEMENT_ACCEPT_LAB === undefined) {
   const lab = await realpath(await mkdtemp(join(tmpdir(), 'dsh-native-replacement-')));
+  let code = 1;
+  let result = { sourceHead, runtime, isolatedDataRemoved: false, passed: false, checks: [], errors: [] };
   try {
     for (const name of ['home', 'harness', 'agents', 'workspace', 'tmp']) await mkdir(join(lab, name));
     const resources = dirname(dirname(runtime));
@@ -39,14 +41,38 @@ if (process.env.DSH_REPLACEMENT_ACCEPT_LAB === undefined) {
       DSH_PRIMARY_RUNTIME: join(resources, 'runtime', 'primary-runtime'),
       ELECTRON_RUN_AS_NODE: '1', DSH_REPLACEMENT_ACCEPT_LAB: lab,
     };
-    const child = spawn(process.execPath, ['--expose-internals', fileURLToPath(import.meta.url), ...process.argv.slice(2)],
+    const childReceipt = join(lab, 'native-result.json');
+    const args = [runtime, plugin, childReceipt, sourceHead];
+    if (legacyPlugin) args.push(legacyPlugin);
+    if (unchangedLegacyDefaults) args.push('unchanged');
+    const child = spawn(process.execPath, ['--expose-internals', fileURLToPath(import.meta.url), ...args],
       { cwd: join(lab, 'workspace'), env: environment, stdio: 'inherit', windowsHide: true });
-    const code = await new Promise((done, reject) => {
+    code = await new Promise((done, reject) => {
       child.once('error', reject); child.once('close', code => done(code ?? 1));
     });
-    process.exitCode = code;
-  } finally { await rm(lab, { recursive: true, force: true }); }
-  process.exit(process.exitCode ?? 0);
+    result = JSON.parse(await readFile(childReceipt, 'utf8'));
+    if (code !== 0) {
+      result.passed = false;
+      result.errors.push({ message: `Acceptance child exited with code ${code}.` });
+    }
+  } catch (error) {
+    result.passed = false;
+    result.errors.push({ code: error.code, message: error.message });
+  } finally {
+    // Windows retains both cwd and native-addon file locks until process exit.
+    // This supervisor imported no runtime code and owns the final cleanup and
+    // receipt, so a successful child never reports unverified data removal.
+    try {
+      await rm(lab, { recursive: true, force: true });
+      result.isolatedDataRemoved = true;
+    } catch (error) {
+      result.passed = false;
+      result.errors.push({ code: error.code, message: error.message });
+    }
+    await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
+    process.stdout.write(JSON.stringify(result) + '\n');
+  }
+  process.exit(code === 0 && result.passed && result.isolatedDataRemoved ? 0 : 1);
 }
 const require = createRequire(join(runtime, 'package.json'));
 const load = name => import(pathToFileURL(require.resolve('@deepseek-ai/' + name)).href);
@@ -422,20 +448,15 @@ try {
   checks.push({ name: 'native replacement failure', passed: false, error: { code: error.code ?? null, message: error.message, stack: error.stack }, errors });
 } finally {
   await stopFixture().catch(error => { errors.push({ message: error.message }); });
-  // Windows cannot remove this process's cwd. All owned services are stopped;
-  // leave the laboratory workspace before removing its complete data tree.
-  process.chdir(dirname(lab));
-  await rm(lab, { recursive: true, force: true });
 }
 const hashes = {};
 for (const name of ['current-entry.js', 'src/team-addressing.js', 'role-control.js', 'src/launcher-current.js', 'src/launcher-driver.js', 'src/launcher-replace.js', 'src/member-replacement.js',
   'src/replacement-native.js', 'src/replacement-store.js', 'launcher-role.js', 'src/team-replace.js']) {
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }
-const result = { sourceHead, runtime, isolatedDataRemoved: true, passed: checks.length > 0 && checks.every(check => check.passed) && errors.length === 0,
+const result = { sourceHead, runtime, isolatedDataRemoved: false, passed: checks.length > 0 && checks.every(check => check.passed) && errors.length === 0,
   profile: { bundles: [...PROFILE_TEMPLATES.web.bundles, packageName], standard: 'official-unmodified-web',
     accountCredentialsInherited: false, scriptedModel: true },
   hashes, checks, errors, expectedErrors, providerCalls, writes, originalWrites, faults, nativeStarts };
 await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
-process.stdout.write(JSON.stringify(result) + '\n');
 if (!result.passed) process.exitCode = 1;
