@@ -3,7 +3,10 @@ import { types } from 'node:util';
 
 export const COLLABORATION_TOOLS = Object.freeze(['team_task_get', 'team_task_update', 'send_message', 'wait_agent']);
 const WORK_TOOLS = Object.freeze(['read', 'write', 'edit', 'apply_patch', 'glob', 'grep', 'bash', 'pwsh', 'str_replace_editor', 'skill']);
-const MANAGED = new Set(['run_code', 'subagent', 'spawn_agent', 'fork_agent', 'resume_agent', 'close_agent', 'interrupt_agent', 'list_agents']);
+const MANAGED = new Set(['run_code', 'subagent', 'spawn_agent', 'fork_agent', 'subagent_fork', 'resume_agent',
+  'close_agent', 'interrupt_agent', 'list_agents', 'plugin_manager', 'workflow', 'ralph']);
+const PRESET_TOOL = Symbol('native control Preset capability');
+const PRESET_TOOLS = ['send_message', 'wait_agent'];
 
 /** Tool names are capabilities, not shell commands or permission grants. */
 export function selectableRoleTool(name) {
@@ -33,21 +36,34 @@ function group(name) {
   return name.startsWith('mcp_') ? 'mcp' : 'other';
 }
 
-/** Shared definitions only: root-local tools cannot be promised to a child Preset. */
-export function roleToolCatalog(ctx, agent) {
+/** Shared definitions retain their native activation. Unconditional local
+ * definitions can be installed verbatim on a separate role scope. */
+function roleToolDefinitions(ctx, agent) {
   if (typeof ctx.tools?.definitions !== 'function') fail('TEAM_TOOL_CATALOG_UNAVAILABLE');
   const visible = new Map(ctx.tools.definitions(agent).map(tool => [tool.name, tool]));
   // Control Presets contribute these two names after composition. Task tools
-  // and work tools must actually exist in the shared, root-visible registry.
-  const result = new Map(['send_message', 'wait_agent'].map(name => [name,
-    { name, description: `Native team capability: ${name}`, group: 'collaboration', source: 'team-preset' }]));
-  for (const tool of ctx.tools.definitions()) {
-    if (visible.get(tool.name) !== tool) { result.delete(tool.name); continue; }
-    if (!selectableRoleTool(tool.name)) continue;
-    result.set(tool.name, { name: tool.name, description: typeof tool.description === 'string' ? tool.description : '',
-      group: group(tool.name), source: 'host' });
+  // and work tools must actually exist in the root-visible registry.
+  const result = new Map(PRESET_TOOLS.map(name => [name, PRESET_TOOL]));
+  const shared = new Map(ctx.tools.definitions().map(tool => [tool.name, tool]));
+  for (const name of PRESET_TOOLS) {
+    if (shared.has(name) && !visible.has(name)) result.delete(name);
   }
-  return [...result.values()].sort((a, b) => a.name.localeCompare(b.name));
+  for (const tool of visible.values()) {
+    if (!selectableRoleTool(tool.name)) continue;
+    // A local registration's activation callback is not part of ToolDefinition.
+    // The public executable lookup only admits unconditional registrations.
+    if (shared.get(tool.name) !== tool && ctx.tools.executable?.(tool.name, agent) !== tool) continue;
+    result.set(tool.name, tool);
+  }
+  return result;
+}
+
+export function roleToolCatalog(ctx, agent) {
+  return [...roleToolDefinitions(ctx, agent)].map(([name, definition]) => ({ name,
+    description: definition === PRESET_TOOL ? `Native team capability: ${name}`
+      : typeof definition.description === 'string' ? definition.description : '',
+    group: group(name), source: definition === PRESET_TOOL ? 'team-preset' : 'host',
+  })).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function assertRoleToolsAvailable(ctx, agent, lists) {
@@ -57,6 +73,29 @@ export function assertRoleToolsAvailable(ctx, agent, lists) {
       fail('TEAM_TOOL_UNAVAILABLE');
     }
   }
+}
+
+/** Preset generations are independent of the root scope. Retain and recheck
+ * exact definitions instead of assuming root restrictions propagate. */
+export function captureRoleToolAuthority(ctx, root, lists) {
+  assertRoleToolsAvailable(ctx, root, lists);
+  const available = roleToolDefinitions(ctx, root);
+  const captured = new Map(lists.flat().map(name => [name, available.get(name)]));
+  return {
+    assertAvailable() {
+      const current = roleToolDefinitions(ctx, root);
+      for (const [name, definition] of captured) {
+        if (!current.has(name) || current.get(name) !== definition) fail('TEAM_TOOL_UNAVAILABLE');
+      }
+    },
+    allows(exec) {
+      const current = roleToolDefinitions(ctx, root), definition = captured.get(exec.name);
+      if (!captured.has(exec.name) || !current.has(exec.name) || current.get(exec.name) !== definition) return false;
+      // These two definitions are supplied locally by each native control Preset.
+      if (PRESET_TOOLS.includes(exec.name)) return true;
+      return ctx.tools.definitions(exec.agent, exec.toolSet).some(tool => tool === definition);
+    },
+  };
 }
 
 /** Only unsaved defaults adapt to installed tools. Saved/explicit lists remain exact. */

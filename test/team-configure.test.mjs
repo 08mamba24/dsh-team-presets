@@ -13,7 +13,8 @@ async function fixture(t, options = {}) {
   const tools = new Map(), skills = new Map(), metadata = [], writes = [];
   const owner = nativeEffectOwner();
   const registered = new Map(['team_task_get', 'team_task_update', 'send_message', 'wait_agent',
-    'read', 'write', 'edit', 'glob', 'grep', 'bash', 'skill', 'mcp_example_lookup', 'spawn_agent', 'run_code']
+    'read', 'write', 'edit', 'glob', 'grep', 'bash', 'skill', 'mcp_example_lookup', 'spawn_agent', 'run_code',
+    'plugin_manager', 'workflow', 'ralph', 'subagent_fork']
     .map(name => [name, { name, description: `Registered ${name}` }]));
   let revision = 3, template = structuredClone(base), approvals = 0;
   const controller = new AbortController();
@@ -61,6 +62,17 @@ async function fixture(t, options = {}) {
   return { invoke, tools, skills, metadata, writes, root, dispose: owner.dispose, removeTool: name => registered.delete(name),
     get template() { return template; }, get approvals() { return approvals; } };
 }
+
+test('registered management and recursive tools are absent from the catalog and cannot be saved for a role', async t => {
+  const f = await fixture(t), catalog = await f.invoke({ action: 'tools' });
+  for (const name of ['plugin_manager', 'workflow', 'ralph', 'subagent_fork']) {
+    assert.equal(catalog.tools.some(tool => tool.name === name), false);
+    const preview = await f.invoke({ action: 'preview', expectedRevision: 3,
+      members: [{ name: 'implementer', native_tool_allowlist: [name] }] });
+    assert.equal(preview.ok, false);
+  }
+  assert.deepEqual(f.writes, []); assert.deepEqual(f.metadata, []); assert.equal(f.approvals, 0);
+});
 
 test('the profile-wide skill and inspection need no metadata lookup, model call or settings write', async t => {
   const f = await fixture(t);

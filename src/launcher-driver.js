@@ -5,7 +5,7 @@ import { planLauncherMembers } from './launcher-plan.js';
 import { observeLauncherMembers, registerLauncherPresets, makeLauncherSpawnCall, parseLauncherSpawnBatch } from './launcher-native.js';
 import { authorizeTeam, preflightTeam } from './team-config.js';
 import { createTeamGate } from './team-gate.js';
-import { assertRoleToolsAvailable } from './role-tools.js';
+import { captureRoleToolAuthority } from './role-tools.js';
 import { snapshotLauncherBoard, sameLauncherBoard, launcherBoardWithMode,
   launcherBoardAfterCreate, launcherBoardAfterUpdate } from './launcher-board.js';
 
@@ -206,6 +206,8 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       if (exec.signal.aborted || op.signal.aborted || closing || active !== op || record.ended
         || op.failure || op.gate.evidence().closed || ctx.agents.get(record.id) !== child) return deny('TEAM_RUN_NOT_ADMITTING');
       if (!op.members[record.role].nativeToolAllowlist.includes(exec.name)) return deny('TEAM_TOOL_OUT_OF_SCOPE');
+      try { if (!op.toolAuthority.allows(exec)) return deny('TEAM_ROOT_TOOL_AUTHORITY_CHANGED'); }
+      catch { return deny('TEAM_ROOT_TOOL_AUTHORITY_UNAVAILABLE'); }
       try { board(op); } catch (error) { return deny(errorCode(error)); }
       const args = exec.arguments;
       if (exec.name === 'team_task_get') {
@@ -420,6 +422,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       if (index < 0) fail('SEED_TASK_DEPENDENCY_INVALID');
       const seed = remaining.splice(index, 1)[0];
       assertCurrent(op, op.signal); board(op);
+      op.toolAuthority.assertAvailable();
       let created;
       const request = { subject: seed.subject, description: seed.description,
         blockedBy: seed.blockedBy.map(key => op.tasks.get(key).id), writeScopes: [] };
@@ -434,6 +437,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     }
   }
   async function createChild(op, role, toolSet) {
+    op.toolAuthority.assertAvailable();
     const member = op.members[role], record = { role, end: deferred(), ended: false, calls: [], results: new Map(),
       reservations: new Map(), scopeDenials: [], additionalRuns: new Map(), additionalTurns: 0,
       additionalDriverPhases: 0, turnStarts: [] };
@@ -478,7 +482,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
         let mounted, toolSet, successful = false;
         try {
           assertCurrent(op, op.signal);
-          assertRoleToolsAvailable(ctx, agent, template.members.map(member => member.nativeToolAllowlist));
+          op.toolAuthority = captureRoleToolAuthority(ctx, agent, template.members.map(member => member.nativeToolAllowlist));
           mounted = agent.ctx.plugin(nativeSubagent, { provider: 'spawn', toolName: SPAWN, modelSelection: true,
             modelDiscovery: false, allowedAgentPresets: template.members.map(member => member.agentPreset),
             agentOptions: { maxTokens: 1024 }, maxDepth: 1 });
@@ -495,6 +499,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
           op.expectedBoard = snapshotLauncherBoard(before);
           // Bound startup text before the first mutation; real ids are bounded native identifiers.
           if (template.members.some(member => member.prompt.length + json(template.seedTasks).length + 2048 > 8000)) fail('LAUNCHER_STARTUP_CONTEXT_TOO_LARGE');
+          op.toolAuthority.assertAvailable();
           op.mutationsStarted = true;
           try { await ctx.agentTeams.setEnabled(agent, true, op.signal); }
           catch (error) { op.persistenceUnconfirmed = true; reconcile(op, 'TEAM_MODE_PERSISTENCE_UNCONFIRMED'); throw error; }

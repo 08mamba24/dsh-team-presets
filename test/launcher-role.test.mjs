@@ -11,7 +11,10 @@ const hasCode = code => error => error.code === code && error.message === code &
 // Only the public context ownership contract is synthetic; no Host, Session or provider is started.
 function fixture() {
   const sections = new Map(), hooks = new Set(), presetDisposers = [];
+  const definitions = TOOLS.map(name => ({ name }));
+  const root = { id: example().ownedSessionId, session: { id: example().ownedSessionId, header: {} } };
   const ctx = {
+    agents: { get: () => root }, tools: { definitions: () => definitions },
     systemPrompt: { section(section) {
       sections.set(section.name, section);
       const dispose = () => sections.delete(section.name); presetDisposers.push(dispose); return dispose;
@@ -24,6 +27,7 @@ function fixture() {
   const makeAgent = ({ origin = 'subagent', parentSession = example().ownedSessionId, known = TOOLS } = {}) => {
     const restrictions = [], childDisposers = [];
     const agent = { session: { header: { origin, parentSession } }, ctx: { tools: {
+      guard() { return () => {}; },
       restrict(filter) {
         assert.ok(filter.allow.every(tool => known.includes(tool)), 'native unknown-name restriction');
         const mask = { allow: [...filter.allow] }; restrictions.push(mask);
@@ -94,7 +98,7 @@ test('owner, role and persona have finite validated values', async () => {
 
 test('role tool names are explicit and unique, with orchestration capabilities excluded', async () => {
   for (const tools of [undefined, 'send_message', ['spawn_agent'], ['team_task_get', 'team_task_get'],
-    ['team_task_list'], [...TOOLS, 'run_code'], [null], Array(1)]) {
+    ['team_task_list'], [...TOOLS, 'run_code'], ['plugin_manager'], ['workflow'], ['ralph'], ['subagent_fork'], [null], Array(1)]) {
     await assert.rejects(apply(fixture().ctx, { ...example(), tools }), hasCode('LAUNCHER_ROLE_INVALID_TOOLS'));
   }
   const h = fixture(); await apply(h.ctx, { ...example(), tools: ['read', 'bash'] }); h.dispose();

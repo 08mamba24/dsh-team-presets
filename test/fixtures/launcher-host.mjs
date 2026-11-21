@@ -52,6 +52,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
   const sharedTools = new Map(['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update']
     .map(name => [name, { name, description: name }]));
   for (const tool of options.workTools ?? []) sharedTools.set(tool.name, tool);
+  const rootPresetTools = new Map((options.presetTools ?? []).map(tool => [tool.name, tool]));
   let enabled = options.priorEnabled === true, mount, nextTask = 1, spawnAttempts = 0, wakeCalls = 0, disposed = false, approvalUsed = false, modeDrifted = false, released = false;
   const peer = deferred(), latePublication = deferred(), peerWaitTimeout = deferred();
   const createDeleteForeign = () => {
@@ -149,7 +150,8 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     const downstream = async () => name === options.nativeDenyTool ? { kind: 'deny', reason: 'native permission refusal' }
       : !approvalUsed && child.role === 'implementer'
       && ((options.askTaskDrift && name === 'team_task_update' && args.action === 'claim')
-        || (options.askPeerEnds && name === 'send_message')) ? { kind: 'ask' } : { kind: 'allow' };
+        || (options.askPeerEnds && name === 'send_message')
+        || name === options.askWorkTool) ? { kind: 'ask' } : { kind: 'allow' };
     const pres = [...child.hooks.get('tools/pre-execute') ?? []];
     const pre = index => index === pres.length ? downstream() : pres[index](exec, () => pre(index + 1));
     try {
@@ -157,7 +159,8 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       if (decision.kind === 'ask') {
         approvalUsed = true; order.push('native-approval-wait');
         await new Promise(resolve => setImmediate(resolve));
-        if (options.askPeerEnds) {
+        if (options.onApproval) await options.onApproval(exec);
+        else if (options.askPeerEnds) {
           peerWaitTimeout.resolve();
           await [...children.values()].find(record => record.role === 'reviewer').agent.whenIdle();
         } else {
@@ -166,7 +169,9 @@ export async function launcherHost(t, applyLauncher, options = {}) {
         decision = { kind: 'allow' }; order.push('native-approval-allowed');
       }
       if (decision.kind === 'allow') {
-        for (const guard of child.guards) { const denial = guard(exec); if (denial !== undefined) { decision = { kind: 'deny', reason: denial.reason ?? denial }; break; } }
+        for (const guard of child.guards) { const denial = guard(exec); if (denial !== undefined) {
+          decision = { kind: 'deny', reason: denial.reason ?? denial, info: denial.info }; break;
+        } }
       }
       if (decision.kind !== 'allow') throw nativeError(decision.info?.code ?? 'NATIVE_POLICY_DENIED');
       exec.signal.throwIfAborted();
@@ -199,7 +204,9 @@ export async function launcherHost(t, applyLauncher, options = {}) {
         // into another run. An ended first lifecycle is not member absence.
         if (recipient.agent.status === 'idle') startNewWork(recipient, false, 'idle-message-wake');
         value = { messageId: message.id };
-      } else if (typeof sharedTools.get(name)?.execute === 'function') value = await sharedTools.get(name).execute(args, exec);
+      } else if (typeof ctx.tools.definitions(child.agent).find(tool => tool.name === name)?.execute === 'function') {
+        value = await ctx.tools.definitions(child.agent).find(tool => tool.name === name).execute(args, exec);
+      }
       else throw nativeError('UNKNOWN_TOOL');
       const message = { id: `result-${callId}`, role: 'tool', source: { kind: 'tool', callId }, toolCallId: callId,
         isError: false, content: [{ type: 'text', text: JSON.stringify(value) }] };
@@ -304,16 +311,18 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       result: { isError: true, content: [{ type: 'text', text: 'Native creation failed' }], error: { message: 'Native creation failed', info: { name: 'NativeFixtureError', code: 'FIXTURE_CREATE_FAILED' } } } }], additionalContexts: [], concluded: false };
     if (options.lateStart && spawnAttempts === 1) { order.push('native-publication-await'); await latePublication.promise; }
     const definition = presets.get(member.agent_preset); assert.ok(definition);
-    const localHooks = new Map(), guards = new Set(), restrictions = [], ancestor = new Set(sharedTools.keys());
+    const localHooks = new Map(), guards = new Set(), restrictions = [], localTools = new Map(), ancestor = new Set(sharedTools.keys());
     const child = { role: member.name, callNumber: 0, hooks: localHooks, guards, history: [], abort: new AbortController(), idle: deferred(),
-      route: { provider: args.provider, model: args.model, reasoningEffort: args.reasoning_effort }, ended: false, published: false };
+      localTools, route: { provider: args.provider, model: args.model, reasoningEffort: args.reasoning_effort }, ended: false, published: false };
     const id = `22222222-2222-4222-8222-${String(spawnAttempts).padStart(12, '0')}`;
     const agent = child.agent = { id, status: 'running', options: { maxTokens: mount.spec.agentOptions.maxTokens },
       async whenIdle() { order.push(`whenIdle-first:${member.name}`); await child.idle.promise; },
       // rc.2 inherits the initial project in metadata, then commits the requested effective cwd separately.
       session: { id, header: { origin: 'subagent', parentSession: root.id, cwd: root.session.header.cwd, agentPreset: member.agent_preset } },
-      model: { current: () => child.route }, inbox: { nextStep: [], nextTurn: [] }, ctx: { preset: member.agent_preset,
+      model: { current: () => child.route }, inbox: { nextStep: [], nextTurn: [] }, ctx: { preset: member.agent_preset, localTools,
         on: (name, fn) => listen(localHooks, name, fn), tools: {
+          register(definition) { localTools.set(definition.name, definition);
+            return () => localTools.delete(definition.name); },
           restrict(filter) {
             assert.ok(filter.allow.every(name => ancestor.has(name)), 'native restrict rejects unknown ancestor tools');
             restrictions.push([...filter.allow]); return () => {};
@@ -322,6 +331,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
           async resolve({ agent: caller, signal }) {
             assert.equal(caller, agent); assert.equal(child.published, true); signal.throwIfAborted();
             const visible = new Map([...ancestor].filter(name => restrictions.every(mask => mask.includes(name))).map(name => [name, {}]));
+            for (const [name, definition] of localTools) visible.set(name, definition);
             return { view: scope => scope === agent ? visible : new Map(), dispose() {} };
           },
         } } };
@@ -331,13 +341,14 @@ export async function launcherHost(t, applyLauncher, options = {}) {
         ['send_message', 'wait_agent', 'list_agents'].forEach(name => ancestor.add(name));
       } else {
         assert.equal(entry.name, 'dsh-subagent-live-rc2-local/launcher-role');
-        await applyLauncherRole({ systemPrompt: { section(section) { child.persona = section.text; } },
+        await applyLauncherRole({ tools: ctx.tools, agents: ctx.agents,
+          systemPrompt: { section(section) { child.persona = section.text; } },
           on: (name, fn) => listen(localHooks, name, fn) }, entry.config);
       }
     }
     emit(localHooks, 'agent/created', { agent });
     assert.equal(child.persona, member.persona_prompt);
-    child.visible = new Set([...ancestor].filter(name => restrictions.every(mask => mask.includes(name))));
+    child.visible = new Set([...ancestor].filter(name => restrictions.every(mask => mask.includes(name))).concat([...localTools.keys()]));
     assert.deepEqual([...child.visible].sort(), [...member.native_tool_allowlist].sort());
     child.finish = stopReason => {
       if (child.ended) return; child.ended = true; agent.status = 'idle';
@@ -379,7 +390,16 @@ export async function launcherHost(t, applyLauncher, options = {}) {
   const nativeSubagent = { apply() {} };
   const ctx = {
     plugin(module) { return Promise.resolve(module.apply(ctx)); },
-    tools: { definitions() { return [...sharedTools.values()]; } },
+    tools: { definitions(scope) {
+      const visible = new Map(sharedTools);
+      if (scope === root) for (const [name, definition] of rootPresetTools) visible.set(name, definition);
+      const local = children.get(scope?.id)?.localTools;
+      if (local) for (const [name, definition] of local) visible.set(name, definition);
+      // agent/created runs before publication into the native Agent registry.
+      if (scope?.ctx?.localTools) for (const [name, definition] of scope.ctx.localTools) visible.set(name, definition);
+      const definitions = [...visible.values()];
+      return options.toolDefinitions ? options.toolDefinitions(scope, definitions) : definitions;
+    }, executable(name, scope) { return this.definitions(scope).find(tool => tool.name === name); } },
     workingDirectory: {
       get(session) { return session.id === root.id ? effectiveWorkspace : childWorkspaces.get(session.id) ?? session.header.cwd; },
       async set(agent, cwd) { assert.equal(agent, root); effectiveWorkspace = cwd; return cwd; },

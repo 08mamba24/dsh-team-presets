@@ -39,7 +39,7 @@ The stable roles are `implementer` and `reviewer`; each supports its own duties,
 
 For example: “Use dsh-team-configure. Give implementer file read/write, search and terminal tools; give reviewer read, search and collaboration tools.” The Agent queries the actual tool catalog, previews each role's additions/removals, then saves through native approval.
 
-Unsaved defaults include basic file, search, shell and skill tools that are registered in the Host and visible to the invoking root. Shell names follow the actual catalog, such as `bash` or `pwsh`. Saved templates and explicit lists stay exact. Installed MCP tools may also be selected. Visibility grants no filesystem or shell permission: native sandbox, approval and step-time activation still apply. A role with shell access is not guaranteed read-only.
+Unsaved defaults include basic file, search, shell and skill tools that are registered in the Host and visible to the invoking root, including unconditional standard-Preset definitions. Shell names follow the actual catalog, such as `bash` or `pwsh`. Saved templates and explicit lists stay exact. Installed MCP tools may also be selected. Visibility grants no filesystem or shell permission: native sandbox, approval and step-time activation still apply. A role with shell access is not guaranteed read-only.
 
 The skill ships and registers with the plugin. After upgrading and reloading the plugin, subsequent skill loads use the new bundled body; no separate global copy is needed. Previously injected conversation messages remain intact, so load the skill again for new instructions. Model/prompt configuration requires rc.5; tool-list editing requires rc.6.
 
