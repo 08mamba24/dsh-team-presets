@@ -81,16 +81,21 @@ export function captureRoleToolAuthority(ctx, root, lists) {
   assertRoleToolsAvailable(ctx, root, lists);
   const available = roleToolDefinitions(ctx, root);
   const captured = new Map(lists.flat().map(name => [name, available.get(name)]));
+  const shared = new Map(ctx.tools.definitions().map(tool => [tool.name, tool]));
+  const local = new Set([...captured].filter(([name, definition]) => !PRESET_TOOLS.includes(name)
+    && shared.get(name) !== definition).map(([name]) => name));
+  const matches = (current, name, definition) => current.has(name) && current.get(name) === definition
+    && (!local.has(name) || ctx.tools.executable(name, root) === definition);
   return {
     assertAvailable() {
       const current = roleToolDefinitions(ctx, root);
       for (const [name, definition] of captured) {
-        if (!current.has(name) || current.get(name) !== definition) fail('TEAM_TOOL_UNAVAILABLE');
+        if (!matches(current, name, definition)) fail('TEAM_TOOL_UNAVAILABLE');
       }
     },
     allows(exec) {
       const current = roleToolDefinitions(ctx, root), definition = captured.get(exec.name);
-      if (!captured.has(exec.name) || !current.has(exec.name) || current.get(exec.name) !== definition) return false;
+      if (!captured.has(exec.name) || !matches(current, exec.name, definition)) return false;
       // These two definitions are supplied locally by each native control Preset.
       if (PRESET_TOOLS.includes(exec.name)) return true;
       return ctx.tools.definitions(exec.agent, exec.toolSet).some(tool => tool === definition);

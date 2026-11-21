@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { defaultWorkTemplate, roleToolCatalog, selectableRoleTool } from '../src/role-tools.js';
+import { captureRoleToolAuthority, defaultWorkTemplate, roleToolCatalog, selectableRoleTool } from '../src/role-tools.js';
 
 const bundled = JSON.parse(await readFile(new URL('../examples/team-template.json', import.meta.url), 'utf8'));
 
@@ -35,4 +35,19 @@ test('actual native management and recursive tool names cannot enter a role allo
   for (const name of ['plugin_manager', 'workflow', 'ralph', 'subagent_fork', 'run_code', 'spawn_agent']) {
     assert.equal(selectableRoleTool(name), false, name);
   }
+});
+
+test('a delegated local definition cannot lose its unconditional registration during Host reconfiguration', () => {
+  const root = {}, child = {}, definition = { name: 'read' };
+  let local = true;
+  const ctx = { tools: {
+    definitions: scope => scope === undefined ? local ? [] : [definition] : [definition],
+    executable: () => local ? definition : undefined,
+  } };
+  const authority = captureRoleToolAuthority(ctx, root, [['read']]);
+  const exec = { agent: child, name: 'read' };
+  assert.equal(authority.allows(exec), true);
+  local = false; // Same definition is now a shared conditional registration.
+  assert.throws(() => authority.assertAvailable(), { code: 'TEAM_TOOL_UNAVAILABLE' });
+  assert.equal(authority.allows(exec), false);
 });

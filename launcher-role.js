@@ -40,6 +40,7 @@ function parseConfig(raw) {
 export async function apply(ctx, raw) {
   const config = parseConfig(raw);
   if (typeof ctx?.systemPrompt?.section !== 'function' || typeof ctx?.on !== 'function') fail('LAUNCHER_ROLE_HOST_UNAVAILABLE');
+  const delegated = new Map();
   ctx.systemPrompt.section({ name: 'deployment:persona-prefix', order: 0, text: config.personaPrompt, interpolate: false });
   ctx.on('agent/created', payload => {
     const agent = payload?.agent;
@@ -53,7 +54,6 @@ export async function apply(ctx, raw) {
       const authority = captureRoleToolAuthority(ctx, root, [config.tools]);
       const shared = new Map(ctx.tools.definitions().map(tool => [tool.name, tool]));
       const rootTools = new Map(ctx.tools.definitions(root).map(tool => [tool.name, tool]));
-      const localNames = new Set();
       for (const name of config.tools) {
         if (name === 'send_message' || name === 'wait_agent') continue;
         const definition = rootTools.get(name);
@@ -61,13 +61,17 @@ export async function apply(ctx, raw) {
           // Keep the actual native schema/body and service closure. Never copy
           // a conditional registration without its private activation callback.
           if (ctx.tools.executable(name, root) !== definition) fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
-          agent.ctx.tools.register(definition);
-          localNames.add(name);
+          const existing = delegated.get(name);
+          if (existing !== undefined && existing !== definition) fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
+          if (existing === undefined) {
+            // Own the definition in the role Preset. The child inherits it, so
+            // every subsequent native child/Preset restriction still applies.
+            ctx.tools.register(definition);
+            delegated.set(name, definition);
+          }
         }
       }
-      // Native restrict masks inherited registrations; own registrations are
-      // exempt and cannot be named in this API. Only selected locals were added.
-      agent.ctx.tools.restrict({ allow: config.tools.filter(name => !localNames.has(name)) });
+      agent.ctx.tools.restrict({ allow: [...config.tools] });
       agent.ctx.tools.guard(exec => {
         if (exec.agent !== agent) return;
         try {

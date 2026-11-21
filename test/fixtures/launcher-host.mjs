@@ -321,8 +321,6 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       session: { id, header: { origin: 'subagent', parentSession: root.id, cwd: root.session.header.cwd, agentPreset: member.agent_preset } },
       model: { current: () => child.route }, inbox: { nextStep: [], nextTurn: [] }, ctx: { preset: member.agent_preset, localTools,
         on: (name, fn) => listen(localHooks, name, fn), tools: {
-          register(definition) { localTools.set(definition.name, definition);
-            return () => localTools.delete(definition.name); },
           restrict(filter) {
             assert.ok(filter.allow.every(name => ancestor.has(name)), 'native restrict rejects unknown ancestor tools');
             restrictions.push([...filter.allow]); return () => {};
@@ -331,7 +329,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
           async resolve({ agent: caller, signal }) {
             assert.equal(caller, agent); assert.equal(child.published, true); signal.throwIfAborted();
             const visible = new Map([...ancestor].filter(name => restrictions.every(mask => mask.includes(name))).map(name => [name, {}]));
-            for (const [name, definition] of localTools) visible.set(name, definition);
+            for (const [name, definition] of localTools) if (restrictions.every(mask => mask.includes(name))) visible.set(name, definition);
             return { view: scope => scope === agent ? visible : new Map(), dispose() {} };
           },
         } } };
@@ -341,14 +339,16 @@ export async function launcherHost(t, applyLauncher, options = {}) {
         ['send_message', 'wait_agent', 'list_agents'].forEach(name => ancestor.add(name));
       } else {
         assert.equal(entry.name, 'dsh-subagent-live-rc2-local/launcher-role');
-        await applyLauncherRole({ tools: ctx.tools, agents: ctx.agents,
+        await applyLauncherRole({ tools: { ...ctx.tools,
+          register(definition) { localTools.set(definition.name, definition); ancestor.add(definition.name);
+            return () => localTools.delete(definition.name); } }, agents: ctx.agents,
           systemPrompt: { section(section) { child.persona = section.text; } },
           on: (name, fn) => listen(localHooks, name, fn) }, entry.config);
       }
     }
     emit(localHooks, 'agent/created', { agent });
     assert.equal(child.persona, member.persona_prompt);
-    child.visible = new Set([...ancestor].filter(name => restrictions.every(mask => mask.includes(name))).concat([...localTools.keys()]));
+    child.visible = new Set([...ancestor].filter(name => restrictions.every(mask => mask.includes(name))));
     assert.deepEqual([...child.visible].sort(), [...member.native_tool_allowlist].sort());
     child.finish = stopReason => {
       if (child.ended) return; child.ended = true; agent.status = 'idle';

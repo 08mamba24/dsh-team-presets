@@ -158,7 +158,7 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
 /** Reproduce the official Web composition: work tools belong to a standard
  * Preset, not the shared registry; role Presets remain independent. */
 async function probeWebPresetTools({ load, plugin, workspace }) {
-  const [{ Context }, { ToolsService }, { NativeToolExecutor }, { createScope, scopeTarget },
+  const [{ Context }, { ToolsService }, { NativeToolExecutor }, { createScope, scopeTarget, scopeOf },
     { SkillRegistry }, { LocalFileSystem }, { LocalSubprocessRuntime }, fsTools, searchTools,
     shellTools, shellBackend, { ShellEnvRegistry }, { approveEscalation }, { defineTool }] = await Promise.all([
     load('@deepseek-ai/cordis'), load('@deepseek-ai/dsh-tools'), load('@deepseek-ai/dsh-tool-executor-native'),
@@ -172,7 +172,7 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
   const { roleToolCatalog, defaultWorkTemplate } = await import(pathToFileURL(join(plugin, 'src/role-tools.js')).href);
   const { apply: applyRole } = await import(pathToFileURL(join(plugin, 'launcher-role.js')).href);
   const { applyTeamConfigurator } = await import(pathToFileURL(join(plugin, 'src/team-configure.js')).href);
-  const ctx = new Context(), scopes = [], checks = [], shell = process.platform === 'win32' ? 'pwsh' : 'bash';
+  const ctx = new Context(), scopes = [], checks = [], presetContexts = new WeakMap(), shell = process.platform === 'win32' ? 'pwsh' : 'bash';
   const root = { id: 'web-probe-root', session: { id: 'web-probe-root', header: { cwd: workspace } } };
   ctx.provide('agents', { get: id => id === root.id ? root : undefined });
   ctx.provide('systemPrompt', { tools() { return () => {}; }, section() { return () => {}; }, getSectionOrder() { return 1; } });
@@ -227,6 +227,7 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
       const agent = { id: `web-probe-${role}`, session: { id: `web-probe-${role}`,
         header: { origin: 'subagent', parentSession: root.id, cwd: workspace } } };
       const scope = createScope(ctx, agent, { parent: key }); scopes.push(scope); agent.ctx = scope.ctx;
+      presetContexts.set(agent, preset.ctx);
       await ctx.serial(scopeTarget(agent, agent), 'agent/created', { agent });
       assert.deepEqual(ctx.tools.schemas(agent).map(row => row.name).sort(), [...tools].sort());
       return agent;
@@ -253,11 +254,44 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
     assert.ok(JSON.stringify(ran.content).includes('native-role-shell-ok'));
     checks.push('native-web-preset-role-schemas-and-real-file-and-foreground-shell-bodies');
 
+    const resumed = { id: 'web-probe-recomposed', session: { id: 'web-probe-recomposed',
+      header: { origin: 'subagent', parentSession: root.id, cwd: workspace } } };
+    const resumedScope = createScope(ctx, resumed, { parent: scopeOf(presetContexts.get(writer)) });
+    scopes.push(resumedScope); resumed.ctx = resumedScope.ctx;
+    await ctx.serial(scopeTarget(resumed, resumed), 'agent/created', { agent: resumed });
+    assert.deepEqual(ctx.tools.schemas(resumed).map(row => row.name).sort(), [...members[0].native_tool_allowlist].sort());
+    assert.notEqual((await call(resumed, 'read', { file_path: filename })).isError, true);
+    checks.push('native-web-role-preset-recomposition-reuses-exact-delegated-definitions');
+
     assert.equal((await call(reader, 'write', { file_path: filename, content: 'must not run' })).isError, true);
     const revoke = root.ctx.tools.restrict({ deny: ['write'] });
     assert.equal((await call(writer, 'write', { file_path: filename, content: 'must not run' })).isError, true);
     assert.equal(await readFile(filename, 'utf8'), 'native Web Preset bridge'); revoke();
     checks.push('native-web-preset-root-revocation-and-unselected-role-tools-refuse-before-body');
+
+    for (const context of [writer.ctx, presetContexts.get(writer)]) {
+      const lift = context.tools.restrict({ allow: [] });
+      const masked = await call(writer, 'write', { file_path: filename, content: 'must not run' });
+      assert.equal(masked.isError, true);
+      assert.equal(await readFile(filename, 'utf8'), 'native Web Preset bridge'); lift();
+    }
+    checks.push('native-web-preset-work-tools-obey-child-and-preset-deny-all-intersection');
+    for (const context of [writer.ctx, presetContexts.get(writer)]) {
+      let lift, answers = 0;
+      const approval = ctx.plugin({ name: 'isolated-mask-approval', apply(inner) {
+        inner.provide('approval', { async request() {
+          answers++; await new Promise(resolve => setImmediate(resolve));
+          lift = context.tools.restrict({ allow: [] }); return 'allowed-once';
+        } });
+      } });
+      await approval;
+      const ask = writer.ctx.on('tools/pre-execute', (exec, next) => exec.name === 'write' ? { kind: 'ask' } : next());
+      const masked = await call(writer, 'write', { file_path: filename, content: 'must not run' });
+      assert.equal(answers, 1); assert.equal(masked.isError, true);
+      assert.equal(await readFile(filename, 'utf8'), 'native Web Preset bridge');
+      lift(); ask(); await approval.dispose();
+    }
+    checks.push('native-web-preset-work-tools-obey-child-and-preset-masks-added-during-approval');
     return checks;
   } finally {
     for (const scope of scopes.reverse()) await scope.dispose();
