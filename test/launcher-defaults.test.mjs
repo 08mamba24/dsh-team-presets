@@ -11,7 +11,7 @@ const decode = result => ({ ...result, value: JSON.parse(result.text) });
 const currentHost = (t, options = {}) => launcherHost(t, async (ctx, config, native, control) => {
   const template = JSON.parse(await readFile(join(config.workspace, '.dsh-team-template.json'), 'utf8'));
   await applyLauncher(ctx, { mode: 'current-session', template, timeoutMs: 3000,
-    maxStreams: { implementer: 8, reviewer: 7 } }, native, control);
+    maxStreams: { implementer: 8, reviewer: 7 } }, native, control, { prepareRoot: async () => {} });
 }, { cleanupTimeoutMs: 500, sessionScopedPresets: true, commandName: 'dsh-team', ...options });
 
 test('the bundled template defaults both roles to max without changing their explicit model routes', () => {

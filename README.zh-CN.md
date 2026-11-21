@@ -2,7 +2,7 @@
 
 在 DeepSeek Harness 的目标会话中，一次创建 implementer 和 reviewer，为两者分别配置模型、持久提示词与工作工具集。
 
-**当前源码：0.5.0-rc.6。** 安装后提供 profile 全局的 `dsh-team-configure` skill，可以在 Agent 会话中配置两角色的 provider、模型、effort、提示词与工具集，无需手工编辑 YAML。默认 effort 为 `max`，由实际配置的原生 adapter 验证。本次更新未进行付费模型运行；历史 rc.2 的 macOS low 实机结果不代表本版本的任意模型已验。[验收范围与已知限制](docs/ACCEPTANCE.md)。
+**当前源码：0.5.0-rc.7。** 安装后提供 profile 全局的 `dsh-team-configure` skill，可以在 Agent 会话中配置两角色的 provider、模型、effort、提示词与工具集，无需手工编辑 YAML。默认 effort 为 `max`，由实际配置的原生 adapter 验证。本次更新未进行付费模型运行；历史 rc.2 的 macOS low 实机结果不代表本版本的任意模型已验。[验收范围与已知限制](docs/ACCEPTANCE.md)。
 
 Windows x64 适配面向已检查的 Harness 0.2.2-rc.5 和当前会话 `/dsh-team` 入口，见 [Windows 安装与 CI 验收](docs/WINDOWS.md)。旧的本地文件绑定入口仍只支持 macOS。
 
@@ -14,7 +14,7 @@ Windows x64 适配面向已检查的 Harness 0.2.2-rc.5 和当前会话 `/dsh-te
 npm pack
 ```
 
-在 Harness 官方插件管理器中安装生成的 `dsh-subagent-live-rc2-local-0.5.0-rc.6.tgz`。打包不会更新已安装副本。安装会同时注册当前会话入口、配置工具和 skill；该 profile 的根会话均可发现 skill，不必另拷到每个项目。无需填写 Session ID 或运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 Harness rc.5 的安装源。
+在 Harness 官方插件管理器中安装生成的 `dsh-subagent-live-rc2-local-0.5.0-rc.7.tgz`。打包不会更新已安装副本。安装会同时注册当前会话入口、配置工具和 skill；该 profile 的根会话均可发现 skill，不必另拷到每个项目。无需填写 Session ID 或运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 Harness rc.5 的安装源。
 
 [历史 v0.5.0-rc.2 预发行](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) 保持原先实机验收时的 low 配置，不包含本次 max 更新。该插件未发布到 npm 或插件市场。包名中的 `rc2-local` 是历史名称。
 
@@ -88,11 +88,36 @@ DeepSeek 官方提供方的 Pro 菜单项可能标注路由到 Flash；它不能
 
 实机完成了 `17 × 23 = 391` 的写回、直接交接与另一种算法复核。验收中 Lead 曾在任务被阻塞后临时移除并恢复依赖，这是保留的 P2 编排偏差；严格指令遵循未通过。上述澄清后的工作顺序尚未另行实机执行。
 
+## 替换空闲成员
+
+在已有团队的根会话中调用打包的 `dsh-team-replace` skill，例如：
+
+```text
+使用 dsh-team-replace，先查看当前团队。把 implementer 换成我指定的
+provider/model，effort 用 max，采用以下角色提示词、工作提示词和完整工具清单。
+保留原任务 ID、依赖与已完成进度。
+交接实况：已改文件、已验证测试、未确认副作用、下一步。
+```
+
+Agent 先调用 `dsh_team_replace action: inspect`，再将精确的 `expectedOldChildId` 与 provider、model、reasoningEffort、personaPrompt、prompt、完整 tools 和 progressFacts 传入 `action: replace`。effort 未指定时默认 `max`，实际路由仍须通过会话 policy 与原生 adapter。替换只改变当前团队的选定角色；后续新团队的默认值由 `dsh-team-configure` 修改。
+
+旧成员及其后代必须停稳：没有在途 turn、工具、排队输入或受管后台作业。业务任务可以保持 `in_progress`。已自然卸载的成员依据原生目录、已结束 turn 和持久 inbox 确认静止。带未完成前置依赖的任务会在冻结前被拒绝，依赖不变。
+
+系统先持久冻结旧成员的执行资格，再创建强制 Standby 候选。候选只可读取交接任务，并向 Lead 发送绑定 operation、handoff、config 的精确就绪 ACK。Lead 逐任务按原生 revision CAS 改派，全部确认后才放行工作。已完成任务、依赖、进度与双方 Session 历史保留。`activating` 表示获准工作、接管仍待证明；候选自己的原生工具调用和成功任务写回匹配后才进入 `active`。没有未完成任务时明确返回 `not-required`。就绪 ACK 本身不代表接管成功。
+
+替换后，Lead 和同伴仍使用 `implementer`、`reviewer` 发消息和填写任务 owner。原生工具结果显示当前逻辑角色，多次替换和重载后继续有效；旧名称和退役 Session ID 会被拒绝。替换尚未完成时，该业务角色暂不可寻址，应 inspect 或 recover 原操作。
+
+遇到超时、部分改派或写入不确定，先 inspect，再对原 operationId 调用 `recover`。恢复会重新核对当前 owner/status，并续接同一个候选 Session，不重复创建。首次 owner 写入意图之前可明确调用 `cancel`，包括候选尚未创建的冻结计划；确认候选已停止、任务 owner 安全后才解冻旧成员。首次 owner 意图之后只能恢复对账，旧成员持续退役。
+
+旧版本团队可在原生启动指纹和 child header 均验证原绑定后自动迁移。默认值已改变时会返回 `REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED`，需向 `dsh_team_replace action: adopt` 提供完整原模板，由工具验证后才注册受管 Preset；无法找回原配置时保留现场，不猜旧 persona。
+
+原生 profile 持久保留各根的原配置、完整候选配置和生命周期记录，重载后先恢复相应 Preset。手工改配置须保留 `replacementRecords`；新默认值不改变这些团队。实际工具仍服从原生沙箱、审批与限制。替换无法撤销已进入工具体的副作用或任意自行脱离管理的后台进程，也不改变续接 `maxTokens`。新路径面向已检查的 Harness rc.5，证据范围见[验收说明](docs/ACCEPTANCE.md)。
+
 ## 配置、恢复与限制
 
 推荐使用上面的会话 skill；旧版用户须安装新包才能获得新增能力。没有专用的模型选择表单。手动配置仍可使用，Windows 文件位置和完整补丁见 [Windows 手动配置](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration)。两种方式都无需重新打包插件。
 
-skill 保存不会重载当前 launcher；当前 Host 中已执行 plan/launch 的根继续使用原模板，未绑定的根读取新默认值。模板持久化与完整旧团队冷恢复是不同能力；改默认值后不要用旧根 plan/launch 强行迁移成员，完整冷恢复仍未验收。
+保存默认值会保留既有绑定。rc.7 起，已启动且保留替换记录的团队会在重载后先恢复原模板与作用域 Preset；未绑定的根使用新默认值。历史团队若没有该记录，须保留原组件与 Preset。重复 launch 不是迁移命令。
 
 `examples/team-template.json` 是完整两角色基础示例；未设置 `template` 时，当前会话入口另外按 Host 目录生成工作工具默认值。可在当前组件配置中将可选 `template` 替换为同格式对象，调整角色提示词、模型、启动提示与原生工具白名单。组件支持 `timeoutMs` 和每角色 `maxStreams`；默认每角色一次普通启动 stream，可配置 1～12 次。模板只表达配置，真实准入仍由原生 policy 和工具权限决定。逐字段说明见[修改模型与提示词](docs/MODELS-AND-PROMPTS.md)。
 
@@ -102,7 +127,9 @@ skill 保存不会重载当前 launcher；当前 Host 中已执行 plan/launch �
 /dsh-team restore
 ```
 
-该命令仅在原操作的恢复权限仍在、根会话无排队输入、原根与成员均空闲且未被替换、完整任务板自启动结束后保持不变时，才可还原先前 Team 模式。普通业务写回会改变任务 revision、状态或描述，导致 `RESTORE_BOARD_CONFLICT`；成员条件不满足时可能更早拒绝。因此，业务完成后不能承诺 `restore` 成功。遇拒绝应保留当前 Team 模式与证据，停止自动补偿；不要清空任务、倒改依赖或重跑工作来强行恢复。命令保留成员和任务。插件或 Host 重载后，应先在原根会话执行 `plan` 重建角色预设注册；它不会重建先前的内存恢复权限。本次没有验收完整冷恢复、正向成员复用、自动 Lead 唤醒或所有部分失败恢复路径。卸载使用官方管理器，等待已有操作和成员结束。
+该命令仅在原操作的恢复权限仍在、根会话无排队输入、原根与成员均空闲且未被替换、完整任务板自启动结束后保持不变时，才可还原先前 Team 模式。普通业务写回会改变任务 revision、状态或描述，导致 `RESTORE_BOARD_CONFLICT`；成员条件不满足时可能更早拒绝。因此，业务完成后不能承诺 `restore` 成功。遇拒绝应保留当前 Team 模式与证据，停止自动补偿；不要清空任务、倒改依赖或重跑工作来强行恢复。命令保留成员和任务。
+
+插件或 Host 重载后，保留的 rc.7 绑定会在成员续接前自动注册原始及候选 Preset。这与 `/dsh-team restore` 的启动模式还原不同；后者的内存恢复权限不会由 `plan` 重建。旧版本绑定按上文的原模板验证步骤迁移。冷续接和部分恢复故障已由隔离原生检查覆盖；正向成员复用、自动 Lead 唤醒及任意部分失败仍未验收。卸载使用官方管理器，等待已有操作和成员结束。
 
 旧的显式绑定入口 `/dsh-team-launcher` 及离线 prepare 继续保留，流程见 [旧版绑定安装](docs/LEGACY-BOUND-INSTALL.md)。
 

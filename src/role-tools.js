@@ -1,5 +1,6 @@
 import { fail } from './config.js';
 import { types } from 'node:util';
+import { isReusableLogicalTeamTaskDelegate } from './team-addressing.js';
 
 export const COLLABORATION_TOOLS = Object.freeze(['team_task_get', 'team_task_update', 'send_message', 'wait_agent']);
 const WORK_TOOLS = Object.freeze(['read', 'write', 'edit', 'apply_patch', 'glob', 'grep', 'bash', 'pwsh', 'str_replace_editor', 'skill']);
@@ -36,8 +37,9 @@ function group(name) {
   return name.startsWith('mcp_') ? 'mcp' : 'other';
 }
 
-/** Shared definitions retain their native activation. Unconditional local
- * definitions can be installed verbatim on a separate role scope. */
+/** Shared definitions retain native activation. Unconditional local definitions
+ * can be copied; exact logical Team delegates preserve their owned predicate
+ * through the addressing module's registration API. */
 function roleToolDefinitions(ctx, agent) {
   if (typeof ctx.tools?.definitions !== 'function') fail('TEAM_TOOL_CATALOG_UNAVAILABLE');
   const visible = new Map(ctx.tools.definitions(agent).map(tool => [tool.name, tool]));
@@ -51,8 +53,10 @@ function roleToolDefinitions(ctx, agent) {
   for (const tool of visible.values()) {
     if (!selectableRoleTool(tool.name)) continue;
     // A local registration's activation callback is not part of ToolDefinition.
-    // The public executable lookup only admits unconditional registrations.
-    if (shared.get(tool.name) !== tool && ctx.tools.executable?.(tool.name, agent) !== tool) continue;
+    // The public executable lookup only admits unconditional registrations;
+    // the addressing module authenticates its own reusable Team delegates.
+    if (shared.get(tool.name) !== tool && ctx.tools.executable?.(tool.name, agent) !== tool
+      && !isReusableLogicalTeamTaskDelegate(tool)) continue;
     result.set(tool.name, tool);
   }
   return result;
@@ -85,7 +89,8 @@ export function captureRoleToolAuthority(ctx, root, lists) {
   const local = new Set([...captured].filter(([name, definition]) => !PRESET_TOOLS.includes(name)
     && shared.get(name) !== definition).map(([name]) => name));
   const matches = (current, name, definition) => current.has(name) && current.get(name) === definition
-    && (!local.has(name) || ctx.tools.executable(name, root) === definition);
+    && (!local.has(name) || ctx.tools.executable(name, root) === definition
+      || isReusableLogicalTeamTaskDelegate(definition));
   return {
     assertAvailable() {
       const current = roleToolDefinitions(ctx, root);

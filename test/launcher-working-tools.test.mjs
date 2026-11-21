@@ -15,7 +15,7 @@ async function host(t, options) {
   return launcherHost(t, async (ctx, config, native, control) => {
     const template = JSON.parse(await readFile(join(config.workspace, '.dsh-team-template.json'), 'utf8'));
     await applyCurrentLauncher(ctx, { mode: 'current-session', template,
-      maxStreams: { implementer: 8, reviewer: 7 } }, native, control);
+      maxStreams: { implementer: 8, reviewer: 7 } }, native, control, { prepareRoot: async () => {} });
   }, { workTools: files(), ...options, commandName: 'dsh-team', sessionScopedPresets: true });
 }
 const result = value => JSON.parse(value.text);

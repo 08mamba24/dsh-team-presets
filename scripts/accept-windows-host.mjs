@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Real Windows Desktop Host acceptance without an account or model prompt.
+ * Real Windows Desktop Host lifecycle plus native scripted replacement acceptance.
  * Run with ordinary Node; it relaunches this file under the installed Electron.
  * Upstream dsh-v0.2.2-rc.5 sources owning this route:
  * - apps/desktop/scripts/smoke-runtime.ts: isolated profile, CLI and authenticated Host.
@@ -27,6 +27,7 @@ const usage = 'node scripts/accept-windows-host.mjs --install-dir <installed app
 const { values } = parseArgs({ options: {
   'install-dir': { type: 'string' }, tgz: { type: 'string' },
   'previous-tgz': { type: 'string' },
+  'legacy-plugin': { type: 'string' },
   'lab-dir': { type: 'string' }, 'receipt-dir': { type: 'string' },
   'electron-stage': { type: 'boolean', default: false }, help: { type: 'boolean', default: false },
 }, allowPositionals: false });
@@ -61,6 +62,7 @@ function pathsFor(options) {
   return { install, lab, resources, runtime, home, harness,
     executable: join(install, 'DeepSeek Harness.exe'), tgz: resolve(options.tgz),
     previousTgz: options['previous-tgz'] ? resolve(options['previous-tgz']) : undefined,
+    legacyPlugin: options['legacy-plugin'] ? resolve(options['legacy-plugin']) : undefined,
     receipts: resolve(options['receipt-dir']), profile: join(harness, 'profiles', 'desktop'),
     agents: join(lab, 'agents'), workspace: join(lab, 'workspace'), temporary: join(lab, 'tmp'),
     cli: join(runtime, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js'),
@@ -124,8 +126,8 @@ async function accept(paths) {
   const report = {
     schemaVersion: 1, kind: 'dsh-team-windows-host-acceptance', status: 'failed',
     startedAt: new Date().toISOString(), platform: process.platform, arch: process.arch,
-    scope: 'Official CLI installation and real Desktop Host plan, persistence and removal; no account or model prompt.',
-    notCovered: ['Electron GUI interaction', 'team launch', 'paid model calls', 'member collaboration'],
+    scope: 'Official CLI/Host lifecycle and native replacement with a local scripted provider; no account or remote inference.',
+    notCovered: ['Electron GUI interaction', 'paid model calls', 'real-provider team launch and collaboration'],
     isolation: { lab: paths.lab, harness: paths.harness, profile: paths.profile, agents: paths.agents,
       workspace: paths.workspace, accountCredentialsInherited: false },
     checks: [],
@@ -174,6 +176,24 @@ async function accept(paths) {
       const result = await bounded(handle.exit, TIMEOUT, label);
       assert.equal(result.code, 0, `${label} failed; see ${handle.log}`);
       report.checks.push({ name: label, passed: true, exitCode: result.code, log: handle.log });
+    } finally {
+      await forceStop(handle);
+      await saveLog(handle);
+      children.delete(handle);
+    }
+  }
+
+  async function runNativeAcceptance(installedRoot, script, receiptName, extra = []) {
+    const receipt = join(paths.receipts, receiptName);
+    const handle = childProcess(script, [join(installedRoot, 'scripts', script),
+      paths.runtime, installedRoot, receipt, `tgz-sha256:${report.plugin.tgzSha256}`, ...extra]);
+    try {
+      const result = await bounded(handle.exit, TIMEOUT, script);
+      assert.equal(result.code, 0, `${script} failed; see ${handle.log}`);
+      const evidence = JSON.parse(await readFile(receipt, 'utf8'));
+      assert.equal(evidence.passed, true, `${script} reported failure`);
+      report.checks.push({ name: script, passed: true, checks: evidence.checks.length,
+        receipt: receiptName, log: handle.log });
     } finally {
       await forceStop(handle);
       await saveLog(handle);
@@ -286,6 +306,19 @@ async function accept(paths) {
     assert.equal(report.nativeRoleTools.passed, true);
     report.checks.push(...report.nativeRoleTools.checks.map(name => ({ name, passed: true })));
 
+    // Execute the installed TGZ's code through the official Electron/native
+    // services. Each script creates and removes its own profile/Session data.
+    await runNativeAcceptance(installedRoot, 'accept-native-admission.mjs', 'native-admission.json');
+    await runNativeAcceptance(installedRoot, 'accept-native-replacement-store.mjs', 'native-replacement-store.json');
+    await runNativeAcceptance(installedRoot, 'probe-native-team-addressing.mjs', 'native-team-addressing.json');
+    await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement.json');
+    if (paths.legacyPlugin) {
+      const legacy = JSON.parse(await readFile(join(paths.legacyPlugin, 'package.json'), 'utf8'));
+      assert.equal(legacy.name, PACKAGE); assert.equal(legacy.version, '0.5.0-rc.6');
+      await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement-legacy.json', [paths.legacyPlugin]);
+      await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement-legacy-unchanged.json', [paths.legacyPlugin, 'unchanged']);
+    }
+
     let host = await startHost('host-installed');
     const { sessionId } = await host.rpc('session/create', { request: { cwd: paths.workspace } });
     assert.match(sessionId, /^session-[a-f0-9-]{36}$/);
@@ -294,6 +327,8 @@ async function accept(paths) {
     const configuredSkills = skillCatalog.skills.filter(skill => skill.name === 'dsh-team-configure');
     assert.equal(configuredSkills.length, 1, 'profile-wide configuration skill missing or duplicated');
     assert.ok(configuredSkills[0].description.includes('工具集'), 'new bundled skill not loaded');
+    assert.equal(skillCatalog.skills.filter(skill => skill.name === 'dsh-team-replace').length, 1,
+      'profile-wide replacement skill missing or duplicated');
     report.checks.push({ name: 'profile-wide-configuration-skill', passed: true });
     if (paths.previousTgz) report.checks.push({ name: 'cli-upgrade-replaces-bundled-skill', passed: true, from: report.previousVersion, to: installed.version });
     const commands = await host.rpc('commands/list', { agentId: sessionId });
@@ -339,6 +374,7 @@ async function accept(paths) {
     assert.deepEqual(restoredTemplate, template, 'team template did not persist across Host restart');
     const restoredSkills = await host.rpc('skills/list', { request: { sessionId } });
     assert.ok(restoredSkills.skills.some(skill => skill.name === 'dsh-team-configure'));
+    assert.ok(restoredSkills.skills.some(skill => skill.name === 'dsh-team-replace'));
     report.checks.push({ name: 'configuration-and-skill-survive-host-restart', passed: true });
     await stopHost(host);
 
@@ -352,6 +388,7 @@ async function accept(paths) {
     assert.ok(!remaining.some(command => command.name === 'dsh-team'), 'command still present after removal');
     const removedSkills = await host.rpc('skills/list', { request: { sessionId: cleanSession.sessionId } });
     assert.ok(!removedSkills.skills.some(skill => skill.name === 'dsh-team-configure'), 'skill still present after removal');
+    assert.ok(!removedSkills.skills.some(skill => skill.name === 'dsh-team-replace'), 'replacement skill still present after removal');
     await stopHost(host);
     report.checks.push({ name: 'command-removed', passed: true });
     report.status = 'passed';

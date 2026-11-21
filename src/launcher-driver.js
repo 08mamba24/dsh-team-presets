@@ -1,4 +1,10 @@
+import { randomUUID } from 'node:crypto';
 import { LiveError, fail } from './config.js';
+import * as replacementOrchestrator from './launcher-replace.js';
+import { createReplacementRuntime } from './replacement-native.js';
+import { readReplacementRecord } from './member-replacement.js';
+import { createReplacementStore } from './replacement-store.js';
+import { assertRoleToolsAvailable } from './role-tools.js';
 import { parseLauncherConfig, readLauncherTemplate, assertLauncherOwned, validateLauncherTemplate } from './launcher-config.js';
 import { launcherTemplateFingerprint } from './launcher-template.js';
 import { planLauncherMembers } from './launcher-plan.js';
@@ -44,7 +50,7 @@ function startupPrompt(member, op, template) {
 export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry, currentBinding) {
   if (rawConfig?.mode === 'current-session') {
     const { applyCurrentLauncher } = await import('./launcher-current.js');
-    return applyCurrentLauncher(ctx, rawConfig, nativeSubagent, controlEntry);
+    return applyCurrentLauncher(ctx, rawConfig, nativeSubagent, controlEntry, currentBinding);
   }
   const config = parseLauncherConfig(rawConfig);
   if (!config) {
@@ -59,7 +65,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     || ['isEnabled', 'setEnabled', 'createTask', 'getTask', 'listTasks'].some(key => typeof ctx.agentTeams?.[key] !== 'function')) {
     fail('HOST_CONTRACT_UNAVAILABLE');
   }
-  let closing = false, active, restoreAuthority, template, fingerprint;
+  let closing = false, active, restoreAuthority, template, fingerprint, replacementActive, replacementRuntime;
   let presetDisposers = [];
   const loadTemplate = () => currentBinding
     ? validateLauncherTemplate(currentBinding.template) : readLauncherTemplate(config);
@@ -150,7 +156,10 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       stop(op, 'UNLOADING'); op.controller.abort(new LiveError('UNLOADING'));
       for (const child of Object.values(op.children)) interrupt(op, child);
     }
+    replacementActive?.controller.abort(new LiveError('UNLOADING'));
     await setup.promise;
+    if (replacementActive?.done) await replacementActive.done.catch(() => {});
+    await replacementRuntime?.dispose();
     if (op?.done) await op.done.catch(() => {});
     for (const dispose of [...presetDisposers].reverse()) await dispose();
     presetDisposers = [];
@@ -160,7 +169,12 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     template = await loadTemplate();
     if (closing) fail('UNLOADING');
     fingerprint = launcherTemplateFingerprint(template);
-    presetDisposers = await registerLauncherPresets(ctx, config, template, controlEntry);
+    presetDisposers = await registerLauncherPresets(ctx, { ...config,
+      ...(currentBinding?.replacementOwner ? { replacementOwner: currentBinding.replacementOwner } : {}) }, template, controlEntry);
+    if (currentBinding?.replacementOwner) {
+      replacementRuntime = createReplacementRuntime(ctx, config, controlEntry);
+      await replacementRuntime.restorePresets(currentBinding.replacementRecord ?? readReplacementRecord(undefined));
+    }
     if (closing) fail('UNLOADING');
   } finally { setup.resolve(); }
 
@@ -500,6 +514,10 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
           // Bound startup text before the first mutation; real ids are bounded native identifiers.
           if (template.members.some(member => member.prompt.length + json(template.seedTasks).length + 2048 > 8000)) fail('LAUNCHER_STARTUP_CONTEXT_TOO_LARGE');
           op.toolAuthority.assertAvailable();
+          if (currentBinding?.replacementOwner) {
+            await createReplacementStore(ctx.settings, agent.id).ensure(currentBinding.baseBinding);
+            assertCurrent(op, op.signal);
+          }
           op.mutationsStarted = true;
           try { await ctx.agentTeams.setEnabled(agent, true, op.signal); }
           catch (error) { op.persistenceUnconfirmed = true; reconcile(op, 'TEAM_MODE_PERSISTENCE_UNCONFIRMED'); throw error; }
@@ -651,17 +669,53 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     return { ok: true, mode: 'restore', teamModeRestored: true, priorMode: authority.priorMode,
       retainedTaskIds: authority.board.map(task => task.id), retainedChildIds: authority.children.map(child => child.id) };
   }
+  /** Both Agent tools and commands use this serialized native replacement path. */
+  async function replacementCommand(agent, rawInput, callerSignal) {
+    if (active || replacementActive) fail('BUSY');
+    if (!currentBinding?.replacementOwner) fail('REPLACEMENT_CURRENT_SESSION_REQUIRED');
+    const operation = { controller: new AbortController() };
+    replacementActive = operation;
+    const signal = AbortSignal.any([callerSignal, operation.controller.signal]);
+    operation.done = (async () => {
+      await assertOwned(agent); signal.throwIfAborted();
+      if (closing) fail('UNLOADING');
+      let result;
+      if (rawInput.startsWith('recover ') || rawInput.startsWith('cancel ')) {
+        const [action, operationId] = rawInput.split(/\s+/);
+        if (!/^replace-[0-9a-f-]{36}$/.test(operationId)) fail('REPLACEMENT_REQUEST_INVALID');
+        result = await (action === 'cancel' ? replacementOrchestrator.cancelReplacement : replacementOrchestrator.reconcileReplacement)(
+          replacementRuntime.host(agent, signal), operationId);
+      } else {
+        const marker = rawInput.indexOf('{');
+        if (marker < 0) fail('REPLACEMENT_REQUEST_INVALID');
+        const role = rawInput.slice('replace '.length, marker).trim();
+        let input;
+        try { input = JSON.parse(rawInput.slice(marker)); } catch { fail('REPLACEMENT_REQUEST_INVALID'); }
+        if (input?.role !== undefined && input.role !== role) fail('REPLACEMENT_REQUEST_INVALID');
+        const { expectedOldChildId, ...request } = input;
+        const host = replacementRuntime.host(agent, signal, { expectedOldChildId });
+        result = await replacementOrchestrator.replaceMember(host, { ...request, role });
+      }
+      return { kind: result.ok ? 'success' : 'error', text: json({ ...result,
+        stopFurtherMutation: !result.ok, noAutomaticRetry: true }) };
+    })();
+    try { return await operation.done; }
+    finally { if (replacementActive === operation) replacementActive = undefined; }
+  }
+
   async function handler({ agent, rawInput, signal, attachments }) {
     let op, timer, abortListener;
     try {
       if (closing) fail('UNLOADING');
       const command = rawInput?.trim();
+      if (replacementActive) fail('BUSY');
+      if (command?.startsWith?.('replace ') || command?.startsWith?.('recover ') || command?.startsWith?.('cancel ')) return await replacementCommand(agent, command, signal);
       if (!['plan', 'launch', 'restore'].includes(command) || !Array.isArray(attachments) || attachments.length) fail('USAGE_PLAN_LAUNCH_RESTORE_ONLY');
       if (active) fail('BUSY');
       await assertOwned(agent);
-      if (closing) fail('UNLOADING'); signal.throwIfAborted(); if (active) fail('BUSY');
+      if (closing) fail('UNLOADING'); signal.throwIfAborted(); if (active || replacementActive) fail('BUSY');
       const fresh = await loadTemplate();
-      if (closing) fail('UNLOADING'); signal.throwIfAborted(); if (active) fail('BUSY');
+      if (closing) fail('UNLOADING'); signal.throwIfAborted(); if (active || replacementActive) fail('BUSY');
       if (launcherTemplateFingerprint(fresh) !== fingerprint) fail('LAUNCHER_TEMPLATE_CHANGED');
       op = { agent, command, controller: new AbortController(), children: {}, tasks: new Map(), confirmed: new Map(),
         lifecycleVersion: 0,

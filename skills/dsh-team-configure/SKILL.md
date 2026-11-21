@@ -22,8 +22,14 @@ description: 在 DSH Agent 会话中查看可用模型和工具，配置实现�
 
 配置不会扩大模型授权。若 currentSessionAuthorization 有 false，需要用户在原生子智能体模型选择中授权所需路由，保存后创建新根会话。若 currentSessionNeedsNewRoot 为 true，旧根已固定模板，也应使用新根。全局选项不会追溯修改旧会话 policy。
 
-已绑定根的模板固定在当前 Host 生命周期内。完整 Host 重启后的旧成员冷恢复尚未验收；不要承诺新默认值能修改旧成员，或在改默认值后用旧根的 plan/launch 迁移旧团队。
+已绑定根继续使用原模板。rc.7 启动的团队将原绑定与替换记录持久保留，重载后按该记录恢复 Preset；历史团队仍须保留原组件与 Preset。不要用重复 plan/launch 迁移旧团队，也不要删除 replacementRecords。
 
 只配置不调用模型、不创建成员、不执行 launch。用户另外要求启动时，再按原生 plan/launch 流程处理。不要用重复 launch 更换已有成员。写入结果不确定时先报告并用 inspect 核对，不自动重试、回滚或删除配置。
 
 若 `dsh_team_configure` 不存在，说明当前环境未安装或加载相应插件，报告这个缺口；不要把临时手改配置冒充 skill 已成功执行。
+
+## 替换空闲成员（0.5.0-rc.7+）
+
+用户要求修改已有 implementer/reviewer 的模型、effort、提示词或工具时，调用 `dsh-team-replace` skill 与 `dsh_team_replace` 工具：先 inspect，绑定精确 expectedOldChildId 后 replace；effort 未指定时为 max。progressFacts 写明已有文件、已验测试、未确认副作用和下一步。保留任务 ID、依赖、进度与历史。
+
+已有未完成操作时，使用原 operationId recover；不要重复 launch 或 spawn。候选先受强制 Standby 限制，Lead 完成原生 owner/CAS 改派后才激活，再以候选真实任务写回证明接管。首次 owner 写入意图前可明确 cancel，待候选停止和 owner 安全后解冻；之后只能恢复对账。完整说明以替换 skill 为准。

@@ -10,9 +10,34 @@ import { nativeEffectOwner } from './fixtures/native-effect-owner.mjs';
 const currentHost = (t, options = {}) => launcherHost(t, async (ctx, config, native, control) => {
   const template = JSON.parse(await readFile(join(config.workspace, '.dsh-team-template.json'), 'utf8'));
   await applyLauncher(ctx, { mode: 'current-session', template, timeoutMs: 3000,
-    maxStreams: { implementer: 8, reviewer: 7 } }, native, control);
+    maxStreams: { implementer: 8, reviewer: 7 } }, native, control, { prepareRoot: async () => {} });
 }, { cleanupTimeoutMs: 500, ...options, sessionScopedPresets: true, commandName: 'dsh-team' });
 const decode = result => ({ ...result, value: JSON.parse(result.text) });
+
+test('managed root preparation finishes before commands can start member work and failures stop dispatch', async t => {
+  const prepared = [];
+  let rejectPreparation = false;
+  const host = await launcherHost(t, async (ctx, config, native, control) => {
+    const template = JSON.parse(await readFile(join(config.workspace, '.dsh-team-template.json'), 'utf8'));
+    await applyCurrentLauncher(ctx, { mode: 'current-session', template }, native, control, {
+      readTemplate: () => template,
+      async prepareRoot(agent) {
+        assert.equal(ctx.agents.get(agent.id), agent);
+        assert.equal(ctx.settings.describe().find(row => row.ns === 'dsh-native-current-team')
+          .value.replacementRecords[agent.id].baseBinding !== undefined, true);
+        prepared.push(agent.id);
+        if (rejectPreparation) throw Object.assign(new Error('ROOT_ADDRESS_INSTALL_FAILED'), { code: 'ROOT_ADDRESS_INSTALL_FAILED' });
+      },
+    });
+  }, { sessionScopedPresets: true, commandName: 'dsh-team' });
+  assert.equal(decode(await host.invoke('plan')).kind, 'success');
+  assert.deepEqual(prepared, [host.root.id]);
+  rejectPreparation = true;
+  assert.equal(decode(await host.invoke('launch')).value.code, 'ROOT_ADDRESS_INSTALL_FAILED');
+  assert.deepEqual(prepared, [host.root.id, host.root.id]);
+  assert.equal(host.counts().providerCalls, 0);
+  assert.equal(host.catalog.size, 0);
+});
 
 test('live template defaults affect unbound roots while existing plans and Presets retain their snapshot', async t => {
   const first = await launcherHost(t, async () => {});
@@ -21,7 +46,7 @@ test('live template defaults affect unbound roots while existing plans and Prese
   const ownerOf = id => hosts.find(host => host.root.id === id);
   let value = structuredClone(first.template);
   const ctx = { ...first.ctx,
-    agents: { get: id => first.agents.get(id) ?? second.agents.get(id) },
+    agents: { get: id => first.agents.get(id) ?? second.agents.get(id), list: () => hosts.map(host => host.root) },
     commands: { register(spec) { commands.set(spec.name, spec); return () => commands.delete(spec.name); } },
     subagents: { ...first.ctx.subagents, listDescendants(id, signal) { return ownerOf(id).ctx.subagents.listDescendants(id, signal); } },
     agentPresets: { ...first.ctx.agentPresets,
@@ -29,7 +54,7 @@ test('live template defaults affect unbound roots while existing plans and Prese
     plugin(module) { return Promise.resolve(module.apply(ctx)); },
   };
   const control = await applyCurrentLauncher(ctx, { mode: 'current-session', template: first.template }, { apply() {} }, CONTROL,
-    { readTemplate: () => value });
+    { readTemplate: () => value, prepareRoot: async () => {} });
   const plan = async host => decode(await commands.get('dsh-team').handler({ agent: host.root, rawInput: 'plan', attachments: [], signal: new AbortController().signal }));
   const before = await plan(first);
   const presets = structuredClone([...first.presets.values()]);
@@ -75,6 +100,7 @@ test('the same generic configuration also starts a different root and isolates i
   assert.equal(new Set([...first.presets.keys(), ...second.presets.keys()]).size, 4);
   for (const host of [first, second]) for (const preset of host.presets.values()) {
     assert.equal(preset.plugins[1].config.ownedSessionId, host.root.id);
+    assert.equal(preset.plugins[1].config.replacementOwner, 'dsh-native-current-team');
   }
 });
 
@@ -162,7 +188,7 @@ test('an incorrect effective child directory is rejected but an ended idle child
   assert.equal(host.presets.size, 0);
 });
 
-test('reload requires plan to reconstruct existing role presets and never recreates members or restore authority', async t => {
+test('reload restores retained Presets and prepares live or resumed roots without recreating members', async t => {
   const host = await currentHost(t);
   assert.equal(decode(await host.invoke('launch')).kind, 'success');
   const before = host.counts();
@@ -175,8 +201,15 @@ test('reload requires plan to reconstruct existing role presets and never recrea
     on: (name, fn) => owner.on(host.hooks, name, fn),
     plugin(module) { return Promise.resolve(module.apply(ctx)); },
   };
-  await applyLauncher(ctx, { mode: 'current-session', template: host.template }, { apply() {} }, CONTROL);
-  assert.equal(host.presets.size, 0, 'registration is deliberately lazy after reload');
+  const prepared = [];
+  await applyLauncher(ctx, { mode: 'current-session', template: host.template }, { apply() {} }, CONTROL, {
+    readRecords: () => ctx.settings.describe().find(row => row.ns === 'dsh-native-current-team').value.replacementRecords,
+    prepareRoot: async agent => { prepared.push(agent); },
+  });
+  assert.equal(host.presets.size, 2, 'durable binding restores Presets before member continuation');
+  assert.deepEqual(prepared, [host.root], 'reload prepares an already registered root before returning');
+  for (const listener of host.hooks.get('agent/created') ?? []) await listener({ agent: host.root, source: 'resume' });
+  assert.deepEqual(prepared, [host.root, host.root], 'serial creation also prepares cold root resume');
   const plan = decode(await host.invoke('plan'));
   assert.equal(plan.kind, 'success', plan.text);
   assert.equal(host.presets.size, 2);
@@ -192,7 +225,7 @@ test('one command registration plans two registered roots independently', async 
   const hosts = [first, second], commands = new Map();
   const ownerOf = id => hosts.find(host => host.root.id === id);
   const ctx = { ...first.ctx,
-    agents: { get: id => first.agents.get(id) ?? second.agents.get(id) },
+    agents: { get: id => first.agents.get(id) ?? second.agents.get(id), list: () => hosts.map(host => host.root) },
     commands: { register(spec) { assert.equal(commands.has(spec.name), false); commands.set(spec.name, spec);
       return () => commands.delete(spec.name); } },
     subagents: { ...first.ctx.subagents,
@@ -201,7 +234,8 @@ test('one command registration plans two registered roots independently', async 
       register(spec) { return ownerOf(spec.plugins[1].config.ownedSessionId).ctx.agentPresets.register(spec); } },
     plugin(module) { return Promise.resolve(module.apply(ctx)); },
   };
-  await applyLauncher(ctx, { mode: 'current-session', template: first.template }, { apply() {} }, CONTROL);
+  await applyLauncher(ctx, { mode: 'current-session', template: first.template }, { apply() {} }, CONTROL,
+    { prepareRoot: async () => {} });
   assert.deepEqual([...commands.keys()], ['dsh-team']);
   for (const host of hosts) {
     const result = decode(await commands.get('dsh-team').handler({ agent: host.root, rawInput: 'plan',
