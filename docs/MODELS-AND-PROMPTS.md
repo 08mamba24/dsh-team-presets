@@ -16,7 +16,7 @@ skill 先读取模板、provider、当前会话授权和设置版本，然后只
 
 保存范围是当前 profile 的默认模板，不扩大旧会话的授权，也不修改已有成员。当前 Host 中已执行 plan/launch 的根保持原模板；未绑定的根使用新默认值。工具会告知是否需要新根。若所选路由不在当前会话 policy，先在原生子智能体模型选择中授权，保存后再建新根。配置成功不会自动 launch。
 
-模板持久化不等于旧团队冷恢复。完整 Host 重启后的旧成员续接尚未验收；改默认值后不要用旧根 plan/launch 强行迁移团队。完整模板或任务的高级修改仍可使用手动配置。
+rc.7 将已启动团队的原绑定与替换记录持久保留，重载时先恢复原 Preset；历史团队若没有记录，仍需原组件和 Preset。已有成员的变更使用 `dsh-team-replace` skill，不用重复 launch。手工编辑 config 时须保留 replacementRecords 以及其他既有选项。
 
 ## 配置工具集
 
@@ -36,7 +36,7 @@ skill 文件随插件升级并在重新加载时注册。无需另复制到全�
 
 1. 按 `Win + R`，输入 `%USERPROFILE%\.dsh\profiles\desktop`。先备份，再用记事本打开其中的 `cordis.patch.yml`。如果使用了自定义 `DSH_HOME` 或其他 profile，以实际运行路径为准。
 2. 打开 [完整用户配置补丁](examples/windows-team-config.patch.yml)，将两个 `REPLACE_*_MODEL_ID` 替换为实际模型 ID。示例中的 provider 是 `codeagent`，可改为本机实际配置的 provider ID；两角色的 effort 默认都是 `max`。示例保留了原模板的角色提示词、工具和任务，并非已应用到本机的配置。
-3. 将示例的顶层列表项加入原文件的列表，保留其他配置项。如果原文件只有 `[]`，用该列表项替换空列表。如果已有 `id: dsh-native-current-team`，更新该项的 `config.template`，保留 `mode: current-session` 以及已有的 `timeoutMs`、`maxStreams` 等设置。宿主按组件 ID 替换整个 `config`，不会逐层合并其中的字段。
+3. 将示例的顶层列表项加入原文件的列表，保留其他配置项。如果原文件只有 `[]`，用该列表项替换空列表。如果已有 `id: dsh-native-current-team`，更新该项的 `config.template`，保留 `mode: current-session`、完整 `replacementRecords` 以及已有的 `timeoutMs`、`maxStreams` 等设置。宿主按组件 ID 替换整个 `config`，不会逐层合并其中的字段。
 4. 保存并确认插件加载正常。在“插件 → 官方 → 子智能体 → 模型选择”开启 Agent 选择模型，并勾选模板中使用的 provider/model 路由。保存后创建新根会话，全局设置不会追溯授权旧会话。
 5. 在新根会话中先执行 `/dsh-team plan`，核对成员创建／冲突计划；再执行 `/dsh-team launch`。plan 不验证模型授权或 effort；launch 执行原生准入检查并会调用模型。已有成员不会通过重复 launch 更新配置。
 

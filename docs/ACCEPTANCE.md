@@ -1,5 +1,15 @@
 # Acceptance and release scope
 
+## 0.5.0-rc.7 member replacement
+
+This candidate adds the root-only `dsh_team_replace` tool and bundled `dsh-team-replace` skill for replacing an idle implementer or reviewer. The native profile entry owns a persistent per-root record with the original binding, candidate configuration, handoff digest, authenticated readiness, task-transfer outcomes and task-write proof. All roots share the entry revision; writes use native ConfigEditor CAS and readback. Volatile map updates persist without remounting the entry. Preserve the complete `replacementRecords` map during manual configuration edits.
+
+On the physical macOS Harness rc.5 runtime, the integrated source passed 317 portable tests and nine end-to-end native checks. The latter use actual SettingsForms/ConfigEditor/Loader, AgentPresetRegistry, AgentLoop, SubagentRuntime, Team task tools and JSONL/SQLite persistence with a local scripted provider. They cover a naturally cold old member, born-Standby refusal before a business tool body, real owner CAS and candidate task-write evidence, a failed activation recovered in the same candidate Session, partial multi-task transfer, dependency-preserving refusal of a blocked task, safe explicit cancellation before owner intent, and a fresh Loader/profile/JSONL reload retaining the original configuration after defaults change. Separate physical probes passed admission 14/14, Preset/JSONL 5/5, storage 5/5 and role tools 16/16.
+
+These are isolated native-service checks, not paid-provider or GUI acceptance. The Windows workflow runs the packaged admission, storage and complete replacement scripts under the official Electron executable, in addition to the existing official CLI/Host install, upgrade, plan, settings, restart and removal checks. The exact Actions run and its receipts determine Windows status; this description is not a pass. Physical rc.2 replacement execution remains untested.
+
+Standby readiness is separate from takeover. Pending task ownership is checked before candidate work; a verified native task write records takeover. Recovery rechecks cached transfer outcomes against the current board and accepts later legitimate candidate CAS revisions while preserving the transfer baseline. Before the first owner-write intent, explicit cancellation may return old execution only after candidate settlement and safe owners; afterward the old member stays retired. Missing managed records fail closed. Arbitrary detached effects, work already inside a tool body, distributed filesystem fencing and continuation token-budget changes remain outside this version.
+
 ## 0.5.0-rc.6 role tool configuration and skill upgrade
 
 The configuration tool adds `action: tools` and per-role `native_tool_allowlist` edits. It reads shared registrations and unconditional standard-Preset work definitions visible to the invoking root, plus native control Preset capabilities, and preserves exact saved lists. Selected local definitions register in the role Preset, so children inherit them and the complete native allowlist and later child/Preset restrictions intersect. Conditional root-local registrations are excluded because their private activation callback cannot be copied through the public API. Unsaved defaults add available basic file/search/shell/skill tools. Native tool schemas, step activation, sandbox and approvals remain authoritative; the editor neither creates a capability nor grants delegation or root configuration tools to members.
@@ -49,7 +59,7 @@ This violates the brief's dependency-preservation and stop-on-error requirements
 
 Future briefs should assign only the implementation task first. After completion and peer handoff, the reviewer should claim the now-executable review task while its blockedBy edge remains present. This wording correction has not had a new live execution; no paid rerun was used to erase the original deviation.
 
-## Limits and unsupported conclusions
+## Limits of the historical rc.2 acceptance
 
 - The accepted current-session run used rc.5. The loader also supports the inspected rc.2 archive, but this is not a new rc.2 current-session live acceptance.
 - Duplicate protection is conservative rejection, not proven equivalent-member reuse.

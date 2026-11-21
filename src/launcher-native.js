@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { checkedControlEntry, delegationFailure } from './team-driver.js';
 import { validRoleToolList } from './role-tools.js';
+import { REPLACEMENT_OWNER } from './replacement-store.js';
 
 const NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
@@ -117,16 +118,21 @@ export async function observeLauncherMembers(ctx, root, signal = new AbortContro
 export async function registerLauncherPresets(ctx, config, spec, nativeControlEntry) {
   const control = checkedControlEntry(nativeControlEntry);
   const owner = config?.ownedSessionId;
+  if (config?.replacementOwner !== undefined && config.replacementOwner !== REPLACEMENT_OWNER) fail('LAUNCHER_PRESET_INPUT_INVALID');
   if (typeof owner !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(owner)
     || !Array.isArray(spec?.members) || spec.members.length === 0 || typeof ctx.agentPresets?.register !== 'function') fail('LAUNCHER_PRESET_INPUT_INVALID');
   const ids = new Set(), names = new Set();
   const roles = spec.members.map(member => {
     if (!member || !roleName(member.name) || names.has(member.name) || typeof member.agentPreset !== 'string'
       || !ID.test(member.agentPreset) || ids.has(member.agentPreset) || !text(member.personaPrompt, 16384)
-      || member.personaPrompt.includes('\0') || !validRoleToolList(member.nativeToolAllowlist)) fail('LAUNCHER_PRESET_INPUT_INVALID');
+      || member.personaPrompt.includes('\0') || !validRoleToolList(member.nativeToolAllowlist)
+      || (member.standbyOperationId !== undefined && (typeof member.standbyOperationId !== 'string'
+        || !/^replace-[0-9a-f-]{36}$/.test(member.standbyOperationId))) ) fail('LAUNCHER_PRESET_INPUT_INVALID');
     const tools = [...member.nativeToolAllowlist];
     ids.add(member.agentPreset); names.add(member.name);
-    return { preset: member.agentPreset, role: member.name, persona: member.personaPrompt, tools };
+    return { preset: member.agentPreset, role: member.name, persona: member.personaPrompt, tools,
+      stby: member.standbyOperationId,
+      ...(member.standbyOperationId !== undefined ? { standbyOperationId: member.standbyOperationId } : {}) };
   });
   const disposers = [];
   try {
@@ -134,7 +140,9 @@ export async function registerLauncherPresets(ctx, config, spec, nativeControlEn
       const dispose = await ctx.agentPresets.register({ id: role.preset, name: `Launcher role ${role.role}`, plugins: [
         { id: `${role.preset}-native-control`, name: control.name, config: { interrupt: false } },
         { id: `${role.preset}-persona`, name: 'dsh-subagent-live-rc2-local/launcher-role',
-          config: { ownedSessionId: owner, roleName: role.role, personaPrompt: role.persona, tools: [...role.tools] } },
+          config: { ownedSessionId: owner, roleName: role.role, personaPrompt: role.persona, tools: [...role.tools],
+            ...(config.replacementOwner !== undefined ? { replacementOwner: REPLACEMENT_OWNER } : {}),
+            ...(role.stby !== undefined ? { standbyOperationId: role.stby } : {}) } },
       ] });
       if (typeof dispose !== 'function') fail('LAUNCHER_PRESET_REGISTRATION_FAILED');
       disposers.push(dispose);

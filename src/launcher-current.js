@@ -6,6 +6,9 @@ import { fail } from './config.js';
 import { parseLauncherConfig, validateLauncherTemplate } from './launcher-config.js';
 import { applyLauncher } from './launcher-driver.js';
 import { defaultWorkTemplate } from './role-tools.js';
+import { REPLACEMENT_OWNER, readReplacementRow } from './replacement-store.js';
+import { readReplacementRecord, eligibilityOf } from './member-replacement.js';
+import { observeLauncherMembers } from './launcher-native.js';
 
 const digest = value => createHash('sha256').update(value).digest('hex');
 const codeOf = error => /^[A-Z][A-Z0-9_]{0,95}$/.test(error?.code) ? error.code : 'CURRENT_SESSION_SETUP_FAILED';
@@ -59,67 +62,129 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
   const instances = new Map();
   let closing = false, busy = false, outstanding = false;
 
-  async function bindingFor(agent) {
-    const workspace = assertRoot(ctx, agent);
-    const existing = instances.get(agent.id);
-    if (existing) {
-      assertRoot(ctx, agent, existing.config);
-      return existing.ready;
-    }
-    const suffix = digest(agent.id).slice(0, 24);
-    const scoped = defaultTemplate(agent);
-    for (const member of scoped.members) member.agent_preset = `dsh-current-${suffix}-${member.name}`;
-    const bound = parseLauncherConfig({ mode: 'launcher', ownedSessionId: agent.id, workspace,
+  function installBinding(rootId, workspace, scoped, record) {
+    const suffix = digest(rootId).slice(0, 24);
+    validateLauncherTemplate(scoped);
+    if (scoped.members.some(member => member.agent_preset !== `dsh-current-${suffix}-${member.name}`)) fail('CURRENT_SESSION_BINDING_CHANGED');
+    const bound = parseLauncherConfig({ mode: 'launcher', ownedSessionId: rootId, workspace,
       runTag: `current-${suffix}`, timeoutMs: config.timeoutMs, templateSha256: digest(JSON.stringify(scoped)),
       startup: { maxTokens: 1024, maxStreams: config.maxStreams } });
     const instance = { config: bound };
-    // Retain a failed setup too: an uncertain registration is never automatically retried.
-    instances.set(agent.id, instance);
+    instances.set(rootId, instance);
     instance.ready = (async () => {
       let handler;
-      const module = { name: `current-team-${suffix}`, async apply(inner) {
+      const module = { name: `current-team-${suffix}`,
+        inject: ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections',
+          'agentTeams', 'workingDirectory', 'settings', 'sessionQuery', 'sessions'], async apply(inner) {
         await applyLauncher(inner, bound, nativeSubagent, controlEntry, {
           template: scoped, assertOwned: caller => assertRoot(ctx, caller, bound),
+          replacementOwner: REPLACEMENT_OWNER, replacementRecord: record,
+          baseBinding: JSON.stringify({ workspace, template: scoped }),
           capture(value) { handler = value; },
         });
       } };
       instance.fiber = ctx.plugin(module);
       await instance.fiber;
       if (closing) fail('UNLOADING');
-      assertRoot(ctx, agent, bound);
       if (typeof handler !== 'function') fail('CURRENT_SESSION_SETUP_FAILED');
       return handler;
     })();
     return instance.ready;
   }
 
-  const unregister = ctx.commands.register({ name: 'dsh-team', description: 'Build the configured team in this session',
-    input: { hint: 'plan | launch | restore', attachments: false },
-    async handler(request) {
-      try {
-        if (closing) fail('UNLOADING');
-        if (outstanding) fail('OUTSTANDING_LAUNCHER_OPERATION');
-        if (busy) fail('BUSY');
-        if (!['plan', 'launch', 'restore'].includes(request.rawInput?.trim())
-          || !Array.isArray(request.attachments) || request.attachments.length) fail('USAGE_PLAN_LAUNCH_RESTORE_ONLY');
-        request.signal.throwIfAborted();
-        assertRoot(ctx, request.agent);
-        busy = true;
-        try {
-          const handler = await bindingFor(request.agent);
-          if (closing) fail('UNLOADING');
-          request.signal.throwIfAborted();
-          const result = await handler(request);
-          const receipt = JSON.parse(result.text);
-          if (receipt.reconciliationRequired || receipt.code?.endsWith('_DRAINING_GUARD_RETAINED')) outstanding = true;
-          return result;
-        } finally { busy = false; }
-      } catch (error) {
-        return { kind: 'error', text: JSON.stringify({ code: codeOf(error), stopFurtherMutation: true, noAutomaticRetry: true }) };
+  function savedBinding(record) {
+    let binding;
+    try { binding = JSON.parse(record.baseBinding); } catch { fail('REPLACEMENT_BASE_BINDING_UNAVAILABLE'); }
+    if (!binding || typeof binding !== 'object' || Object.keys(binding).length !== 2
+      || typeof binding.workspace !== 'string' || !Object.hasOwn(binding, 'template')) fail('REPLACEMENT_BASE_BINDING_UNAVAILABLE');
+    validateLauncherTemplate(binding.template);
+    return binding;
+  }
+
+  async function bindingFor(agent) {
+    const workspace = assertRoot(ctx, agent), existing = instances.get(agent.id);
+    if (existing) {
+      assertRoot(ctx, agent, existing.config);
+      return existing.ready;
+    }
+    const record = readReplacementRecord(readReplacementRow(ctx.settings, agent.id).value);
+    if (record.baseBinding !== undefined) {
+      const binding = savedBinding(record);
+      if (binding.workspace !== workspace) fail('CURRENT_SESSION_BINDING_CHANGED');
+      return installBinding(agent.id, workspace, binding.template, record);
+    }
+    if (record.operations.length) fail('REPLACEMENT_BASE_BINDING_UNAVAILABLE');
+    const suffix = digest(agent.id).slice(0, 24), scoped = defaultTemplate(agent);
+    for (const member of scoped.members) member.agent_preset = `dsh-current-${suffix}-${member.name}`;
+    return installBinding(agent.id, workspace, scoped, record);
+  }
+
+  // Restore original and replacement Presets before any cold member can be
+  // continued. The running native row becomes readable after this apply ends.
+  const restoreFailures = new Map();
+  for (const [rootId, value] of Object.entries(liveConfig?.readRecords?.() ?? {})) {
+    try {
+      const record = readReplacementRecord(value);
+      if (record.baseBinding === undefined) {
+        if (record.operations.length) fail('REPLACEMENT_BASE_BINDING_UNAVAILABLE');
+        continue;
       }
-    } });
+      const binding = savedBinding(record);
+      await installBinding(rootId, binding.workspace, binding.template, record);
+    } catch (error) { restoreFailures.set(rootId, codeOf(error)); }
+  }
+
+  async function invoke(request) {
+    try {
+      if (closing) fail('UNLOADING');
+      const raw = request.rawInput?.trim();
+      if (outstanding) fail('OUTSTANDING_LAUNCHER_OPERATION');
+      if (busy) fail('BUSY');
+      if (!(raw && (['plan', 'launch', 'restore'].includes(raw) || raw.startsWith('replace ') || raw.startsWith('recover ') || raw.startsWith('cancel ')))
+        || !Array.isArray(request.attachments) || request.attachments.length) fail('USAGE_PLAN_LAUNCH_RESTORE_ONLY');
+      request.signal.throwIfAborted(); assertRoot(ctx, request.agent);
+      if (restoreFailures.has(request.agent.id)) fail(restoreFailures.get(request.agent.id));
+      busy = true;
+      try {
+        const handler = await bindingFor(request.agent);
+        if (closing) fail('UNLOADING');
+        request.signal.throwIfAborted();
+        const result = await handler(request), receipt = JSON.parse(result.text);
+        if (!raw.startsWith('replace ') && !raw.startsWith('recover ') && !raw.startsWith('cancel ')
+          && (receipt.reconciliationRequired || receipt.code?.endsWith('_DRAINING_GUARD_RETAINED'))) outstanding = true;
+        return result;
+      } finally { busy = false; }
+    } catch (error) {
+      return { kind: 'error', text: JSON.stringify({ code: codeOf(error), stopFurtherMutation: true, noAutomaticRetry: true }) };
+    }
+  }
+
+  const unregister = ctx.commands.register({ name: 'dsh-team', description: 'Build or maintain this session team',
+    input: { hint: 'plan | launch | restore | replace | recover', attachments: false }, handler: invoke });
   ctx.effect(function* () {
     yield () => { closing = true; return unregister(); };
   });
-  return { defaultTemplate, hasBinding: id => instances.has(id), assertRoot: agent => assertRoot(ctx, agent) };
+  return { defaultTemplate, hasBinding: id => instances.has(id), assertRoot: agent => assertRoot(ctx, agent),
+    async replacement({ agent, signal, action, request, expectedOldChildId, operationId }) {
+      assertRoot(ctx, agent); signal.throwIfAborted();
+      if (closing) fail('UNLOADING');
+      if (action === 'inspect') {
+        const row = readReplacementRow(ctx.settings, agent.id);
+        const record = readReplacementRecord(row.value);
+        const observation = await observeLauncherMembers(ctx, agent, signal);
+        const roles = ['implementer', 'reviewer'].map(role => {
+          const active = record.operations.findLast(op => op.role === role && op.phase === 'active'
+            && eligibilityOf(record, op.newChildId).kind === 'full');
+          const member = observation.members.find(item => active ? item.id === active.newChildId : item.name === role);
+          return { role, currentChildId: member?.id ?? null };
+        });
+        const tasks = ctx.agentTeams.isEnabled(agent) ? await ctx.agentTeams.listTasks(agent) : [];
+        return { ok: true, revision: row.revision, record, roles, observation, tasks,
+          restorationFailure: restoreFailures.get(agent.id) ?? null };
+      }
+      const rawInput = ['recover', 'cancel'].includes(action) ? `${action} ${operationId}`
+        : `replace ${request.role} ${JSON.stringify({ ...request, expectedOldChildId })}`;
+      return JSON.parse((await invoke({ agent, signal, rawInput, attachments: [] })).text);
+    } };
+
 }

@@ -2,7 +2,7 @@
 
 Create an implementer and a reviewer in the current DeepSeek Harness root session, with separate model routes, persistent role prompts, and work tool lists.
 
-**Current source: 0.5.0-rc.6.** Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort, prompts and tool list in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
+**Current source: 0.5.0-rc.7.** Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort, prompts and tool list in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
 
 [中文安装与使用说明](README.zh-CN.md)
 
@@ -16,7 +16,7 @@ Build from this package directory:
 npm pack
 ```
 
-Install `dsh-subagent-live-rc2-local-0.5.0-rc.6.tgz` through the native plugin manager. Building does not update the installed copy. Installation registers the current-session command, configuration tool and skill for roots in that profile; no per-project skill copy, Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not an installation target for Harness rc.5.
+Install `dsh-subagent-live-rc2-local-0.5.0-rc.7.tgz` through the native plugin manager. Building does not update the installed copy. Installation registers the current-session command, configuration tool and skill for roots in that profile; no per-project skill copy, Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not an installation target for Harness rc.5.
 
 The [historical v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) retains its frozen, live-tested low-effort bytes. It does not contain the max-default change. This package is not published to npm or a plugin marketplace.
 
@@ -78,11 +78,32 @@ New unsaved defaults include available basic work tools; saved templates can be 
 
 The live test completed `17 × 23 = 391`, direct peer handoff, and independent verification by another method. It also exposed a P2 orchestration deviation: after a blocked assignment, Lead briefly cleared and restored a dependency instead of stopping. Core collaboration passed; strict instruction compliance did not. The clarified workflow above has not had a separate live rerun.
 
+## Replace an idle member
+
+Use the bundled `dsh-team-replace` skill in the existing team's root conversation. For example:
+
+```text
+Use dsh-team-replace to inspect my current team. Replace implementer with my
+chosen provider/model, max effort, the following persona and work prompt,
+and these exact tools. Keep the task IDs, dependencies and completed progress.
+Handoff facts: changed files, verified tests, unresolved effects and next action.
+```
+
+The Agent calls `dsh_team_replace` with `action: inspect`, then `action: replace` bound to the exact observed `expectedOldChildId`. Supply provider, model, effort, personaPrompt, prompt, the complete tools list and progressFacts. Omitted effort defaults to `max`; actual native model policy and adapter resolution must accept the route. This changes only the current team's selected logical role. Use `dsh-team-configure` to change defaults for future teams.
+
+The old member and its descendants must be quiet: no turn, tool, queued input or managed background job. A task may remain `in_progress`. A naturally unloaded member can be checked from the native catalog, its closed turn and durable inbox. Blocked tasks are refused before freezing; their dependencies remain intact.
+
+The replacement record freezes old execution before spawning a candidate. Born in enforced Standby, the candidate can read only handoff tasks and send Lead the exact operation/handoff/config readiness ACK. Lead transfers unfinished tasks through native revision CAS, then permits work. Completed tasks, dependencies, progress and both Session histories remain. `activating` means work is permitted but takeover is still unproven; `active` follows a verified successful task write in the candidate's own native call/result history, or an explicit `not-required` result when no unfinished task remains. Readiness alone never proves takeover.
+
+On timeout or a partial/uncertain transfer, inspect and `recover` the same operationId. Recovery rechecks current owners and status, restores the same candidate and continues its Session without spawning a duplicate. Explicit `cancel` is available before the first owner-write intent, including an unspawned frozen plan; old execution returns only after candidate settlement and safe task ownership are confirmed. After owner intent, use recovery; the old member stays retired.
+
+The native profile retains each root's original binding, complete candidate configuration and lifecycle record across reload. Preserve `replacementRecords` when editing configuration manually. New defaults do not alter retained teams. Native sandbox, approval and tool restrictions still apply. Replacement cannot undo effects already inside a tool body or arbitrary detached processes, and does not change continuation `maxTokens` behavior. The new path targets the reviewed Harness rc.5 runtime; see [acceptance scope](docs/ACCEPTANCE.md).
+
 ## Configure, restore, and upgrade
 
 Use the conversational skill above; older installations need the new package to gain the added capabilities. There is no dedicated model-picker form. [Manual Windows configuration](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration) remains available, with file locations and a complete patch. Neither configuration path requires rebuilding the package.
 
-Saving through the skill does not reload the launcher: roots already bound by plan/launch keep their template during the current Host lifetime, while unbound roots read the new defaults. Persisting defaults does not establish cold restoration of old teams. After changing defaults, do not use an old root's plan/launch to migrate its members; full cold recovery remains unaccepted.
+Saving defaults keeps existing bindings. From rc.7, teams launched with a retained replacement record reload their original template and scoped Presets before continuation; unbound roots read new defaults. Historical teams without that record need their original component and Presets preserved. A repeated launch is not a migration command.
 
 The optional component `template` takes a complete object in the format of [examples/team-template.json](examples/team-template.json). That file is a base example; without an explicit template the current-session entry adds available work tools from the Host catalog. Configure the roles' routes, persona prompts, startup prompts, and native tool allowlists there. `timeoutMs` and per-role `maxStreams` bound startup; the default is one ordinary stream per role, configurable from 1 to 12. Native policy and tool permissions remain authoritative. See [changing models and prompts](docs/MODELS-AND-PROMPTS.md) for the exact fields.
 

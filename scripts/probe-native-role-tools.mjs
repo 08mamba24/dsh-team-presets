@@ -8,16 +8,25 @@ import { pathToFileURL } from 'node:url';
 export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
   const require = createRequire(join(runtime, 'package.json'));
   const load = name => import(pathToFileURL(require.resolve(name)).href);
-  const [{ Context }, { ToolsService, defineTool }, { NativeToolExecutor }, { createScope, scopeTarget }, { SkillRegistry }] = await Promise.all([
+  const [{ Context }, { ToolsService, defineTool }, { NativeToolExecutor }, { createScope }, { SkillRegistry },
+    { AgentRegistry }, { SessionProjectionRegistry }] = await Promise.all([
     load('@deepseek-ai/cordis'), load('@deepseek-ai/dsh-tools'), load('@deepseek-ai/dsh-tool-executor-native'),
-    load('@deepseek-ai/dsh-scope'), load('@deepseek-ai/dsh-skill'),
+    load('@deepseek-ai/dsh-scope'), load('@deepseek-ai/dsh-skill'), load('@deepseek-ai/dsh-agent'),
+    load('@deepseek-ai/dsh-session-projection'),
   ]);
-  const { apply: applyRole } = await import(pathToFileURL(join(plugin, 'launcher-role.js')).href);
+  const rolePlugin = await import(pathToFileURL(join(plugin, 'launcher-role.js')).href);
   const { roleToolCatalog, captureRoleToolAuthority } = await import(pathToFileURL(join(plugin, 'src', 'role-tools.js')).href);
   const { applyTeamConfigurator } = await import(pathToFileURL(join(plugin, 'src', 'team-configure.js')).href);
   const ctx = new Context(), checks = [];
-  const scopes = [], presetContexts = new WeakMap();
+  const scopes = [], agentDisposers = [], presetContexts = new WeakMap();
+  let describeSettings = () => [];
+  ctx.provide('settings', {
+    describe: (...args) => describeSettings(...args),
+    update() { throw new Error('probe must not persist settings'); },
+  });
   ctx.provide('systemPrompt', { tools() { return () => {}; }, section() { return () => {}; } });
+  await ctx.plugin(SessionProjectionRegistry);
+  await ctx.plugin(AgentRegistry);
   new ToolsService(ctx); new SkillRegistry(ctx);
   ctx.tools.setExecutor(new NativeToolExecutor(ctx));
   let bodyWrites = 0;
@@ -32,9 +41,9 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     ctx.tools.register(defineTool({ name, description: `Catalog-only probe: ${name}`, parameters: {}, output,
       execute() { throw new Error('catalog-only capability must not execute'); } }));
   }
-  const root = { id: 'native-probe-root', session: { id: 'native-probe-root', header: {} } };
-  ctx.provide('agents', { get: id => id === root.id ? root : undefined });
+  const root = { id: 'session-native-probe-root', session: { id: 'session-native-probe-root', header: {} } };
   const parent = createScope(ctx, root); scopes.push(parent); root.ctx = parent.ctx;
+  agentDisposers.push(await ctx.agents.register(root));
   const modelSelection = { provider: 'probe', model: 'no-model-is-called' };
   const signal = new AbortController().signal;
   let sequence = 0;
@@ -42,11 +51,14 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     // Native standing Presets have their own generation scope, rather than
     // inheriting an unrelated root Agent's scoped registrations.
     const presetKey = {}, preset = createScope(ctx, presetKey); scopes.push(preset);
-    await applyRole(preset.ctx, { ownedSessionId: root.id, roleName: role, personaPrompt: 'Native tool probe.', tools });
-    const agent = { id: `native-probe-${role}`, session: { header: { origin: 'subagent', parentSession: root.id } } };
+    await preset.ctx.plugin(rolePlugin, {
+      ownedSessionId: root.id, roleName: role, personaPrompt: 'Native tool probe.', tools,
+    });
+    const id = `session-native-probe-${role}`;
+    const agent = { id, session: { id, header: { origin: 'subagent', parentSession: root.id } } };
     const scope = createScope(ctx, agent, { parent: presetKey }); scopes.push(scope); agent.ctx = scope.ctx;
     presetContexts.set(agent, preset.ctx);
-    await ctx.serial(scopeTarget(agent, agent), 'agent/created', { agent });
+    agentDisposers.push(await ctx.agents.register(agent));
     return agent;
   }
   async function call(agent, name, args = {}) {
@@ -109,10 +121,8 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     checks.push('native-approval-pipeline-rechecks-root-revocation-after-isolated-allow-once-answer');
 
     const base = JSON.parse(await readFile(join(plugin, 'examples', 'team-template.json'), 'utf8'));
-    ctx.provide('settings', { describe: () => [{ ns: 'dsh-native-current-team', revision: 1, value: { template: base } }],
-      update() { throw new Error('probe must not persist settings'); } });
+    describeSettings = () => [{ ns: 'dsh-native-current-team', revision: 1, value: { template: base, replacementRecords: {} } }];
     ctx.provide('llm', { listProviders: () => [] });
-    ctx.provide('sessionProjections', { stateOf: () => [] });
     ctx.provide('sandboxPolicy', { resolve: () => ({ mode: 'workspace-write' }) });
     const old = ctx.plugin({ name: 'previous-skill-probe', apply(inner) {
       inner.skills.register({ name: 'dsh-team-configure', source: 'runtime', description: 'Previous bundled skill', content: 'PREVIOUS_SKILL_BODY' });
@@ -121,7 +131,7 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     assert.equal((await ctx.skills.get('dsh-team-configure', { scope: root })).content, 'PREVIOUS_SKILL_BODY');
     await old.dispose();
     assert.equal(await ctx.skills.get('dsh-team-configure', { scope: root }), undefined);
-    const current = ctx.plugin({ name: 'current-skill-probe', async apply(inner) {
+    const current = ctx.plugin({ name: 'current-skill-probe', inject: ['sessionProjections'], async apply(inner) {
       await applyTeamConfigurator(inner, { assertRoot: () => {}, defaultTemplate: () => base, hasBinding: () => false },
         { defineTool, approveEscalation() { throw new Error('probe must not request approval'); } });
     } });
@@ -137,7 +147,7 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     assert.equal(catalog.tools.some(tool => ['spawn_agent', 'dsh_team_configure'].includes(tool.name)), false);
     const preview = JSON.parse(await captured.execute({ action: 'preview', expectedRevision: 1,
       members: [{ name: 'reviewer', native_tool_allowlist: ['read'] }] }, exec));
-    assert.equal(preview.ok, true);
+    assert.equal(preview.ok, true, JSON.stringify(preview));
     assert.deepEqual(preview.template.members[1].native_tool_allowlist, ['read']);
     assert.equal(preview.persisted, false); assert.deepEqual(preview.metadataValidated, []);
     checks.push('native-configuration-array-schema-and-shared-tool-catalog');
@@ -150,6 +160,7 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     checks.push(...await probeWebPresetTools({ load, plugin, workspace }));
     return { passed: true, checks, boundary: 'Physical native registry/executor/Scope/SkillRegistry; isolated identities and temporary files. Web-style standard Preset uses actual native file/search/shell modules, LocalFileSystem and LocalSubprocessRuntime; file and foreground shell bodies execute. Search schemas are checked without a search process. No Host daemon, provider, user profile or persistent Session. Local probe backends do not confine; OS sandbox backends and paid model execution are not claimed.' };
   } finally {
+    for (const dispose of agentDisposers.reverse()) await dispose();
     for (const scope of scopes.reverse()) await scope.dispose();
     await ctx.fiber.dispose();
   }
@@ -158,26 +169,34 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
 /** Reproduce the official Web composition: work tools belong to a standard
  * Preset, not the shared registry; role Presets remain independent. */
 async function probeWebPresetTools({ load, plugin, workspace }) {
-  const [{ Context }, { ToolsService }, { NativeToolExecutor }, { createScope, scopeTarget, scopeOf },
+  const [{ Context }, { ToolsService }, { NativeToolExecutor }, { createScope, scopeOf },
     { SkillRegistry }, { LocalFileSystem }, { LocalSubprocessRuntime }, fsTools, searchTools,
-    shellTools, shellBackend, { ShellEnvRegistry }, { approveEscalation }, { defineTool }] = await Promise.all([
+    shellTools, shellBackend, { ShellEnvRegistry }, { approveEscalation }, { defineTool },
+    { AgentRegistry }, { SessionProjectionRegistry }] = await Promise.all([
     load('@deepseek-ai/cordis'), load('@deepseek-ai/dsh-tools'), load('@deepseek-ai/dsh-tool-executor-native'),
     load('@deepseek-ai/dsh-scope'), load('@deepseek-ai/dsh-skill'), load('@deepseek-ai/dsh-fs-local'),
     load('@deepseek-ai/dsh-subprocess-local'), load('@deepseek-ai/dsh-tool-fs'), load('@deepseek-ai/dsh-tool-fs-search'),
     load(process.platform === 'win32' ? '@deepseek-ai/dsh-tool-pwsh' : '@deepseek-ai/dsh-tool-bash'),
     load(process.platform === 'win32' ? '@deepseek-ai/dsh-pwsh-local' : '@deepseek-ai/dsh-bash-local'),
     load('@deepseek-ai/dsh-shell-env'),
-    load('@deepseek-ai/dsh-sandbox'), load('@deepseek-ai/dsh-tools'),
+    load('@deepseek-ai/dsh-sandbox'), load('@deepseek-ai/dsh-tools'), load('@deepseek-ai/dsh-agent'),
+    load('@deepseek-ai/dsh-session-projection'),
   ]);
   const { roleToolCatalog, defaultWorkTemplate } = await import(pathToFileURL(join(plugin, 'src/role-tools.js')).href);
-  const { apply: applyRole } = await import(pathToFileURL(join(plugin, 'launcher-role.js')).href);
+  const rolePlugin = await import(pathToFileURL(join(plugin, 'launcher-role.js')).href);
   const { applyTeamConfigurator } = await import(pathToFileURL(join(plugin, 'src/team-configure.js')).href);
-  const ctx = new Context(), scopes = [], checks = [], presetContexts = new WeakMap(), shell = process.platform === 'win32' ? 'pwsh' : 'bash';
-  const root = { id: 'web-probe-root', session: { id: 'web-probe-root', header: { cwd: workspace } } };
-  ctx.provide('agents', { get: id => id === root.id ? root : undefined });
+  const ctx = new Context(), scopes = [], agentDisposers = [], checks = [], presetContexts = new WeakMap();
+  const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
+  let revision = 1, value = { replacementRecords: {} };
+  ctx.provide('settings', { describe: () => [{ ns: 'dsh-native-current-team', revision, value }],
+    update(ns, next, expected) { assert.equal(ns, 'dsh-native-current-team'); assert.equal(expected, revision);
+      value = { ...value, ...structuredClone(next) }; revision++; } });
+  const root = { id: 'session-web-probe-root', session: { id: 'session-web-probe-root', header: { cwd: workspace } } };
   ctx.provide('systemPrompt', { tools() { return () => {}; }, section() { return () => {}; }, getSectionOrder() { return 1; } });
   ctx.provide('workingDirectory', { get: () => workspace,
     async ensure(_agent, signal) { signal?.throwIfAborted(); return workspace; } });
+  await ctx.plugin(SessionProjectionRegistry);
+  await ctx.plugin(AgentRegistry);
   new ToolsService(ctx); new SkillRegistry(ctx); ctx.tools.setExecutor(new NativeToolExecutor(ctx));
   new LocalFileSystem(ctx, { cwd: workspace, diffBasisMaxBytes: 10 * 1024 * 1024 });
   new LocalSubprocessRuntime(ctx);
@@ -189,6 +208,7 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
   new shellBackend.default(ctx, shellConfig);
   const standardKey = {}, standard = createScope(ctx, standardKey); scopes.push(standard);
   const rootScope = createScope(ctx, root, { parent: standardKey }); scopes.push(rootScope); root.ctx = rootScope.ctx;
+  agentDisposers.push(await ctx.agents.register(root));
   try {
     fsTools.apply(standard.ctx, fsTools.Config({ readImage: false, applyPatch: false }));
     searchTools.apply(standard.ctx, searchTools.Config({ sampleOverCapGlobResults: false }));
@@ -202,14 +222,12 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
     assert.ok(roleToolCatalog(ctx, root).some(tool => tool.name === 'read'));
     checks.push('native-web-preset-local-work-tools-appear-in-catalog-and-unsaved-defaults');
 
-    let revision = 1, value = {};
-    ctx.provide('settings', { describe: () => [{ ns: 'dsh-native-current-team', revision, value }],
-      update(ns, next, expected) { assert.equal(ns, 'dsh-native-current-team'); assert.equal(expected, revision);
-        value = structuredClone(next); revision++; } });
     ctx.provide('llm', { listProviders: () => [] });
-    ctx.provide('sessionProjections', { stateOf: () => [] });
     ctx.provide('sandboxPolicy', { resolve: () => ({ mode: 'danger-full-access' }) });
-    await applyTeamConfigurator(ctx, { assertRoot() {}, defaultTemplate: () => defaults, hasBinding: () => false }, { defineTool, approveEscalation });
+    await ctx.plugin({ name: 'web-configuration-probe', inject: ['sessionProjections'], apply(inner) {
+      return applyTeamConfigurator(inner, { assertRoot() {}, defaultTemplate: () => defaults, hasBinding: () => false },
+        { defineTool, approveEscalation });
+    } });
     const editor = ctx.tools.get('dsh_team_configure', root), signal = new AbortController().signal;
     const members = [{ name: 'implementer', native_tool_allowlist: ['read', 'write', shell] },
       { name: 'reviewer', native_tool_allowlist: ['read'] }];
@@ -223,17 +241,23 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
 
     async function child(role, tools) {
       const key = {}, preset = createScope(ctx, key); scopes.push(preset);
-      await applyRole(preset.ctx, { ownedSessionId: root.id, roleName: role, personaPrompt: 'Web tool probe.', tools });
-      const agent = { id: `web-probe-${role}`, session: { id: `web-probe-${role}`,
+      await preset.ctx.plugin(rolePlugin, {
+        ownedSessionId: root.id, roleName: role, personaPrompt: 'Web tool probe.', tools,
+      });
+      const id = `session-web-probe-${role}`;
+      const agent = { id, session: { id,
         header: { origin: 'subagent', parentSession: root.id, cwd: workspace } } };
       const scope = createScope(ctx, agent, { parent: key }); scopes.push(scope); agent.ctx = scope.ctx;
       presetContexts.set(agent, preset.ctx);
-      await ctx.serial(scopeTarget(agent, agent), 'agent/created', { agent });
+      agentDisposers.push(await ctx.agents.register(agent));
       assert.deepEqual(ctx.tools.schemas(agent).map(row => row.name).sort(), [...tools].sort());
       return agent;
     }
     const writer = await child('implementer', members[0].native_tool_allowlist);
     const reader = await child('reviewer', members[1].native_tool_allowlist);
+    assert.equal(ctx.agents.get(root.id), root);
+    assert.equal(ctx.agents.get(writer.id), writer);
+    assert.ok(Array.isArray(root.ctx.settings.describe({ redactSecrets: true })));
     let sequence = 0;
     async function call(agent, name, args) {
       const toolSet = await ctx.tools.resolve({ agent, signal, modelSelection: { provider: 'probe', model: 'no-model' } });
@@ -254,11 +278,11 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
     assert.ok(JSON.stringify(ran.content).includes('native-role-shell-ok'));
     checks.push('native-web-preset-role-schemas-and-real-file-and-foreground-shell-bodies');
 
-    const resumed = { id: 'web-probe-recomposed', session: { id: 'web-probe-recomposed',
+    const resumed = { id: 'session-web-probe-recomposed', session: { id: 'session-web-probe-recomposed',
       header: { origin: 'subagent', parentSession: root.id, cwd: workspace } } };
     const resumedScope = createScope(ctx, resumed, { parent: scopeOf(presetContexts.get(writer)) });
     scopes.push(resumedScope); resumed.ctx = resumedScope.ctx;
-    await ctx.serial(scopeTarget(resumed, resumed), 'agent/created', { agent: resumed });
+    agentDisposers.push(await ctx.agents.register(resumed));
     assert.deepEqual(ctx.tools.schemas(resumed).map(row => row.name).sort(), [...members[0].native_tool_allowlist].sort());
     assert.notEqual((await call(resumed, 'read', { file_path: filename })).isError, true);
     checks.push('native-web-role-preset-recomposition-reuses-exact-delegated-definitions');
@@ -294,6 +318,7 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
     checks.push('native-web-preset-work-tools-obey-child-and-preset-masks-added-during-approval');
     return checks;
   } finally {
+    for (const dispose of agentDisposers.reverse()) await dispose();
     for (const scope of scopes.reverse()) await scope.dispose();
     await ctx.fiber.dispose();
   }

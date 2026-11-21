@@ -75,6 +75,7 @@ test('the same generic configuration also starts a different root and isolates i
   assert.equal(new Set([...first.presets.keys(), ...second.presets.keys()]).size, 4);
   for (const host of [first, second]) for (const preset of host.presets.values()) {
     assert.equal(preset.plugins[1].config.ownedSessionId, host.root.id);
+    assert.equal(preset.plugins[1].config.replacementOwner, 'dsh-native-current-team');
   }
 });
 

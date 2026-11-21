@@ -76,6 +76,20 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     async whenIdle() { assert.equal(this.status, 'idle'); },
   };
   agents.set(root.id, root);
+  let settingsRevision = 1;
+  const currentTeamValue = { replacementRecords: {} };
+  root.ctx.settings = {
+    describe: () => [{ ns: 'dsh-native-current-team', revision: settingsRevision, value: clone(currentTeamValue) }],
+    async mutate(ns, patches, expectedRevision) {
+      assert.equal(ns, 'dsh-native-current-team');
+      assert.equal(expectedRevision, settingsRevision);
+      for (const patch of patches) {
+        assert.equal(patch.op, 'set'); assert.equal(patch.path[0], 'replacementRecords');
+        currentTeamValue.replacementRecords[patch.path[1]] = clone(patch.value);
+      }
+      settingsRevision++;
+    },
+  };
   const requireEnabled = () => { if (!enabled) throw nativeError('TEAM_DISABLED'); };
   const view = task => ({ ...clone(task), ready: task.status === 'pending'
     && task.blockedBy.every(id => tasks.get(id)?.status === 'completed'), writeScopeWarnings: [] });
@@ -314,7 +328,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     const localHooks = new Map(), guards = new Set(), restrictions = [], localTools = new Map(), ancestor = new Set(sharedTools.keys());
     const child = { role: member.name, callNumber: 0, hooks: localHooks, guards, history: [], abort: new AbortController(), idle: deferred(),
       localTools, route: { provider: args.provider, model: args.model, reasoningEffort: args.reasoning_effort }, ended: false, published: false };
-    const id = `22222222-2222-4222-8222-${String(spawnAttempts).padStart(12, '0')}`;
+    const id = `session-22222222-2222-4222-8222-${String(spawnAttempts).padStart(12, '0')}`;
     const agent = child.agent = { id, status: 'running', options: { maxTokens: mount.spec.agentOptions.maxTokens },
       async whenIdle() { order.push(`whenIdle-first:${member.name}`); await child.idle.promise; },
       // rc.2 inherits the initial project in metadata, then commits the requested effective cwd separately.
@@ -342,6 +356,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
         await applyLauncherRole({ tools: { ...ctx.tools,
           register(definition) { localTools.set(definition.name, definition); ancestor.add(definition.name);
             return () => localTools.delete(definition.name); } }, agents: ctx.agents,
+          get: key => key === 'settings' ? root.ctx.settings : undefined,
           systemPrompt: { section(section) { child.persona = section.text; } },
           on: (name, fn) => listen(localHooks, name, fn) }, entry.config);
       }
@@ -389,6 +404,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
   };
   const nativeSubagent = { apply() {} };
   const ctx = {
+    settings: root.ctx.settings,
     plugin(module) { return Promise.resolve(module.apply(ctx)); },
     tools: { definitions(scope) {
       const visible = new Map(sharedTools);
