@@ -1,5 +1,6 @@
+import { validRoleToolList } from './src/role-tools.js';
+
 const CONFIG_KEYS = ['ownedSessionId', 'roleName', 'personaPrompt', 'tools'];
-const VERIFIED_TOOLS = ['team_task_get', 'team_task_update', 'send_message', 'wait_agent'];
 
 export const name = 'dsh-launcher-role';
 export const inject = ['systemPrompt', 'tools'];
@@ -23,12 +24,12 @@ function parseConfig(raw) {
   if (typeof ownedSessionId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(ownedSessionId)) fail('LAUNCHER_ROLE_INVALID_OWNER');
   if (typeof roleName !== 'string' || !/^[a-z][a-z0-9-]{0,31}$/.test(roleName) || roleName === 'lead') fail('LAUNCHER_ROLE_INVALID_NAME');
   if (typeof personaPrompt !== 'string' || personaPrompt.length > 16384 || !personaPrompt.trim() || personaPrompt.includes('\0')) fail('LAUNCHER_ROLE_INVALID_PERSONA');
-  if (!Array.isArray(inputTools) || inputTools.length > VERIFIED_TOOLS.length) fail('LAUNCHER_ROLE_INVALID_TOOLS');
+  if (!validRoleToolList(inputTools)) fail('LAUNCHER_ROLE_INVALID_TOOLS');
   const tools = [];
   try {
     for (let index = 0; index < inputTools.length; index++) {
       const tool = inputTools[index];
-      if (!VERIFIED_TOOLS.includes(tool) || tools.includes(tool)) fail('LAUNCHER_ROLE_INVALID_TOOLS');
+      if (tools.includes(tool)) fail('LAUNCHER_ROLE_INVALID_TOOLS');
       tools.push(tool);
     }
   } catch { fail('LAUNCHER_ROLE_INVALID_TOOLS'); }

@@ -83,7 +83,7 @@ test('existing template or marker, including symlinks and hardlinks, is never re
 
 test('invalid routes, capabilities, roles and effort are refused without any workspace writes', async t => {
   const cases = [
-    [x => { x.members[0].native_tool_allowlist.push('bash'); }, 'UNSUPPORTED_MEMBER_TOOL'],
+    [x => { x.members[0].native_tool_allowlist.push('spawn_agent'); }, 'UNSUPPORTED_MEMBER_TOOL'],
     [x => { x.members[0].reasoning_effort = ''; }, 'INVALID_MEMBER_EFFORT'],
     [x => { delete x.members[0].persona_prompt; }, 'LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE'],
     [x => { x.members.pop(); x.seed_tasks = []; }, 'LAUNCHER_EXACT_ROLES_REQUIRED'],

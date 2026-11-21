@@ -5,6 +5,7 @@ import { planLauncherMembers } from './launcher-plan.js';
 import { observeLauncherMembers, registerLauncherPresets, makeLauncherSpawnCall, parseLauncherSpawnBatch } from './launcher-native.js';
 import { authorizeTeam, preflightTeam } from './team-config.js';
 import { createTeamGate } from './team-gate.js';
+import { assertRoleToolsAvailable } from './role-tools.js';
 import { snapshotLauncherBoard, sameLauncherBoard, launcherBoardWithMode,
   launcherBoardAfterCreate, launcherBoardAfterUpdate } from './launcher-board.js';
 
@@ -232,7 +233,9 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
         }
       } else if (exec.name === 'wait_agent') {
         if (!exact(args, ['timeout_ms']) || !Number.isInteger(args.timeout_ms) || args.timeout_ms < 1 || args.timeout_ms > 30000) return deny('TEAM_WAIT_OUT_OF_SCOPE');
-      } else return deny('TEAM_TOOL_OUT_OF_SCOPE');
+      }
+      // Work tools continue through the unchanged native schema, sandbox,
+      // approval and final-guard pipeline. The launcher grants visibility only.
       const identity = json({ name: exec.name, args });
       if (typeof exec.callId !== 'string' || !exec.callId
         || (reserved ? record.reservations.get(exec.callId) !== identity : record.reservations.has(exec.callId))) return deny('TEAM_TOOL_CALL_CHANGED');
@@ -475,6 +478,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
         let mounted, toolSet, successful = false;
         try {
           assertCurrent(op, op.signal);
+          assertRoleToolsAvailable(ctx, agent, template.members.map(member => member.nativeToolAllowlist));
           mounted = agent.ctx.plugin(nativeSubagent, { provider: 'spawn', toolName: SPAWN, modelSelection: true,
             modelDiscovery: false, allowedAgentPresets: template.members.map(member => member.agentPreset),
             agentOptions: { maxTokens: 1024 }, maxDepth: 1 });

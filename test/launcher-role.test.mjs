@@ -92,11 +92,12 @@ test('owner, role and persona have finite validated values', async () => {
   const h = fixture(); await apply(h.ctx, { ...example(), ownedSessionId: 'x'.repeat(128), roleName: 'x'.repeat(32), personaPrompt: 'x'.repeat(16384) }); h.dispose();
 });
 
-test('tools must be a unique subset of the four verified native names', async () => {
-  for (const tools of [undefined, 'send_message', ['bash'], ['team_task_get', 'team_task_get'],
-    ['team_task_list'], [...TOOLS, 'extra'], [null], Array(1)]) {
+test('role tool names are explicit and unique, with orchestration capabilities excluded', async () => {
+  for (const tools of [undefined, 'send_message', ['spawn_agent'], ['team_task_get', 'team_task_get'],
+    ['team_task_list'], [...TOOLS, 'run_code'], [null], Array(1)]) {
     await assert.rejects(apply(fixture().ctx, { ...example(), tools }), hasCode('LAUNCHER_ROLE_INVALID_TOOLS'));
   }
+  const h = fixture(); await apply(h.ctx, { ...example(), tools: ['read', 'bash'] }); h.dispose();
 });
 
 test('missing or failed native restriction emits a stable code without leaking persona or native errors', async () => {

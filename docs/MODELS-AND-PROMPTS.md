@@ -1,6 +1,6 @@
-# 修改 provider、模型、effort 与提示词
+# 修改 provider、模型、effort、提示词与工具集
 
-**rc.5 提供会话配置 skill，无需手工编辑 YAML。** 安装新包后，`dsh-team-configure` 与 `dsh_team_configure` 工具在该 Harness profile 的根会话中可用。rc.4 仍使用下方手动方式；它不会通过仓库文档更新自动获得新工具。两种方式均无需修改安装目录或重新打包插件。
+**rc.5 提供会话配置 skill，rc.6 增加按角色工具集配置。无需手工编辑 YAML。** 安装新包后，`dsh-team-configure` 与 `dsh_team_configure` 工具在该 Harness profile 的根会话中可用。rc.4 仍使用下方手动方式；它不会通过仓库文档更新自动获得新工具。两种方式均无需修改安装目录或重新打包插件。
 
 rc.4 包含 rc.3 的配置改动：默认成员为 implementer（deepseek-account/deepseek-flash）与 reviewer（deepseek-account/deepseek-v4-pro），两者默认 effort 为 max。各角色可以独立选 provider、model 和 effort，也可以使用相同模型；这不代表使用了不同后端权重。
 
@@ -8,15 +8,27 @@ rc.4 包含 rc.3 的配置改动：默认成员为 implementer（deepseek-accoun
 
 可以直接说：“使用 dsh-team-configure，列出 codeagent 的模型；把实现角色设为我选的模型 A、max，复核设为模型 B、high，提示词要求先读证据再复核，保存默认配置。”示例里的 A/B 需要换成你的真实选择，Agent 可先从本机模型目录查找实际 ID。
 
-skill 先读取模板、provider、当前会话授权和设置版本，然后只修改指定字段。支持 `provider`、`model`、`reasoning_effort`、`description`、`persona_prompt` 和 `prompt`；保留工具白名单、Preset、种子任务与未指定字段。目前只有 implementer/reviewer 两个稳定角色，可调整职责和提示词，不能借改名增加任意成员。
+skill 先读取模板、provider、当前会话授权和设置版本，然后只修改指定字段。支持 `provider`、`model`、`reasoning_effort`、`description`、`persona_prompt`、`prompt` 和 `native_tool_allowlist`；保留 Preset、种子任务与未指定字段。目前只有 implementer/reviewer 两个稳定角色，可调整职责和提示词，不能借改名增加任意成员。
 
-配置工具有四个动作：`inspect` 查看现状，`models` 查询一个 provider 的模型目录，`preview` 预检局部修改，`apply` 保存同一预览。模型目录不返回可选 effort 清单；所选 effort 由预检按原生 adapter 验证。只有明确修改的路由或 effort 才查询原生 adapter；只改提示词不需要模型元数据调用。预览使用设置 revision，保存还核对完整模板 fingerprint；他人同时改配置会返回冲突，不覆盖。保存遵循 Harness 原生审批，读取回验成功才返回 `persisted: true`。配置阶段不执行模型推理。
+配置工具有五个动作：`inspect` 查看现状，`models` 查询一个 provider 的模型目录，`tools` 查询可分配的工具目录，`preview` 预检局部修改，`apply` 保存同一预览。模型目录不返回可选 effort 清单；所选 effort 由预检按原生 adapter 验证。只有明确修改的路由或 effort 才查询原生 adapter；只改工具或提示词不需要模型元数据调用。预览使用设置 revision，保存还核对完整模板 fingerprint；他人同时改配置会返回冲突，不覆盖。保存遵循 Harness 原生审批，读取回验成功才返回 `persisted: true`。配置阶段不执行模型推理。
 
 用户已明确要求保存时，Agent 可在预览成功后直接保存同一修改；仅询问方案则停在预览。审批拒绝、取消或结果不确定时停止，不退回手改文件绕过。保存失败不代表一定未写入，应先读取现状核对。
 
 保存范围是当前 profile 的默认模板，不扩大旧会话的授权，也不修改已有成员。当前 Host 中已执行 plan/launch 的根保持原模板；未绑定的根使用新默认值。工具会告知是否需要新根。若所选路由不在当前会话 policy，先在原生子智能体模型选择中授权，保存后再建新根。配置成功不会自动 launch。
 
-模板持久化不等于旧团队冷恢复。完整 Host 重启后的旧成员续接尚未验收；改默认值后不要用旧根 plan/launch 强行迁移团队。完整模板、工具或任务的高级修改仍可使用手动配置。
+模板持久化不等于旧团队冷恢复。完整 Host 重启后的旧成员续接尚未验收；改默认值后不要用旧根 plan/launch 强行迁移团队。完整模板或任务的高级修改仍可使用手动配置。
+
+## 配置工具集
+
+在会话说：“实现者允许文件读写、搜索和终端，复核者只保留读取、搜索与协作，保存默认配置。”Agent 先调用 `action: tools`，按实际返回的 name 选择，不需要你记住工具 ID。
+
+`native_tool_allowlist` 完整替换该角色的列表，保留的协作工具也要列入；空数组表示零工具。目录包含当前根可见的共享工具，以及由原生 Team/control Preset 提供的协作能力；根专有工具不会被承诺给子成员。团队启动／管理、配置编辑和 `run_code` 传输不作为可分配工作工具。未知或不可见工具返回失败；审批等待期间工具被卸载也不会保存。
+
+未保存模板的新默认值从实际目录选取 `read`、`write`、`edit`、`apply_patch`、`glob`、`grep`、`bash`／`pwsh`、`str_replace_editor` 和 `skill` 中存在的项，并保留可用协作工具；不会虚构未安装工具。已有保存模板与显式列表保持不变，调整后由尚未绑定团队的根使用。
+
+工具集控制可见性，不扩大原生沙箱或审批权限。终端能执行写文件的命令，不能用“只读工具 + shell”承诺强制只读。目录不执行工具的逐步激活条件；原生条件仍可能在实际步骤中拒绝工具，此时报告失败，不自动替换工具。
+
+skill 文件随插件升级并在重新加载时注册。无需另复制到全局目录；旧对话中的已加载文本保留，重新调用 skill 才读取新说明。
 
 <a id="windows-manual-configuration"></a>
 

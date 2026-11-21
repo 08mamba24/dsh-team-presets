@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
 import { types } from 'node:util';
+import { selectableRoleTool } from './role-tools.js';
 
 const SCHEMA = 'dsh-team-template/1';
 const TOP = ['template_schema', 'template_meta', 'version', 'name', 'max_members', 'members', 'seed_tasks'];
 const MEMBER = ['name', 'description', 'prompt', 'persona_prompt', 'agent_preset', 'provider', 'model', 'reasoning_effort', 'native_tool_allowlist'];
 const TASK = ['key', 'subject', 'description', 'owner', 'blocked_by'];
-const TOOLS = new Set(['team_task_get', 'team_task_update', 'send_message', 'wait_agent']);
 const NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const own = (value, key) => Object.hasOwn(value, key);
 
@@ -73,7 +73,7 @@ function member(raw, names, presets) {
   });
   optional(value, raw, 'native_tool_allowlist', 'nativeToolAllowlist', allowlist => {
     const list = array(allowlist, 'INVALID_MEMBER_TOOL_ALLOWLIST');
-    if (list.some(tool => typeof tool !== 'string' || !TOOLS.has(tool))) fail('UNSUPPORTED_MEMBER_TOOL');
+    if (list.some(tool => !selectableRoleTool(tool))) fail('UNSUPPORTED_MEMBER_TOOL');
     if (new Set(list).size !== list.length) fail('DUPLICATE_MEMBER_TOOL');
     return Object.freeze([...list].sort());
   });

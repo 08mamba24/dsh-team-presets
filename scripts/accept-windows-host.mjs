@@ -26,6 +26,7 @@ const SHUTDOWN_TIMEOUT = 30_000;
 const usage = 'node scripts/accept-windows-host.mjs --install-dir <installed app directory> --tgz <package.tgz> --lab-dir <new temporary directory> --receipt-dir <evidence directory>';
 const { values } = parseArgs({ options: {
   'install-dir': { type: 'string' }, tgz: { type: 'string' },
+  'previous-tgz': { type: 'string' },
   'lab-dir': { type: 'string' }, 'receipt-dir': { type: 'string' },
   'electron-stage': { type: 'boolean', default: false }, help: { type: 'boolean', default: false },
 }, allowPositionals: false });
@@ -59,6 +60,7 @@ function pathsFor(options) {
   const home = join(lab, 'os-home'), harness = join(lab, 'harness');
   return { install, lab, resources, runtime, home, harness,
     executable: join(install, 'DeepSeek Harness.exe'), tgz: resolve(options.tgz),
+    previousTgz: options['previous-tgz'] ? resolve(options['previous-tgz']) : undefined,
     receipts: resolve(options['receipt-dir']), profile: join(harness, 'profiles', 'desktop'),
     agents: join(lab, 'agents'), workspace: join(lab, 'workspace'), temporary: join(lab, 'tmp'),
     cli: join(runtime, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js'),
@@ -259,20 +261,41 @@ async function accept(paths) {
     const { PROFILE_TEMPLATES } = await load('@deepseek-ai/dsh-official-bundles');
     initProfile(paths.profile, PROFILE_TEMPLATES.web.bundles);
     report.checks.push({ name: 'official-profile-initialization', passed: true });
+    if (paths.previousTgz) {
+      await runCli('install-previous-tgz', ['add', `file:${paths.previousTgz}`, '--offline', '--ignore-scripts']);
+      const oldPackage = JSON.parse(await readFile(join(paths.profile, 'node_modules', PACKAGE, 'package.json'), 'utf8'));
+      report.previousVersion = oldPackage.version;
+      const previousHost = await startHost('host-before-upgrade');
+      const previousRoot = await previousHost.rpc('session/create', { request: { cwd: paths.workspace } });
+      const previousSkills = await previousHost.rpc('skills/list', { request: { sessionId: previousRoot.sessionId } });
+      const oldSkills = previousSkills.skills.filter(skill => skill.name === 'dsh-team-configure');
+      assert.equal(oldSkills.length, 1);
+      assert.ok(!oldSkills[0].description.includes('工具集'), 'previous baseline already contains the new skill');
+      await stopHost(previousHost);
+      report.checks.push({ name: 'previous-version-skill-before-upgrade', passed: true, version: oldPackage.version });
+    }
     await runCli('install-tgz', ['add', `file:${paths.tgz}`, '--offline', '--ignore-scripts']);
     const installed = JSON.parse(await readFile(join(paths.profile, 'node_modules', PACKAGE, 'package.json'), 'utf8'));
     assert.equal(installed.name, PACKAGE);
     report.plugin.version = installed.version;
     const profile = JSON.parse(await readFile(join(paths.profile, 'package.json'), 'utf8'));
     assert.ok(profile.dsh.profile.bundles.includes(PACKAGE), 'official manager did not activate the bundle');
+    const installedRoot = join(paths.profile, 'node_modules', PACKAGE);
+    const { probeNativeRoleTools } = await import(pathToFileURL(join(installedRoot, 'scripts', 'probe-native-role-tools.mjs')).href);
+    report.nativeRoleTools = await probeNativeRoleTools({ runtime: paths.runtime, plugin: installedRoot, workspace: paths.workspace });
+    assert.equal(report.nativeRoleTools.passed, true);
+    report.checks.push(...report.nativeRoleTools.checks.map(name => ({ name, passed: true })));
 
     let host = await startHost('host-installed');
     const { sessionId } = await host.rpc('session/create', { request: { cwd: paths.workspace } });
     assert.match(sessionId, /^session-[a-f0-9-]{36}$/);
     report.sessionId = sessionId;
     const skillCatalog = await host.rpc('skills/list', { request: { sessionId } });
-    assert.ok(skillCatalog.skills.some(skill => skill.name === 'dsh-team-configure'), 'profile-wide configuration skill missing');
+    const configuredSkills = skillCatalog.skills.filter(skill => skill.name === 'dsh-team-configure');
+    assert.equal(configuredSkills.length, 1, 'profile-wide configuration skill missing or duplicated');
+    assert.ok(configuredSkills[0].description.includes('工具集'), 'new bundled skill not loaded');
     report.checks.push({ name: 'profile-wide-configuration-skill', passed: true });
+    if (paths.previousTgz) report.checks.push({ name: 'cli-upgrade-replaces-bundled-skill', passed: true, from: report.previousVersion, to: installed.version });
     const commands = await host.rpc('commands/list', { agentId: sessionId });
     assert.ok(commands.some(command => command.name === 'dsh-team'), 'dsh-team command not registered');
     const execution = await host.rpc('commands/execute', { agentId: sessionId, line: '/dsh-team plan', submittedAttachments: [] });

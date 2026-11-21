@@ -1,12 +1,12 @@
 # Windows 安装与验收
 
-`0.5.0-rc.5` 在已发布的 rc.4 Windows 支持上增加会话配置 skill。目标宿主为官方 **DeepSeek Harness 0.2.2-rc.5 Windows x64**。两角色默认 effort 为 `max`；macOS 既有支持继续保留，本次没有新增 Ubuntu 支持。
+`0.5.0-rc.6` 在 rc.5 会话配置上增加按角色工具集选择，并同步更新打包的 skill。目标宿主为官方 **DeepSeek Harness 0.2.2-rc.5 Windows x64**。两角色默认 effort 为 `max`；macOS 既有支持继续保留，本次没有新增 Ubuntu 支持。
 
 ## 安装候选
 
-1. 打开本仓库 [Windows plugin acceptance](https://github.com/08mamba24/dsh-team-presets/actions/workflows/windows.yml)，选择对应提交的成功运行。下载 `windows-plugin-<commit>` artifact，解压得到 `dsh-subagent-live-rc2-local-0.5.0-rc.5.tgz`。需要有本私有仓库访问权限的 GitHub 账号。
+1. 打开本仓库 [Windows plugin acceptance](https://github.com/08mamba24/dsh-team-presets/actions/workflows/windows.yml)，选择对应提交的成功运行。下载 `windows-plugin-<commit>` artifact，解压得到 `dsh-subagent-live-rc2-local-0.5.0-rc.6.tgz`。Actions artifact 下载需要登录 GitHub；正式候选也可从本仓库 Releases 获取。
 2. 在 Harness 官方插件管理器安装完整 TGZ。默认组件使用当前会话；无需填写 Session ID 或运行 prepare。若已有旧个人绑定包，保留原组件及 Preset，先核对迁移方案，避免已有成员失去预设。
-3. 在 Agent 会话说“使用 dsh-team-configure，帮我配置团队模型和 effort”，按 [模型与提示词](MODELS-AND-PROMPTS.md) 选择实际模型并保存。skill 随插件全局注册到该 profile，不需要每个项目单独安装。
+3. 在 Agent 会话说“使用 dsh-team-configure，帮我配置团队模型、effort 和工具集”，按 [模型与提示词](MODELS-AND-PROMPTS.md) 选择实际模型并保存。skill 随插件全局注册到该 profile，不需要每个项目单独安装。
 4. 在原生子智能体模型选择中授权所需路由，保存后使用新根会话。执行 `/dsh-team plan` 核对创建／冲突计划，再执行 `/dsh-team launch`。plan 不调用模型；launch 会调用模型，并由原生 policy/adapter 再次校验。
 
 如果 workflow 还没有成功结果，则此候选还没有 Windows 实跑证据，不应把源码检查当成安装验收。已发布的 `v0.5.0-rc.2` 只支持 macOS，不含 Windows 适配或默认 max 改动。
@@ -23,7 +23,7 @@ npm run check:compat -- --app-executable "C:\Users\me\AppData\Local\Programs\Dee
 
 ## 安装后修改模型和 effort
 
-rc.5 推荐使用会话 skill，可逐角色修改 provider、model、effort、职责与提示词，预检并持久保存；它不授权模型、不启动或替换成员。当前只支持 implementer/reviewer 两角色，没有专用模型选择表单。已有 rc.4 安装可继续手动编辑用户配置，或安装 rc.5 使用 skill。
+rc.6 推荐使用会话 skill，可逐角色修改 provider、model、effort、职责、提示词与工具集，预检并持久保存；它不授权模型、不启动或替换成员。当前只支持 implementer/reviewer 两角色，没有专用模型选择表单。已有 rc.4 安装可继续手动编辑用户配置，或安装新版本使用完整的 skill 配置。
 
 手动方式的默认路径为 `%USERPROFILE%\.dsh\profiles\desktop\cordis.patch.yml`；自定义 `DSH_HOME` 或 profile 时使用实际路径。
 
@@ -37,11 +37,12 @@ rc.5 推荐使用会话 skill，可逐角色修改 provider、model、effort、�
 
 - 运行独立源码的 Node 测试并打包；历史 macOS 文件权限用例明确显示 skip，当前会话、模板、控制路径和原生契约模拟照常执行。
 - 下载固定官方 Windows 安装器，校验安装器与 ASAR SHA256，解出完整官方应用。该步骤验证官方 payload，不测试 NSIS 安装向导或注册表集成。
-- 使用官方初始化函数创建隔离 profile，使用安装包自带 CLI 安装 TGZ，再启动真实 Desktop Host。
+- 使用官方初始化函数创建隔离 profile；先安装固定 rc.5 基线并确认旧 skill，再使用安装包自带 CLI 升级 TGZ，重载 Host 后确认只有一份新版 skill。
 - 调用原生 `/dsh-team plan`，检查命令结果与持久事件，断言没有模型 turn 或成员／任务创建。
 - 检查配置 skill 对根会话可见，通过原生设置 RPC 保存模板，验证当前已绑定根不变、新根采用新模板；不通过付费模型驱动工具。
 - 正常停止并重启 Host，被动回读命令记录；再用官方 CLI 卸载插件，重启确认命令消失。
 - 重启后回读已保存模板和 skill，卸载后确认 skill 同时消失。
+- 在官方 Electron 内导入真实 ToolsService、原生执行器、Scope 与 SkillRegistry，验证角色工具隔离、临时文件读写、父级限制、最终拒绝及旧 skill 缓存替换；该探针使用隔离身份和临时文件处理函数，不声称验证了 OS 沙箱后端。
 
 `windows-host-<commit>` artifact 保存 `artifact.json`、`acceptance.json` 与有界日志。`acceptance.json.status=passed` 才表示上述 Host 链路全部通过；TGZ artifact 只在全部步骤成功时上传。临时 profile、账号目录和原始会话文件不上传。
 

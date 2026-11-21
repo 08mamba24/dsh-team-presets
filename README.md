@@ -1,8 +1,8 @@
 # Native role presets and team launcher
 
-Create an implementer and a reviewer in the current DeepSeek Harness root session, with separate model routes, persistent role prompts, and native task/message tools.
+Create an implementer and a reviewer in the current DeepSeek Harness root session, with separate model routes, persistent role prompts, and work tool lists.
 
-**Current source: 0.5.0-rc.5.** Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort and prompts in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
+**Current source: 0.5.0-rc.6.** Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort, prompts and tool list in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
 
 [中文安装与使用说明](README.zh-CN.md)
 
@@ -16,9 +16,9 @@ Build from this package directory:
 npm pack
 ```
 
-Install `dsh-subagent-live-rc2-local-0.5.0-rc.5.tgz` through the native plugin manager. Building does not update the installed copy. Installation registers the current-session command, configuration tool and skill for roots in that profile; no per-project skill copy, Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not an installation target for Harness rc.5.
+Install `dsh-subagent-live-rc2-local-0.5.0-rc.6.tgz` through the native plugin manager. Building does not update the installed copy. Installation registers the current-session command, configuration tool and skill for roots in that profile; no per-project skill copy, Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not an installation target for Harness rc.5.
 
-The [published private v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) retains its frozen, live-tested low-effort bytes. It does not contain the max-default change. This package is not published to npm or a plugin marketplace.
+The [historical v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) retains its frozen, live-tested low-effort bytes. It does not contain the max-default change. This package is not published to npm or a plugin marketplace.
 
 ## Configure the team in a conversation
 
@@ -33,14 +33,22 @@ Save these team defaults.
 
 The Agent reads actual provider/model IDs, previews the requested changes through the native adapter, then saves through native approval and persistent settings. Supply your real model choices, without pasting profiles or credentials. A request for advice alone stops at preview.
 
-The stable roles are `implementer` and `reviewer`; each supports its own duties, model, effort, persona and startup input. Arbitrary role counts are not supported. “Global” means defaults within the installed profile, and does not modify existing teams. Use an unbound root as directed by the result; changes to native model authorization require saving the selection and creating a new root. The skill does not grant authorization or start members. See [models and prompts](docs/MODELS-AND-PROMPTS.md).
+The stable roles are `implementer` and `reviewer`; each supports its own duties, model, effort, persona, startup input and tool list. Arbitrary role counts are not supported. “Global” means defaults within the installed profile, and does not modify existing teams. Use an unbound root as directed by the result; changes to native model authorization require saving the selection and creating a new root. The skill does not grant authorization or start members. See [models and prompts](docs/MODELS-AND-PROMPTS.md).
+
+## Configure tools by role
+
+For example: “Use dsh-team-configure. Give implementer file read/write, search and terminal tools; give reviewer read, search and collaboration tools.” The Agent queries the actual tool catalog, previews each role's additions/removals, then saves through native approval.
+
+Unsaved defaults include basic file, search, shell and skill tools that are registered in the Host and visible to the invoking root. Shell names follow the actual catalog, such as `bash` or `pwsh`. Saved templates and explicit lists stay exact. Installed MCP tools may also be selected. Visibility grants no filesystem or shell permission: native sandbox, approval and step-time activation still apply. A role with shell access is not guaranteed read-only.
+
+The skill ships and registers with the plugin. After upgrading and reloading the plugin, subsequent skill loads use the new bundled body; no separate global copy is needed. Previously injected conversation messages remain intact, so load the skill again for new instructions. Model/prompt configuration requires rc.5; tool-list editing requires rc.6.
 
 Enable native Agent model selection and allow both default routes:
 
-| Role | Client route | Native tools |
+| Role | Client route | Default effort |
 | --- | --- | --- |
-| implementer | `deepseek-account/deepseek-flash` | `team_task_get`, `team_task_update`, `send_message` |
-| reviewer | `deepseek-account/deepseek-v4-pro` | `team_task_get`, `team_task_update`, `wait_agent` |
+| implementer | `deepseek-account/deepseek-flash` | `max` |
+| reviewer | `deepseek-account/deepseek-v4-pro` | `max` |
 
 Create a new root session after saving the selection. Existing sessions keep their durable policy; changing a global preference does not retroactively authorize them. The plugin checks that native policy and never grants model permissions. An official-provider Pro entry labelled as routing to Flash is not a substitute for account/Pro. Client route evidence does not establish backend model weights or billing. Keep the selected routes if you intend to continue using them; reverting temporary preferences is a separate settings operation.
 
@@ -66,17 +74,17 @@ Command results may appear in expandable command records. The first result's del
 
 ## Assign work and preserve dependencies
 
-The default roles have task-board and messaging tools, with no file or shell capability. Assign the executable implementation task first. The implementer writes evidence, completes it, then sends the reviewer the actual task IDs. The reviewer reads the completed prerequisite, keeps the dependency edge, claims the now-unblocked review task, independently verifies it, and writes the result. A rejected tool operation should stop the flow and be reported.
+New unsaved defaults include available basic work tools; saved templates can be adjusted through the skill. The historical rc.2 live test used task-board and messaging tools only. Assign the executable implementation task first. The implementer writes evidence, completes it, then sends the reviewer the actual task IDs. The reviewer reads the completed prerequisite, keeps the dependency edge, claims the now-unblocked review task, independently verifies it, and writes the result. A rejected tool operation should stop the flow and be reported.
 
 The live test completed `17 × 23 = 391`, direct peer handoff, and independent verification by another method. It also exposed a P2 orchestration deviation: after a blocked assignment, Lead briefly cleared and restored a dependency instead of stopping. Core collaboration passed; strict instruction compliance did not. The clarified workflow above has not had a separate live rerun.
 
 ## Configure, restore, and upgrade
 
-Use the conversational skill above; rc.4 installations need the new package to gain this capability. There is no dedicated model-picker form. [Manual Windows configuration](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration) remains available, with file locations and a complete patch. Neither configuration path requires rebuilding the package.
+Use the conversational skill above; older installations need the new package to gain the added capabilities. There is no dedicated model-picker form. [Manual Windows configuration](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration) remains available, with file locations and a complete patch. Neither configuration path requires rebuilding the package.
 
 Saving through the skill does not reload the launcher: roots already bound by plan/launch keep their template during the current Host lifetime, while unbound roots read the new defaults. Persisting defaults does not establish cold restoration of old teams. After changing defaults, do not use an old root's plan/launch to migrate its members; full cold recovery remains unaccepted.
 
-The optional component `template` takes a complete object in the format of [examples/team-template.json](examples/team-template.json). Configure the roles' routes, persona prompts, startup prompts, and native tool allowlists there. `timeoutMs` and per-role `maxStreams` bound startup; the default is one ordinary stream per role, configurable from 1 to 12. Native policy and tool permissions remain authoritative. See [changing models and prompts](docs/MODELS-AND-PROMPTS.md) for the exact fields.
+The optional component `template` takes a complete object in the format of [examples/team-template.json](examples/team-template.json). That file is a base example; without an explicit template the current-session entry adds available work tools from the Host catalog. Configure the roles' routes, persona prompts, startup prompts, and native tool allowlists there. `timeoutMs` and per-role `maxStreams` bound startup; the default is one ordinary stream per role, configurable from 1 to 12. Native policy and tool permissions remain authoritative. See [changing models and prompts](docs/MODELS-AND-PROMPTS.md) for the exact fields.
 
 The bundled template defaults to `reasoning_effort: "max"`; each role may select an effort id supported by its configured native model. Both roles may use the same provider/model. Native `resolveCallConfig` rejects unsupported efforts or route-resolution failures before team mutation; no silent downgrade is applied. Native metadata validation does not prove that a remote endpoint will execute a model successfully. Startup still uses `maxTokens=1024`, a separate request limit rather than a lifetime, total-token, or monetary cap. The historical rc.2 later task and introduction turns used native continuation configuration with `maxTokens=256000`; this update does not change continuation token budgets.
 

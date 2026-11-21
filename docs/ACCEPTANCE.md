@@ -1,5 +1,13 @@
 # Acceptance and release scope
 
+## 0.5.0-rc.6 role tool configuration and skill upgrade
+
+The configuration tool adds `action: tools` and per-role `native_tool_allowlist` edits. It reads shared registrations visible to the invoking root, plus the native control Preset capabilities, and preserves exact saved lists. Unsaved defaults add available basic file/search/shell/skill tools. Native tool schemas, step activation, sandbox and approvals remain authoritative; the editor neither creates a capability nor grants delegation or root configuration tools to members.
+
+Portable tests cover partial tool edits, unavailable/restricted tools, removal while approval is pending, no metadata calls for tool-only edits, exact role masks, temporary file read/write through the launcher lifecycle fixture, and downstream refusal without a tool body write. The native probe imports the physical ToolsService, NativeToolExecutor, Scope and SkillRegistry: it executes registered temporary-file handlers, checks parent-mask intersection and final-guard denial, and replaces a disposed old skill with the actual bundled new body. These isolated identities and handlers are not an OS sandbox backend or paid provider acceptance.
+
+Windows Actions installs the frozen rc.5 baseline, observes its old skill, upgrades through the official CLI, and checks the new Host skill registration, persisted configuration and uninstall. Consult the exact run's `acceptance.json`; describing the checks is not a successful run. A loaded conversation's old skill message stays in history; subsequent skill loads after plugin reload use the new body. No existing daily profile, team, or paid model is migrated or rerun. Physical rc.2 execution of this new surface remains untested.
+
 ## 0.5.0-rc.5 conversational configuration
 
 This version adds the profile-wide `dsh-team-configure` skill and the root-only `dsh_team_configure` tool. The tool inspects providers, lists a selected provider's models, previews partial role edits and saves through native approval and revision-checked persistent settings. It supports the two stable implementer/reviewer roles, including provider, model, effort, description, persona and startup input. It neither expands native session authorization nor launches or replaces members.
@@ -60,7 +68,7 @@ Future briefs should assign only the implementation task first. After completion
 d36abb42f68c9c2a179aebf797233f94e0c44ad900ead86dbf5787a90708d3dc
 ```
 
-The asset remains byte-identical to the source/package and runtime reviews. Repository documentation was updated afterward, so its README supersedes the package's submission-time README. Runtime source, manifest, and configuration remain at the accepted baseline. This is a private prerelease, not npm/marketplace or public publication.
+The asset remains byte-identical to the source/package and runtime reviews. Repository documentation was updated afterward, so its README supersedes the package's submission-time README. Runtime source, manifest, and configuration remain at the accepted baseline. This artifact was originally published privately; the standalone repository and release assets are now public. It is not an npm or marketplace publication.
 
 ## Earlier stages
 

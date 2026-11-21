@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { isAbsolute } from 'node:path';
 import { checkedControlEntry, delegationFailure } from './team-driver.js';
-import { TEAM_ROLE_TOOLS } from './team-config.js';
+import { validRoleToolList } from './role-tools.js';
 
 const NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,199}$/;
@@ -123,10 +123,8 @@ export async function registerLauncherPresets(ctx, config, spec, nativeControlEn
   const roles = spec.members.map(member => {
     if (!member || !roleName(member.name) || names.has(member.name) || typeof member.agentPreset !== 'string'
       || !ID.test(member.agentPreset) || ids.has(member.agentPreset) || !text(member.personaPrompt, 16384)
-      || member.personaPrompt.includes('\0') || !Array.isArray(member.nativeToolAllowlist)
-      || member.nativeToolAllowlist.length > TEAM_ROLE_TOOLS.length) fail('LAUNCHER_PRESET_INPUT_INVALID');
+      || member.personaPrompt.includes('\0') || !validRoleToolList(member.nativeToolAllowlist)) fail('LAUNCHER_PRESET_INPUT_INVALID');
     const tools = [...member.nativeToolAllowlist];
-    if (new Set(tools).size !== tools.length || tools.some(tool => !TEAM_ROLE_TOOLS.includes(tool))) fail('LAUNCHER_PRESET_INPUT_INVALID');
     ids.add(member.agentPreset); names.add(member.name);
     return { preset: member.agentPreset, role: member.name, persona: member.personaPrompt, tools };
   });
