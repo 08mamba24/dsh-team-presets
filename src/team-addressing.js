@@ -312,6 +312,7 @@ export function createLogicalAgentTeams(nativeAgentTeams, nativeSubagents,
 
 const CONTROL_NAMES = Object.freeze(['list_agents', 'send_message', 'wait_agent']);
 const TASK_NAMES = Object.freeze(['team_task_create', 'team_task_list', 'team_task_get', 'team_task_update']);
+const OFFICIAL_NATIVE_CONTROL_MODULE = '@deepseek-ai/dsh-tool-subagent-control';
 const reusableLogicalTeamTaskDelegates = new WeakMap();
 
 /** True only for the exact task delegate minted by this addressing module. */
@@ -386,10 +387,58 @@ function bindOwnedScopeParent(scopeApi, key, parent) {
   };
 }
 
+function bridgeNativeControl(ctx, nativeSubagents, settings, bridgedDefinitions) {
+  return async (exec, next) => {
+    if (!bridgedDefinitions.has(exec.name)) return next();
+    if (!sameService(ctx.get('subagents'), nativeSubagents)) fail('TEAM_ADDRESS_HOST_CHANGED');
+    const caller = exec.agent;
+    if (caller === undefined) return next();
+    // Bind argument rewriting to the exact official definition admitted at
+    // install time and to this step's live activation.  A later Agent-local
+    // shadow (including one installed while approval is pending) must not
+    // inherit logical-name authority merely by reusing the tool name.
+    const selected = exec.toolSet === undefined
+      ? ctx.tools.executable(exec.name, caller)
+      : ctx.tools.get(exec.name, caller, exec.toolSet);
+    if (selected !== bridgedDefinitions.get(exec.name)) {
+      fail('TEAM_ADDRESS_NATIVE_CONTROL_UNAVAILABLE');
+    }
+    if (exec.name === 'wait_agent') return next();
+    const root = nativeSubagents.rootOf(caller);
+    const record = readReplacementRow(settings, root.id).value;
+    const logicalArguments = exec.arguments;
+    if (!logicalArguments || typeof logicalArguments !== 'object' || Array.isArray(logicalArguments)) {
+      fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
+    }
+    if (exec.name === 'send_message') {
+      exec.arguments = { ...logicalArguments,
+        agent: resolveLogicalTeamTarget(record, logicalArguments.agent) };
+    }
+    let result;
+    try {
+      result = await next();
+    } finally {
+      exec.arguments = logicalArguments;
+    }
+    if (result?.isError === true) return result;
+    if (!result || result.isError !== false) fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
+    const value = exec.name === 'list_agents'
+      ? projectLogicalTeamAgents(record, result.value) : result.value;
+    // Returning a detached success makes the native pipeline validate and
+    // render again after the logical arguments are restored.  The exact Host
+    // definition/body still owns execution and output schemas.
+    return { isError: false, value,
+      ...(result.additionalContexts === undefined ? {} : { additionalContexts: result.additionalContexts }) };
+  };
+}
+
 /** Mount the physical native control module against an isolated logical-name view. */
-export async function mountLogicalNativeControl(ctx, { fixedRootId, interrupt = false, tasks = false } = {}, host) {
+export async function mountLogicalNativeControl(ctx,
+  { fixedRootId, interrupt = false, tasks = false, bridgeDefinitions } = {}, host) {
   if (!ctx || typeof ctx.isolate !== 'function' || typeof ctx.provide !== 'function'
     || typeof ctx.plugin !== 'function' || typeof ctx.get !== 'function' || typeof ctx.effect !== 'function'
+    || (bridgeDefinitions !== undefined
+      && (typeof ctx.on !== 'function' || typeof ctx.tools?.executable !== 'function'))
     || typeof ctx.tools?.get !== 'function' || typeof host?.controlModule?.apply !== 'function'
     || (tasks && typeof host?.taskModule?.apply !== 'function')
     || typeof host?.scopeApi?.scopeOf !== 'function' || typeof host.scopeApi.createScope !== 'function'
@@ -397,6 +446,13 @@ export async function mountLogicalNativeControl(ctx, { fixedRootId, interrupt = 
     || typeof host.scopeApi.scopeParentOf !== 'function') fail('TEAM_ADDRESS_HOST_UNAVAILABLE');
   const key = host.scopeApi.scopeOf(ctx);
   if (key === undefined) fail('TEAM_ADDRESS_SCOPE_UNAVAILABLE');
+  const bridgedDefinitions = bridgeDefinitions === undefined ? new Map()
+    : bridgeDefinitions instanceof Map ? new Map(bridgeDefinitions)
+      : fail('TEAM_ADDRESS_NATIVE_CONTROL_UNAVAILABLE');
+  if (bridgedDefinitions.size !== 0 && (bridgedDefinitions.size !== CONTROL_NAMES.length
+    || CONTROL_NAMES.some(name => bridgedDefinitions.get(name)?.name !== name))) {
+    fail('TEAM_ADDRESS_NATIVE_CONTROL_UNAVAILABLE');
+  }
   const nativeSubagents = ctx.get('subagents'), settings = ctx.get('settings');
   const nativeAgentTeams = tasks ? ctx.get('agentTeams') : undefined;
   const logicalSubagents = createLogicalSubagents(nativeSubagents, {
@@ -423,6 +479,7 @@ export async function mountLogicalNativeControl(ctx, { fixedRootId, interrupt = 
   let delegateScope, isolated;
   const names = [...(interrupt ? [...CONTROL_NAMES, 'interrupt_agent'] : CONTROL_NAMES),
     ...(tasks ? TASK_NAMES : [])];
+  const bridgedNames = new Set(bridgedDefinitions.keys());
   const before = new Map(names.map(name => [name, ctx.tools.get(name, key)]));
   const fibers = [], releases = [];
   try {
@@ -439,6 +496,8 @@ export async function mountLogicalNativeControl(ctx, { fixedRootId, interrupt = 
     if (tasks) isolated = isolated.isolate('agentTeams');
     releases.push(isolated.provide('subagents', logicalSubagents));
     if (tasks) releases.push(isolated.provide('agentTeams', logicalAgentTeams));
+    if (bridgedDefinitions.size !== 0) releases.push(ctx.on('tools/execute',
+      bridgeNativeControl(ctx, nativeSubagents, settings, bridgedDefinitions)));
     fibers.push(isolated.plugin(host.controlModule, { interrupt }));
     await fibers.at(-1);
     if (tasks) {
@@ -463,7 +522,11 @@ export async function mountLogicalNativeControl(ctx, { fixedRootId, interrupt = 
     }
     for (const name of names) {
       const definition = ctx.tools.get(name, key);
-      if (!definition || definition.name !== name || definition === before.get(name)) {
+      const bridged = bridgedNames.has(name);
+      if (!definition || definition.name !== name
+        || (bridged
+          ? definition !== before.get(name) || definition !== bridgedDefinitions.get(name)
+          : definition === before.get(name))) {
         fail('TEAM_ADDRESS_NATIVE_CONTROL_UNAVAILABLE');
       }
     }
@@ -482,23 +545,43 @@ export async function mountLogicalNativeControl(ctx, { fixedRootId, interrupt = 
 
 const rootInstalls = new WeakMap();
 const ROOT_ADDRESS_INJECT = Object.freeze([
-  'tools', 'subagents', 'agents', 'systemPrompt', 'agentTeams', 'settings',
+  'tools', 'subagents', 'agents', 'systemPrompt', 'agentTeams', 'settings', 'agentPresets',
 ]);
 
-function startRootInstall(ctx, presetKey, host) {
+function bridgeControlForPreset(ctx, agent, presetKey) {
+  const occupiedControl = CONTROL_NAMES.filter(name => ctx.tools.get(name, presetKey) !== ctx.tools.get(name));
+  const occupiedOther = ['interrupt_agent', ...TASK_NAMES]
+    .filter(name => ctx.tools.get(name, presetKey) !== ctx.tools.get(name));
+  if (occupiedControl.length === 0 && occupiedOther.length === 0) return undefined;
+  if (occupiedOther.length !== 0 || occupiedControl.length !== CONTROL_NAMES.length) {
+    fail('TEAM_ADDRESS_LAYER_OCCUPIED');
+  }
+  const registry = ctx.get('agentPresets');
+  if (!registry || typeof registry.inspectCompositions !== 'function') fail('TEAM_ADDRESS_LAYER_OCCUPIED');
+  const compositions = registry.inspectCompositions(agent.ctx);
+  const composition = Array.isArray(compositions) && compositions.length === 1 ? compositions[0] : undefined;
+  const modules = composition?.modules;
+  const nativeControls = Array.isArray(modules)
+    ? modules.filter(module => module?.moduleName === OFFICIAL_NATIVE_CONTROL_MODULE) : [];
+  if (nativeControls.length !== 1 || !Array.isArray(composition?.leakedServices)
+    || composition.leakedServices.length !== 0) fail('TEAM_ADDRESS_LAYER_OCCUPIED');
+  const definitions = new Map(CONTROL_NAMES.map(name => [name, ctx.tools.get(name, presetKey)]));
+  if ([...definitions].some(([name, definition]) => definition?.name !== name)) {
+    fail('TEAM_ADDRESS_LAYER_OCCUPIED');
+  }
+  return definitions;
+}
+
+function startRootInstall(ctx, presetKey, host, bridgeDefinitions) {
   const entry = { owners: new WeakSet(), refs: 0, addon: undefined, layer: undefined, disposing: undefined };
   entry.install = (async () => {
     const addon = ctx.root.plugin({ name: 'dsh-team-root-addressing', inject: ROOT_ADDRESS_INJECT,
       async apply(injected) {
-        for (const name of [...CONTROL_NAMES, 'interrupt_agent', ...TASK_NAMES]) {
-          if (injected.tools.get(name, presetKey) !== injected.tools.get(name)) {
-            fail('TEAM_ADDRESS_LAYER_OCCUPIED');
-          }
-        }
         const layer = host.scopeApi.createScope(injected, presetKey);
         entry.layer = layer;
         try {
-          await mountLogicalNativeControl(layer.ctx, { interrupt: true, tasks: true }, host);
+          await mountLogicalNativeControl(layer.ctx,
+            { interrupt: true, tasks: true, bridgeDefinitions }, host);
         } catch (error) {
           await layer.dispose();
           throw error;
@@ -540,7 +623,7 @@ async function releaseRootInstall(presetKey, entry, ctx) {
 export async function installRootAddressing(ctx, agent, host) {
   host ??= await nativeRoleControlFromHost();
   if (!agent?.ctx || !ctx?.root || typeof ctx.root.plugin !== 'function'
-    || typeof ctx.effect !== 'function' || typeof ctx.tools?.get !== 'function'
+    || typeof ctx.effect !== 'function' || typeof ctx.get !== 'function' || typeof ctx.tools?.get !== 'function'
     || typeof host?.scopeApi?.scopeOf !== 'function'
     || typeof host.scopeApi.scopeParentOf !== 'function' || typeof host.scopeApi.createScope !== 'function') {
     fail('TEAM_ADDRESS_HOST_UNAVAILABLE');
@@ -553,7 +636,7 @@ export async function installRootAddressing(ctx, agent, host) {
     await entry.disposing;
     entry = rootInstalls.get(presetKey);
   }
-  entry ??= startRootInstall(ctx, presetKey, host);
+  entry ??= startRootInstall(ctx, presetKey, host, bridgeControlForPreset(ctx, agent, presetKey));
   if (!entry.owners.has(ctx)) {
     entry.owners.add(ctx);
     entry.refs++;

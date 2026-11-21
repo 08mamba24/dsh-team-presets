@@ -28,8 +28,11 @@ const OLD_IMPLEMENTER = '11111111-1111-4111-8111-111111111111';
 const OLD_REVIEWER = '22222222-2222-4222-8222-222222222222';
 const signal = AbortSignal.timeout(20_000);
 const modelSelection = { provider: 'isolated-address-probe', model: 'no-provider-call' };
+const PRESET_CONTROL_NAMES = ['list_agents', 'send_message', 'wait_agent'];
 const TASK_TOOLS = ['team_task_create', 'team_task_list', 'team_task_get', 'team_task_update'];
-const ROOT_ADDRESS_INJECT = ['tools', 'subagents', 'settings', 'agentTeams', 'systemPrompt', 'agents'];
+const ROOT_ADDRESS_INJECT = [
+  'tools', 'subagents', 'settings', 'agentTeams', 'systemPrompt', 'agents', 'agentPresets',
+];
 const CORDIS_ORIGINAL = Symbol.for('cordis.original');
 const CORDIS_TRACKER = Symbol.for('cordis.tracker');
 
@@ -120,7 +123,8 @@ const catalog = [
     mode: 'continuable', label: 'second replacement', activity: 'inactive', hasChildren: false },
 ];
 
-async function runGeneration(initialRecord, label) {
+async function runGeneration(initialRecord, label,
+  compositionModule = '@deepseek-ai/dsh-tool-subagent-control') {
   const ctx = new Context(), scopes = [], registrations = [], deliveries = [], interruptions = [], resolutions = [];
   let stored = initialRecord;
   const visibleCatalog = () => {
@@ -205,9 +209,20 @@ async function runGeneration(initialRecord, label) {
     },
   });
   ctx.provide('agentTeams', nativeTeams);
+  const presetKey = {};
+  ctx.provide('agentPresets', { inspectCompositions(agentCtx) {
+    assert.equal(scopeApi.scopeParentOf(scopeApi.scopeOf(agentCtx)), presetKey);
+    return [{ id: 'standard', leakedServices: [], modules: [{
+      moduleName: compositionModule, useHostBase: true,
+    }] }];
+  } });
   const harness = await injectedHarness(ctx, `address-harness-${label}`); scopes.push(harness);
   const access = harness.ctx;
-  const presetKey = {}, preset = scopeApi.createScope(access, presetKey); scopes.push(preset);
+  const preset = scopeApi.createScope(access, presetKey); scopes.push(preset);
+  const presetControl = preset.ctx.plugin(controlModule, { interrupt: false });
+  scopes.push(presetControl); await presetControl;
+  const presetControlDefinitions = new Map(PRESET_CONTROL_NAMES
+    .map(name => [name, access.tools.get(name, presetKey)]));
   const rootScope = scopeApi.createScope(access, root, { parent: presetKey }); scopes.push(rootScope); root.ctx = rootScope.ctx;
   registrations.push(await access.agents.register(root));
   for (const row of catalog) {
@@ -215,16 +230,28 @@ async function runGeneration(initialRecord, label) {
     const childScope = scopeApi.createScope(access, agent); scopes.push(childScope); agent.ctx = childScope.ctx;
     agents.set(agent.id, agent); registrations.push(await access.agents.register(agent));
   }
-  scopes.push(await installFromInjectedOwner(ctx, root, `address-owner-${label}`,
-    { controlModule, taskModule, scopeApi }));
+  const dispose = async () => {
+    for (const unregister of registrations.reverse()) await unregister();
+    for (const scope of scopes.reverse()) await scope.dispose();
+    await ctx.fiber.dispose();
+  };
+  try {
+    scopes.push(await installFromInjectedOwner(ctx, root, `address-owner-${label}`,
+      { controlModule, taskModule, scopeApi }));
+  } catch (error) {
+    await dispose();
+    throw error;
+  }
   let callSeq = 0;
+  async function callWithToolSet(agent, name, args, toolSet) {
+    const batch = await access.tools.execute({ agent, signal, toolSet, calls: [{ type: 'tool-call',
+      id: `${label}-${++callSeq}`, name, arguments: JSON.stringify(args) }] });
+    return batch.results[0].result;
+  }
   async function call(agent, name, args) {
     const toolSet = await access.tools.resolve({ agent, modelSelection, signal });
-    try {
-      const batch = await access.tools.execute({ agent, signal, toolSet, calls: [{ type: 'tool-call',
-        id: `${label}-${++callSeq}`, name, arguments: JSON.stringify(args) }] });
-      return batch.results[0].result;
-    } finally { toolSet.dispose(); }
+    try { return await callWithToolSet(agent, name, args, toolSet); }
+    finally { toolSet.dispose(); }
   }
   async function addRoleControl(agent, roleRecord) {
     const roleKey = {}, rolePreset = scopeApi.createScope(access, roleKey); scopes.push(rolePreset);
@@ -241,13 +268,11 @@ async function runGeneration(initialRecord, label) {
     agent.ctx.tools.restrict({ allow: ['send_message', 'team_task_list'] });
     stored = roleRecord;
   }
-  return { ctx: access, root, agents, nativeSubagents, deliveries, interruptions, resolutions, taskCalls, call, addRoleControl,
-    task: () => structuredClone(storedTask),
-    setRecord(value) { stored = value; }, setTeamEnabled(value) { teamEnabled = value; }, async dispose() {
-      for (const unregister of registrations.reverse()) await unregister();
-      for (const scope of scopes.reverse()) await scope.dispose();
-      await ctx.fiber.dispose();
-    } };
+  return { ctx: access, root, agents, nativeSubagents, deliveries, interruptions, resolutions, taskCalls,
+    call, callWithToolSet, addRoleControl,
+    presetControlDefinitions,
+    task: () => structuredClone(storedTask), dispose,
+    setRecord(value) { stored = value; }, setTeamEnabled(value) { teamEnabled = value; } };
 }
 
 async function runSharedPresetLifecycle() {
@@ -326,9 +351,18 @@ async function runSharedPresetLifecycle() {
     async updateTask() { return { id: 'shared-task', revision: 1, ownerId: null, ownerName: null }; },
   });
   ctx.provide('agentTeams', nativeTeams);
+  const presetKey = {};
+  ctx.provide('agentPresets', { inspectCompositions(agentCtx) {
+    assert.equal(scopeApi.scopeParentOf(scopeApi.scopeOf(agentCtx)), presetKey);
+    return [{ id: 'standard', leakedServices: [], modules: [{
+      moduleName: '@deepseek-ai/dsh-tool-subagent-control', useHostBase: true,
+    }] }];
+  } });
   const harness = await injectedHarness(ctx, 'shared-address-harness'); scopes.push(harness);
   const access = harness.ctx;
-  const presetKey = {}, preset = scopeApi.createScope(access, presetKey); scopes.push(preset);
+  const preset = scopeApi.createScope(access, presetKey); scopes.push(preset);
+  const presetControl = preset.ctx.plugin(controlModule, { interrupt: false });
+  scopes.push(presetControl); await presetControl;
   for (const root of roots) {
     const rootScope = scopeApi.createScope(access, root, { parent: presetKey });
     scopes.push(rootScope); root.ctx = rootScope.ctx;
@@ -373,6 +407,39 @@ try {
   assert.ok(listedFirst.value.some(entry => entry.name === 'implementer'));
   assert.ok(!listedFirst.value.some(entry => /implementer-r[23]/.test(entry.name)));
   check('first replacement keeps raw catalog unchanged while native send and list use the stable logical role');
+
+  for (const [name, definition] of fixture.presetControlDefinitions) {
+    assert.equal(fixture.ctx.tools.get(name, fixture.root), definition);
+  }
+  check('official Standard Preset control definitions remain the exact executable definitions under logical addressing');
+
+  const nativeSendDefinition = fixture.presetControlDefinitions.get('send_message');
+  const unknownSendDefinition = onCall => Object.freeze({ ...nativeSendDefinition, async execute(args, exec) {
+    onCall(args); return nativeSendDefinition.execute(args, exec);
+  } });
+  let shadowCalls = 0, shadowTarget;
+  let removeShadow = fixture.root.ctx.tools.register(unknownSendDefinition(args => {
+    shadowCalls++; shadowTarget = args.agent;
+  }));
+  const shadowed = await fixture.call(fixture.root, 'send_message', {
+    agent: 'implementer', message: 'unknown definition before resolve',
+  });
+  assert.equal(shadowed.isError, true, JSON.stringify(shadowed));
+  assert.equal(shadowCalls, 0); assert.equal(shadowTarget, undefined);
+  removeShadow();
+
+  const oldToolSet = await fixture.ctx.tools.resolve({ agent: fixture.root, modelSelection, signal });
+  removeShadow = fixture.root.ctx.tools.register(unknownSendDefinition(() => { shadowCalls++; }));
+  try {
+    const stale = await fixture.callWithToolSet(fixture.root, 'send_message', {
+      agent: 'implementer', message: 'unknown definition after resolve',
+    }, oldToolSet);
+    assert.equal(stale.isError, true, JSON.stringify(stale));
+    assert.equal(shadowCalls, 0);
+  } finally {
+    removeShadow(); oldToolSet.dispose();
+  }
+  check('logical bridging refuses a late Agent-local control definition before rewriting arguments or invoking its body');
 
   const tasksFirst = await fixture.call(fixture.root, 'team_task_list', { owner: 'implementer' });
   assert.equal(tasksFirst.isError, false, JSON.stringify(tasksFirst));
@@ -452,9 +519,10 @@ try {
   assert.equal((await fixture.call(fixture.agents.get(secondId), 'team_task_list', {})).isError, true);
   assert.equal(fixture.taskCalls.length, beforeTaskMask); fixture.setTeamEnabled(true);
   let approvalCalls = 0, approvalDeny, approvalTool;
-  fixture.ctx.provide('approval', { async request() {
-    approvalCalls++; approvalDeny = fixture.root.ctx.tools.restrict({ deny: [approvalTool] }); return 'allowed-once';
-  } });
+  let approve = () => {
+    approvalDeny = fixture.root.ctx.tools.restrict({ deny: [approvalTool] }); return 'allowed-once';
+  };
+  fixture.ctx.provide('approval', { async request() { approvalCalls++; return approve(); } });
   const ask = fixture.root.ctx.on('tools/pre-execute', (exec, next) => {
     if (!['send_message', 'team_task_update'].includes(exec.name)) return next();
     approvalTool = exec.name; return { kind: 'ask' };
@@ -467,8 +535,30 @@ try {
     action: 'reassign', owner: 'implementer',
   })).isError, true);
   assert.equal(approvalCalls, 2); assert.equal(fixture.taskCalls.length, beforeTaskMask);
-  approvalDeny(); ask();
-  check('native conditions, Agent-scope masks and post-approval revocation still stop original tool bodies');
+  approvalDeny();
+
+  let approvalShadowCalls = 0, approvalShadowRemove;
+  approve = () => {
+    approvalShadowRemove = fixture.root.ctx.tools.register(unknownSendDefinition(() => { approvalShadowCalls++; }));
+    return 'allowed-once';
+  };
+  const approvalShadowed = await fixture.call(fixture.root, 'send_message', {
+    agent: 'implementer', message: 'unknown definition during approval',
+  });
+  assert.equal(approvalShadowed.isError, true, JSON.stringify(approvalShadowed));
+  assert.equal(approvalShadowCalls, 0); approvalShadowRemove();
+
+  approve = () => {
+    const remove = fixture.root.ctx.tools.register(unknownSendDefinition(() => { approvalShadowCalls++; }));
+    remove(); return 'allowed-once';
+  };
+  const approvalRestored = await fixture.call(fixture.root, 'send_message', {
+    agent: 'implementer', message: 'official definition restored after approval',
+  });
+  assert.equal(approvalRestored.isError, false, JSON.stringify(approvalRestored));
+  assert.equal(approvalShadowCalls, 0); assert.equal(fixture.deliveries.at(-1).targetId, secondId);
+  ask();
+  check('native conditions, Agent-scope masks, definition replacement and post-approval revocation stop unverified bodies');
 } finally {
   await fixture?.dispose();
 }
@@ -484,6 +574,10 @@ try {
 } finally {
   await fixture.dispose();
 }
+
+await assert.rejects(runGeneration(activeSecond, 'unproven-control', 'fixture/unproven-control'),
+  { code: 'TEAM_ADDRESS_LAYER_OCCUPIED' });
+check('a Preset-scoped control remains occupied unless the Registry proves the official native module');
 
 fixture = await runSharedPresetLifecycle();
 try {
@@ -515,8 +609,8 @@ const hashes = {};
 for (const name of ['src/team-addressing.js', 'role-control.js', 'src/launcher-native.js', 'src/team-host.js']) {
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }
-const result = { sourceHead, runtime, passed: checks.length === 11 && checks.every(item => item.passed), hashes, checks,
-  boundary: 'Physical rc.5 Cordis, dsh-scope, ToolsService, NativeToolExecutor and unmodified dsh-tool-subagent-control/dsh-tool-agent-team definitions. Isolated in-memory Settings/AgentRegistry, catalog and task-board service; no user profile, Host daemon, model, network, manager mutation or persistent Session.' };
+const result = { sourceHead, runtime, passed: checks.length === 14 && checks.every(item => item.passed), hashes, checks,
+  boundary: 'Physical rc.5 Cordis, dsh-scope, ToolsService, NativeToolExecutor and an official-Standard-equivalent Preset scope mounting unmodified dsh-tool-subagent-control (interrupt false), plus unmodified dsh-tool-agent-team definitions. Isolated in-memory Settings/AgentRegistry, catalog and task-board service; no user profile, Host daemon, model, network, manager mutation or persistent Session.' };
 await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
 process.stdout.write(JSON.stringify(result) + '\n');
 if (!result.passed) process.exitCode = 1;

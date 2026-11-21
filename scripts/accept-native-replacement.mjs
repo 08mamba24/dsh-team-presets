@@ -1,8 +1,9 @@
-/** End-to-end native replacement with a local scripted provider and temporary data. */
+/** Official Web profile replacement with a local scripted provider and temporary data. */
 import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
 import { randomUUID, createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
-import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
+import { copyFile, mkdtemp, mkdir, readFile, realpath, writeFile, rm, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -13,40 +14,65 @@ const receipt = resolve(process.argv[4] ?? 'native-replacement.json');
 const sourceHead = process.argv[5] ?? 'working-tree';
 const legacyPlugin = process.argv[6] && resolve(process.argv[6]);
 const unchangedLegacyDefaults = process.argv[7] === 'unchanged';
+
+// Profile boot resolves home paths and environment-backed providers during
+// import. Relaunch before importing runtime modules, with only laboratory
+// paths and OS essentials; the operator's profile and credentials are absent.
+if (process.env.DSH_REPLACEMENT_ACCEPT_LAB === undefined) {
+  const lab = await realpath(await mkdtemp(join(tmpdir(), 'dsh-native-replacement-')));
+  try {
+    for (const name of ['home', 'harness', 'agents', 'workspace', 'tmp']) await mkdir(join(lab, name));
+    const resources = dirname(dirname(runtime));
+    const system = process.env.SystemRoot ?? process.env.SYSTEMROOT;
+    assert.ok(process.platform !== 'win32' || system, 'Windows SystemRoot is required');
+    const environment = {
+      ...(system ? { SystemRoot: system, WINDIR: system, ComSpec: join(system, 'System32', 'cmd.exe') } : {}),
+      PATH: process.platform === 'win32'
+        ? [join(resources, 'runtime', 'bin'), join(system, 'System32'), system].join(';')
+        : '/usr/bin:/bin:/usr/sbin:/sbin',
+      HOME: join(lab, 'home'), USERPROFILE: join(lab, 'home'),
+      APPDATA: join(lab, 'home', 'AppData', 'Roaming'), LOCALAPPDATA: join(lab, 'home', 'AppData', 'Local'),
+      XDG_CONFIG_HOME: join(lab, 'home', 'config'), XDG_CACHE_HOME: join(lab, 'home', 'cache'),
+      XDG_DATA_HOME: join(lab, 'home', 'data'), XDG_STATE_HOME: join(lab, 'home', 'state'),
+      TMPDIR: join(lab, 'tmp'), TEMP: join(lab, 'tmp'), TMP: join(lab, 'tmp'),
+      DSH_HOME: join(lab, 'harness'), DSH_AGENTS_HOME: join(lab, 'agents'), DSH_TELEMETRY_DISABLED: '1',
+      DSH_PRIMARY_RUNTIME: join(resources, 'runtime', 'primary-runtime'),
+      ELECTRON_RUN_AS_NODE: '1', DSH_REPLACEMENT_ACCEPT_LAB: lab,
+    };
+    const child = spawn(process.execPath, ['--expose-internals', fileURLToPath(import.meta.url), ...process.argv.slice(2)],
+      { cwd: join(lab, 'workspace'), env: environment, stdio: 'inherit', windowsHide: true });
+    const code = await new Promise((done, reject) => {
+      child.once('error', reject); child.once('close', code => done(code ?? 1));
+    });
+    process.exitCode = code;
+  } finally { await rm(lab, { recursive: true, force: true }); }
+  process.exit(process.exitCode ?? 0);
+}
 const require = createRequire(join(runtime, 'package.json'));
 const load = name => import(pathToFileURL(require.resolve('@deepseek-ai/' + name)).href);
-const modules = await Promise.all(['cordis', 'cordis-plugin-loader', 'dsh-config-editor', 'dsh-settings',
-  'dsh-app-boot', 'dsh-session', 'dsh-session-projection', 'dsh-session-persistence-jsonl', 'dsh-session-query-sqlite',
-  'dsh-agent', 'dsh-agent-loop', 'dsh-system-prompt', 'dsh-tools', 'dsh-tool-executor-native',
-  'dsh-agent-preset-registry', 'dsh-subagent', 'dsh-subagent-spawn-in-process', 'dsh-agent-team',
-  'dsh-tool-agent-team', 'dsh-skill', 'dsh-commands'].map(load));
-const [{ Context }, { Loader }, { ConfigEditor }, { SettingsForms }, boot, { SessionStore },
-  { SessionProjectionRegistry }, persistence, query, { AgentRegistry }, { AgentLoop }, { SystemPrompt },
-  { ToolsService, defineTool }, { NativeToolExecutor }, { AgentPresetRegistry }, subagent, spawn,
-  { TeamService }, teamTools, { SkillRegistry }, { CommandRuntime }] = modules;
-const fromPlugin = path => import(pathToFileURL(join(plugin, path)).href);
-const [{ Config }, { applyCurrentLauncher }, { applyTeamReplacement }, { nativeTeamFromHost },
-  { createReplacementStore, REPLACEMENT_OWNER }, { pollReplacement, ownSessionEvents },
-  { startReplacement, readReplacementRecord }] = await Promise.all([
-  fromPlugin('current-entry.js'), fromPlugin('src/launcher-current.js'), fromPlugin('src/team-replace.js'),
-  fromPlugin('src/team-host.js'), fromPlugin('src/replacement-store.js'), fromPlugin('src/replacement-native.js'),
-  fromPlugin('src/member-replacement.js'),
+const [boot, { PROFILE_TEMPLATES }, { runProfile }, { createLaunchEnvironmentSnapshot },
+  { defineTool }, { scopeOf }] = await Promise.all([
+  load('dsh-app-boot'), load('dsh-official-bundles'), load('dsh/profile-boot'),
+  load('dsh-launch-environment'), load('dsh-tools'), load('dsh-scope'),
 ]);
-const lab = await mkdtemp(join(tmpdir(), 'dsh-native-replacement-'));
-const profileDir = join(lab, 'profile'), home = join(lab, 'home'), workspace = join(lab, 'workspace');
-for (const dir of [profileDir, home, workspace]) await mkdir(dir);
-const patchPath = join(profileDir, 'cordis.patch.yml'), basePath = join(lab, 'base.json');
-await writeFile(join(profileDir, 'package.json'), JSON.stringify({ private: true, dsh: { profile: { bundles: [] } } }));
-await writeFile(basePath, '[]\n');
-await writeFile(patchPath, JSON.stringify([{ insert: [{ id: REPLACEMENT_OWNER,
-  name: 'cordis:replacement-profile', config: { mode: 'current-session' } }] }]));
+const fromPlugin = path => import(pathToFileURL(join(plugin, path)).href);
+const [{ createReplacementStore, REPLACEMENT_OWNER }, { pollReplacement, ownSessionEvents },
+  { startReplacement, readReplacementRecord }] = await Promise.all([
+  fromPlugin('src/replacement-store.js'), fromPlugin('src/replacement-native.js'), fromPlugin('src/member-replacement.js'),
+]);
+const lab = process.env.DSH_REPLACEMENT_ACCEPT_LAB;
+assert.equal(process.env.DSH_HOME, join(lab, 'harness'));
+const workspace = join(lab, 'workspace');
+let profileDir, patchPath;
+const packageName = JSON.parse(await readFile(join(plugin, 'package.json'), 'utf8')).name;
 const ROOT = 'session-' + randomUUID();
 let OLD = 'session-' + randomUUID(), legacyStarting = false, simulateOldWrite = false, raceOnFreeze = false;
 const route = { provider: 'isolated-provider', model: 'scripted-model', reasoningEffort: 'max' };
-const timeoutMs = 5000, signal = AbortSignal.timeout(30000);
+const timeoutMs = 5000, signal = AbortSignal.timeout(60000);
 const checks = [], errors = [], expectedErrors = [], providerCalls = [], writes = [], originalWrites = [], stages = new Map(), commands = new Map(), faults = [];
+const nativeStarts = [];
 let failFirstActivation = true;
-let ctx, rootHandle, taskId, profileRecords, profileTemplate, control, faultTaskId;
+let ctx, rootHandle, taskId, profileRecords, profileTemplate, faultTaskId;
 const check = (name, evidence = {}) => checks.push({ name, passed: true, ...evidence });
 const currentOperation = childId => Object.values(profileRecords.get()).flatMap(record => record.operations)
   .find(operation => operation.newChildId === childId || 'session-' + operation.id.slice(8) === childId);
@@ -59,7 +85,7 @@ function* toolCall(name, args) {
 async function* stream(request) {
   const id = request.sessionId, operation = currentOperation(id);
   providerCalls.push({ childId: id, phase: operation?.phase ?? 'original' });
-  if (id === OLD && simulateOldWrite) { simulateOldWrite = false; yield* toolCall('write', { content: 'Observable old work before the frozen CAS.' }); }
+  if (id === OLD && simulateOldWrite) { simulateOldWrite = false; yield* toolCall('replacement_probe_write', { content: 'Observable old work before the frozen CAS.' }); }
   if (!legacyStarting && id !== OLD && id !== ROOT) {
     if (!operation) throw new Error('UNPLANNED_PROVIDER_CALL');
     const work = ['activating', 'active'].includes(operation.phase), key = id + ':' + (work ? 'work' : 'ready');
@@ -69,11 +95,11 @@ async function* stream(request) {
       faults.push({ code: 'ISOLATED_CANDIDATE_MODEL_FAILURE', operationId: operation.id });
       throw Object.assign(new Error('ISOLATED_CANDIDATE_MODEL_FAILURE'), { code: 'ISOLATED_CANDIDATE_MODEL_FAILURE' });
     }
-    if (!work && step === 1) yield* toolCall('write', { content: 'FORBIDDEN STANDBY BUSINESS WRITE' });
+    if (!work && step === 1) yield* toolCall('replacement_probe_write', { content: 'FORBIDDEN STANDBY BUSINESS WRITE' });
     if (!work && step >= 2 && step <= operation.taskRefs.length + 1) yield* toolCall('team_task_get', { task_id: operation.taskRefs[step - 2].taskId });
     if (!work && step === operation.taskRefs.length + 2) yield* toolCall('send_message', { agent: 'lead', message: JSON.stringify({
       ready: true, operation: operation.id, handoff: operation.handoffDigest, config: operation.configDigest }) });
-    if (work && step === 1) yield* toolCall('write', { content: 'Actual candidate business work.\n' });
+    if (work && step === 1) yield* toolCall('replacement_probe_write', { content: 'Actual candidate business work.\n' });
     if (work && step === 2) yield* toolCall('team_task_get', { task_id: taskId });
     if (work && step === 3) {
       const task = ctx.agentTeams.getTask(rootHandle.agent, taskId);
@@ -85,16 +111,37 @@ async function* stream(request) {
   yield { type: 'finish', reason: { kind: 'stop' } };
 }
 async function startFixture(resumeRoot = false, legacy = false) {
-  ctx = new Context();
-  const packageUrl = pathToFileURL(join(legacy ? legacyPlugin : plugin, 'package.json')).href;
-  ctx.baseUrl = packageUrl;
-  await ctx.plugin(Loader, { baseUrl: packageUrl });
-  ctx.loader.builtins['replacement-profile'] = { Config, apply(_scope, raw) { profileRecords = raw.replacementRecords; profileTemplate = raw.template; } };
-  ctx.provide('profileContext', { name: 'isolated-replacement', dir: profileDir, patchPath, home,
-    cwd: workspace, installAnchor: join(runtime, 'package.json'), startedBundles: [], overlays: [], telemetryDisabledEnv: '1' });
-  await boot.mountRootInclude(ctx, basePath, boot.readProfilePatches('dsh', ctx.profileContext));
-  await ctx.loader.await();
-  await ctx.plugin(ConfigEditor); await ctx.plugin(SettingsForms);
+  const selectedPlugin = legacy ? legacyPlugin : plugin;
+  const nextProfileDir = join(lab, 'harness', 'profiles', legacy ? 'replacement-rc6' : 'replacement-acceptance');
+  boot.initProfile(nextProfileDir, [...PROFILE_TEMPLATES.web.bundles, packageName]);
+  await mkdir(join(nextProfileDir, 'node_modules'), { recursive: true });
+  // Separate immutable installation paths avoid Node's package/symlink cache
+  // selecting rc.6 again after upgrade in this one test process. Carry the
+  // exact persisted profile patch forward; native JSONL stays in DSH_HOME.
+  if (resumeRoot && profileDir !== nextProfileDir) await copyFile(patchPath, join(nextProfileDir, 'cordis.patch.yml'));
+  profileDir = nextProfileDir; patchPath = join(profileDir, 'cordis.patch.yml');
+  const link = join(profileDir, 'node_modules', packageName);
+  await rm(link, { force: true });
+  await symlink(selectedPlugin, link, process.platform === 'win32' ? 'junction' : 'dir');
+  const template = JSON.parse(await readFile(join(plugin, 'examples/team-template.json'), 'utf8'));
+  for (const member of template.members) Object.assign(member, { provider: route.provider, model: route.model,
+    reasoning_effort: route.reasoningEffort,
+    native_tool_allowlist: ['team_task_get', 'team_task_update', 'send_message', 'replacement_probe_write'] });
+  if (!resumeRoot) await writeFile(patchPath, JSON.stringify([{ id: REPLACEMENT_OWNER,
+    config: { mode: 'current-session', template, timeoutMs } }]));
+  const installAnchor = require.resolve('@deepseek-ai/dsh/package.json');
+  const profile = boot.loadProfileDirectory('dsh', profileDir, installAnchor);
+  assert.deepEqual(profile.skippedBundles, [], 'every official and candidate bundle must activate');
+  ({ ctx } = await runProfile({
+    environment: createLaunchEnvironmentSnapshot([{ source: 'process', values: process.env }]),
+    profile: 'replacement-acceptance', resolvedProfile: { profile, installAnchor }, patchFiles: [],
+    args: ['--no-open', '--host', '127.0.0.1', '--port', '0'],
+  }));
+  const row = () => ctx.settings.describe({ redactSecrets: true }).find(entry => entry.ns === REPLACEMENT_OWNER);
+  assert.ok(row(), 'the candidate bundle must own its real configurable profile entry');
+  profileRecords = { get: () => row().value.replacementRecords ?? {} };
+  profileTemplate = { get: () => row().value.template };
+  const selected = profileTemplate.get();
   const mutate = ctx.settings.mutate;
   ctx.settings.mutate = async function(ns, ops, revision) {
     if (raceOnFreeze && ns === REPLACEMENT_OWNER && ops.some(item => item.value?.operations?.at(-1)?.phase === 'frozen')) {
@@ -104,27 +151,14 @@ async function startFixture(resumeRoot = false, legacy = false) {
     }
     return Reflect.apply(mutate, this, [ns, ops, revision]);
   };
-  const directories = new Map();
-  ctx.provide('workingDirectory', { get: session => directories.get(session.id) ?? session.header.cwd ?? workspace,
-    async ensure(agent) { return this.get(agent.session); },
-    async set(agent, cwd) { directories.set(agent.id, cwd); return cwd; } });
-  ctx.provide('llm', { async resolveCallConfig(config) { return { ...config }; },
-    async prepareCall(config) { return { config, stream(options) {
-      const request = { ...config, ...options };
-      return ctx.waterfall(ctx.llm, 'llm/stream', request, () => stream(request));
-    } }; } });
-  ctx.provide('approval', { async request() { return 'allowed-once'; } });
-  await ctx.plugin(SessionStore); await ctx.plugin(SessionProjectionRegistry);
-  await ctx.plugin(persistence.default ?? persistence, { root: join(lab, 'sessions'), compression: 'none' });
-  await ctx.plugin(query.default, { path: join(lab, 'query.sqlite'), openAt: 'never' });
-  await ctx.plugin(AgentRegistry); await ctx.plugin(CommandRuntime); await ctx.plugin(SystemPrompt, { includeHarnessIdentity: false });
-  await ctx.plugin(ToolsService); ctx.tools.setExecutor(new NativeToolExecutor(ctx));
-  new SkillRegistry(ctx);
-  await ctx.plugin(AgentPresetRegistry, { default: 'standard' });
-  await ctx.agentPresets.register({ id: 'standard', name: 'Isolated root preset', plugins: [] });
-  await ctx.plugin(subagent.SubagentRuntime, { maxDepth: 1 });
-  await ctx.plugin(spawn.default ?? spawn, { providerName: 'spawn' });
-  await ctx.plugin(TeamService); await ctx.plugin(teamTools.default ?? teamTools);
+  // All services, Preset declarations and current-entry wiring above are the
+  // official Web profile. Only model output and the observable work handler
+  // below are laboratory fixtures; no real model adapter is called.
+  ctx.llm.resolveCallConfig = async config => ({ ...config });
+  ctx.llm.prepareCall = async config => ({ config, stream(options) {
+    const request = { ...config, ...options };
+    return ctx.waterfall(ctx.llm, 'llm/stream', request, () => stream(request));
+  } });
   const nativeGetTask = ctx.agentTeams.getTask;
   ctx.agentTeams.getTask = function(caller, id) {
     const operation = Object.values(profileRecords.get()).flatMap(record => record.operations)
@@ -136,11 +170,10 @@ async function startFixture(resumeRoot = false, legacy = false) {
     }
     return Reflect.apply(nativeGetTask, this, [caller, id]);
   };
-
   const nativeStateOf = ctx.sessionProjections.stateOf.bind(ctx.sessionProjections);
   ctx.sessionProjections.stateOf = (session, key) => key === 'subagentModelSelectionPolicy'
     ? [{ provider: route.provider, model: route.model }] : nativeStateOf(session, key);
-  ctx.tools.register(defineTool({ name: 'write', description: 'Write one file in the isolated acceptance workspace.',
+  ctx.tools.register(defineTool({ name: 'replacement_probe_write', description: 'Write one file in the isolated acceptance workspace.',
     parameters: { content: { type: 'string', required: true } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
     async execute(args, exec) {
@@ -152,21 +185,16 @@ async function startFixture(resumeRoot = false, legacy = false) {
     const target = error.code === 'ISOLATED_CANDIDATE_MODEL_FAILURE' ? expectedErrors : errors;
     target.push({ message: error.message, code: error.code });
   });
-  await ctx.plugin(AgentLoop, { agents: [] });
-  const template = JSON.parse(await readFile(join(plugin, 'examples/team-template.json'), 'utf8'));
-  for (const member of template.members) Object.assign(member, { provider: route.provider, model: route.model,
-    reasoning_effort: route.reasoningEffort, native_tool_allowlist: ['team_task_get', 'team_task_update', 'send_message', 'write'] });
-  const native = await nativeTeamFromHost();
-  const selected = profileTemplate?.get() ?? template;
-  const applyCurrent = legacy ? (await import(pathToFileURL(join(legacyPlugin, 'src/launcher-current.js')).href)).applyCurrentLauncher : applyCurrentLauncher;
-  await ctx.plugin({ name: 'native-current-entry-fixture',
-    inject: ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections',
-      'agentTeams', 'workingDirectory', 'settings', 'sessionQuery', 'sessions', 'skills'],
-    async apply(scope) {
-      control = await applyCurrent(scope, { mode: 'current-session', template: selected, timeoutMs }, native.nativeSubagent, native.controlEntry,
-        { readTemplate: () => profileTemplate?.get() ?? template, readRecords: () => profileRecords.get() });
-      if (!legacy) await applyTeamReplacement(scope, control, { defineTool });
-    } });
+  ctx.on('subagent/start', info => {
+    if (info.parentSessionId !== ROOT) return;
+    const child = ctx.agents.get(info.id);
+    nativeStarts.push({ id: info.id, childId: child?.id, sessionId: child?.session.id,
+      present: Boolean(child), origin: child?.session.header.origin, rootCwd: ctx.workingDirectory.get(rootHandle.agent.session),
+      parent: child?.session.header.parentSession, cwd: child && ctx.workingDirectory.get(child.session),
+      preset: child && ctx.agentPresets.composedPreset(child.ctx), model: child?.model.current(),
+      maxTokens: child?.options.maxTokens, idleHook: typeof child?.whenIdle,
+      eventHook: typeof child?.ctx.on, toolGuard: typeof child?.ctx.tools?.guard });
+  });
   const setup = async agentCtx => { await ctx.agentPresets.mount(agentCtx, 'standard'); };
   rootHandle = resumeRoot
     ? await ctx.agents.resume({ resumeSessionId: ROOT, agentOptions: route, setup })
@@ -238,7 +266,7 @@ try {
       assert.equal(planned.result.kind, 'success', planned.result.text);
     } else {
     const attempt = await invokeReplacement({ action: 'replace', role: 'implementer', expectedOldChildId: OLD, ...route,
-      personaPrompt: 'New explicit persona.', prompt: 'Continue.', tools: ['team_task_get', 'team_task_update', 'send_message', 'write'], progressFacts: 'Original team retained.' });
+      personaPrompt: 'New explicit persona.', prompt: 'Continue.', tools: ['team_task_get', 'team_task_update', 'send_message', 'replacement_probe_write'], progressFacts: 'Original team retained.' });
     assert.equal(attempt.code, 'REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED');
     const rejected = await invokeReplacement({ action: 'adopt', template: changed });
     assert.equal(rejected.code, 'REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED');
@@ -281,7 +309,7 @@ try {
 
   const replacementRequest = { action: 'replace', role: 'implementer', expectedOldChildId: OLD, ...route,
     personaPrompt: 'Continue the existing task with observable evidence.', prompt: 'Perform useful work, then update the task.',
-    tools: ['team_task_get', 'team_task_update', 'send_message', 'write'],
+    tools: ['team_task_get', 'team_task_update', 'send_message', 'replacement_probe_write'],
     progressFacts: 'Existing task and description are authoritative; no background jobs or active descendants.' };
   raceOnFreeze = true;
   const raced = await invokeReplacement(replacementRequest);
@@ -372,9 +400,9 @@ try {
   await ctx.settings.update(REPLACEMENT_OWNER, { template: changedDefaults }, store.read().revision);
   await stopFixture();
   await startFixture(true);
-  assert.equal(control.hasBinding(ROOT), true, 'cold bindings must mount before any command is invoked');
+  assert.ok(ctx.tools.get('dsh_team_replace', scopeOf(rootHandle.agent.ctx)), 'cold root tools must mount before any command is invoked');
   assert.deepEqual(createReplacementStore(ctx.settings, ROOT).read().value, savedRecord);
-  const resumedInspect = await control.replacement({ agent: rootHandle.agent, signal, action: 'inspect' });
+  const resumedInspect = await invokeReplacement({ action: 'inspect' });
   assert.equal(resumedInspect.roles.find(role => role.role === 'implementer').currentChildId, activeId);
   const coldOldCalls = providerCalls.filter(call => call.childId === OLD).length;
   await ctx.subagents.sendMessage(rootHandle.agent, OLD, [{ type: 'text', text: 'Retired after complete reload.' }], { signal });
@@ -402,7 +430,9 @@ for (const name of ['current-entry.js', 'src/team-addressing.js', 'role-control.
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }
 const result = { sourceHead, runtime, isolatedDataRemoved: true, passed: checks.length > 0 && checks.every(check => check.passed) && errors.length === 0,
-  hashes, checks, errors, expectedErrors, providerCalls, writes, originalWrites, faults };
+  profile: { bundles: [...PROFILE_TEMPLATES.web.bundles, packageName], standard: 'official-unmodified-web',
+    accountCredentialsInherited: false, scriptedModel: true },
+  hashes, checks, errors, expectedErrors, providerCalls, writes, originalWrites, faults, nativeStarts };
 await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
 process.stdout.write(JSON.stringify(result) + '\n');
 if (!result.passed) process.exitCode = 1;
