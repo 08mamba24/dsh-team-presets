@@ -138,7 +138,10 @@ export async function registerLauncherPresets(ctx, config, spec, nativeControlEn
   try {
     for (const role of roles) {
       const dispose = await ctx.agentPresets.register({ id: role.preset, name: `Launcher role ${role.role}`, plugins: [
-        { id: `${role.preset}-native-control`, name: control.name, config: { interrupt: false } },
+        config.replacementOwner === undefined
+          ? { id: `${role.preset}-native-control`, name: control.name, config: { interrupt: false } }
+          : { id: `${role.preset}-native-control`, name: 'dsh-subagent-live-rc2-local/role-control',
+            config: { ownedSessionId: owner, replacementOwner: REPLACEMENT_OWNER } },
         { id: `${role.preset}-persona`, name: 'dsh-subagent-live-rc2-local/launcher-role',
           config: { ownedSessionId: owner, roleName: role.role, personaPrompt: role.persona, tools: [...role.tools],
             ...(config.replacementOwner !== undefined ? { replacementOwner: REPLACEMENT_OWNER } : {}),

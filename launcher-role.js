@@ -1,6 +1,7 @@
 import { captureRoleToolAuthority, validRoleToolList } from './src/role-tools.js';
 import { readReplacementRecord, eligibilityOf, candidateEligibility, STANDBY_TOOLS } from './src/member-replacement.js';
 import { REPLACEMENT_OWNER, readReplacementRow } from './src/replacement-store.js';
+import { isReusableLogicalTeamTaskDelegate, registerReusableLogicalTeamTaskDelegate } from './src/team-addressing.js';
 
 const CONFIG_KEYS = ['ownedSessionId', 'roleName', 'personaPrompt', 'tools', 'standbyOperationId', 'replacementOwner'];
 const LEAD_NAME = 'lead';
@@ -175,13 +176,15 @@ export async function apply(ctx, raw) {
         if (definition !== shared.get(name)) {
           // Keep the actual native schema/body and service closure. Never copy
           // a conditional registration without its private activation callback.
-          if (ctx.tools.executable(name, root) !== definition) fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
+          const reusable = isReusableLogicalTeamTaskDelegate(definition);
+          if (ctx.tools.executable(name, root) !== definition && !reusable) fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
           const existing = delegated.get(name);
           if (existing !== undefined && existing !== definition) fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
           if (existing === undefined) {
             // Own the definition in the role Preset. The child inherits it, so
             // every subsequent native child/Preset restriction still applies.
-            ctx.tools.register(definition);
+            if (reusable) registerReusableLogicalTeamTaskDelegate(ctx, definition);
+            else ctx.tools.register(definition);
             delegated.set(name, definition);
           }
         }

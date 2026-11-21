@@ -6,7 +6,7 @@ const ROOT = 'session-10000000-0000-4000-8000-000000000001';
 const OLD = 'session-10000000-0000-4000-8000-000000000002';
 const NEW = 'session-10000000-0000-4000-8000-000000000003';
 const OP = { id: 'replace-10000000-0000-4000-8000-000000000004', newChildId: NEW,
-  instanceName: 'implementer-r1',
+  role: 'implementer', instanceName: 'implementer-r1',
   handoffDigest: 'a'.repeat(64), candidateConfig: JSON.stringify({ instanceName: 'implementer-r1' }) };
 const ack = () => JSON.stringify({ ready: true, operation: OP.id, handoff: OP.handoffDigest });
 
@@ -31,6 +31,20 @@ test('takeover needs an authenticated successful native call/result pair with th
   assert.equal(writes[0].handoffDigest, OP.handoffDigest); assert.equal(writes[0].resultSeq, 4);
   for (const pair of [[result(task)], [call, result(task, true)], [call, result({ ...task, revision: 7 })],
     [call, result({ ...task, owner: 'lead' })]]) assert.deepEqual(nativeTaskWrites(pair, NEW, OP), []);
+});
+
+test('logical TaskView owner still proves the exact candidate write and never another role or child', () => {
+  const call = { seq: 3, type: 'tool/call', data: { callId: 'logical-write', name: 'team_task_update',
+    arguments: JSON.stringify({ task_id: 'task-1', expected_revision: 7, action: 'edit' }) } };
+  const result = owner => ({ seq: 4, type: 'tool/result', data: { message: {
+    toolCallId: 'logical-write', isError: false,
+    content: [{ type: 'text', text: JSON.stringify({ id: 'task-1', revision: 8, owner }) }],
+  } } });
+  assert.equal(nativeTaskWrites([call, result('implementer')], NEW, OP).length, 1);
+  for (const owner of ['reviewer', 'lead', 'implementer-r2', undefined]) {
+    assert.deepEqual(nativeTaskWrites([call, result(owner)], NEW, OP), []);
+  }
+  assert.deepEqual(nativeTaskWrites([call, result('implementer')], OLD, OP), []);
 });
 
 function fixture({ cold = false, activeJob = false, status = 'idle', queued = false, openTurn = false } = {}) {
@@ -66,4 +80,10 @@ test('freeze claims the old Agent maintenance phase without requiring the tool-c
   const value = await maintainReplacementTree(h.ctx, h.root, OLD, new AbortController().signal,
     async () => { h.order.push('freeze'); return 'persisted'; });
   assert.equal(value, 'persisted'); assert.deepEqual(h.order, ['old-maintenance', 'freeze']);
+});
+
+test('unrelated unowned job progress does not invalidate the target member quiet snapshot', async () => {
+  const h = fixture({ cold: true }); let progress = 0;
+  h.ctx.get = () => ({ list: () => [{ id: 'unowned-other-work', status: 'running', output: { total: ++progress } }] });
+  assert.equal(await maintainReplacementTree(h.ctx, h.root, OLD, new AbortController().signal, async () => 'frozen'), 'frozen');
 });

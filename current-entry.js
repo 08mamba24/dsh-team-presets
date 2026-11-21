@@ -4,6 +4,7 @@ import { nativeConfigurationFromHost } from './src/configure-host.js';
 import { applyTeamConfigurator } from './src/team-configure.js';
 import { ROOT_SESSION_ID } from './src/replacement-store.js';
 import { applyTeamReplacement } from './src/team-replace.js';
+import { installRootAddressing } from './src/team-addressing.js';
 
 const nativeConfiguration = await nativeConfigurationFromHost();
 const { Schema } = nativeConfiguration;
@@ -24,7 +25,8 @@ export async function apply(ctx, raw) {
   const readTemplate = () => raw.template?.get();
   const launcher = await applyCurrentLauncher(ctx, { mode: raw.mode, template: readTemplate(),
     timeoutMs: raw.timeoutMs, maxStreams: raw.maxStreams }, nativeSubagent, controlEntry,
-  { readTemplate, readRecords: () => raw.replacementRecords.get() });
+  { readTemplate, readRecords: () => raw.replacementRecords.get(),
+    prepareRoot: agent => installRootAddressing(ctx, agent) });
   await applyTeamConfigurator(ctx, launcher, nativeConfiguration);
   await applyTeamReplacement(ctx, launcher, nativeConfiguration);
 }

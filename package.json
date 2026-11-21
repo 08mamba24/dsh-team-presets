@@ -7,8 +7,8 @@
   "repository": { "type": "git", "url": "git+https://github.com/08mamba24/dsh-team-presets.git" },
   "bin": { "dsh-team-prepare": "./scripts/prepare-launcher.mjs" },
   "engines": { "node": ">=22", "dsh": "0.2.2-rc.2 || 0.2.2-rc.5" },
-  "exports": { ".": "./index.js", "./role": "./role.js", "./team": "./team-entry.js", "./team-role": "./team-role.js", "./launcher": "./launcher-entry.js", "./launcher-role": "./launcher-role.js", "./current": "./current-entry.js" },
-  "files": ["index.js", "role.js", "team-entry.js", "team-role.js", "launcher-entry.js", "launcher-role.js", "current-entry.js", "src", "scripts", "examples", "skills", "docs", "licenses", "THIRD_PARTY_NOTICES.md", "cordis.patch.yml", "README.md", "README.zh-CN.md"],
+  "exports": { ".": "./index.js", "./role": "./role.js", "./team": "./team-entry.js", "./team-role": "./team-role.js", "./launcher": "./launcher-entry.js", "./launcher-role": "./launcher-role.js", "./role-control": "./role-control.js", "./current": "./current-entry.js" },
+  "files": ["index.js", "role.js", "team-entry.js", "team-role.js", "launcher-entry.js", "launcher-role.js", "role-control.js", "current-entry.js", "src", "scripts", "examples", "skills", "docs", "licenses", "THIRD_PARTY_NOTICES.md", "cordis.patch.yml", "README.md", "README.zh-CN.md"],
   "scripts": { "test": "node --test test/*.test.mjs", "check:compat": "node scripts/check-host-compat.mjs" },
   "dsh": { "manifestVersion": 1, "bundle": { "patch": "./cordis.patch.yml", "platforms": ["darwin", "win32"] } }
 }

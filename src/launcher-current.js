@@ -10,6 +10,7 @@ import { REPLACEMENT_OWNER, readReplacementRow, createReplacementStore } from '.
 import { launcherTemplateFingerprint } from './launcher-template.js';
 import { readReplacementRecord, eligibilityOf } from './member-replacement.js';
 import { observeLauncherMembers } from './launcher-native.js';
+import { installRootAddressing } from './team-addressing.js';
 
 const digest = value => createHash('sha256').update(value).digest('hex');
 const codeOf = error => /^[A-Z][A-Z0-9_]{0,95}$/.test(error?.code) ? error.code : 'CURRENT_SESSION_SETUP_FAILED';
@@ -69,20 +70,32 @@ function assertRoot(ctx, agent, binding) {
 export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntry, liveConfig) {
   const config = options(raw);
   if (typeof ctx.plugin !== 'function' || typeof ctx.commands?.register !== 'function'
-    || typeof ctx.agents?.get !== 'function' || typeof ctx.effect !== 'function'
+    || typeof ctx.agents?.get !== 'function' || typeof ctx.agents.list !== 'function'
+    || typeof ctx.on !== 'function' || typeof ctx.effect !== 'function'
     || typeof ctx.workingDirectory?.get !== 'function') fail('HOST_CONTRACT_UNAVAILABLE');
   const bundled = JSON.parse(await readFile(new URL('../examples/team-template.json', import.meta.url), 'utf8'));
   const input = config.template ?? bundled;
   validateLauncherTemplate(input);
   const template = structuredClone(input);
   const defaultTemplate = agent => {
-    const current = liveConfig ? liveConfig.readTemplate() ?? defaultWorkTemplate(ctx, agent, bundled)
+    const current = typeof liveConfig?.readTemplate === 'function' ? liveConfig.readTemplate() ?? defaultWorkTemplate(ctx, agent, bundled)
       : config.template === undefined ? defaultWorkTemplate(ctx, agent, bundled) : template;
     validateLauncherTemplate(current);
     return structuredClone(current);
   };
   const instances = new Map();
+  const prepareRoot = liveConfig?.prepareRoot ?? (agent => installRootAddressing(ctx, agent));
   let closing = false, busy = false, outstanding = false;
+
+  async function readyRoot(agent) {
+    const instance = instances.get(agent.id);
+    assertRoot(ctx, agent, instance.config);
+    const handler = await instance.ready;
+    await prepareRoot(agent);
+    if (closing) fail('UNLOADING');
+    assertRoot(ctx, agent, instance.config);
+    return handler;
+  }
 
   function installBinding(rootId, workspace, scoped, record) {
     const suffix = digest(rootId).slice(0, 24);
@@ -126,14 +139,14 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
   async function bindingFor(agent, originalTemplate, signal) {
     const workspace = assertRoot(ctx, agent), existing = instances.get(agent.id);
     if (existing) {
-      assertRoot(ctx, agent, existing.config);
-      return existing.ready;
+      return readyRoot(agent);
     }
     const record = readReplacementRecord(readReplacementRow(ctx.settings, agent.id).value);
     if (record.baseBinding !== undefined) {
       const binding = savedBinding(record);
       if (binding.workspace !== workspace) fail('CURRENT_SESSION_BINDING_CHANGED');
-      return installBinding(agent.id, workspace, binding.template, record);
+      await installBinding(agent.id, workspace, binding.template, record);
+      return readyRoot(agent);
     }
     if (record.operations.length) fail('REPLACEMENT_BASE_BINDING_UNAVAILABLE');
     const suffix = digest(agent.id).slice(0, 24), scoped = originalTemplate === undefined
@@ -161,7 +174,8 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
     // Persist before registering a managed Preset: even a plan followed by an
     // existing native child's continuation must have a verifiable partition.
     const saved = await createReplacementStore(ctx.settings, agent.id).ensure(JSON.stringify({ workspace, template: scoped }));
-    return installBinding(agent.id, workspace, scoped, saved);
+    await installBinding(agent.id, workspace, scoped, saved);
+    return readyRoot(agent);
   }
 
   // Restore original and replacement Presets before any cold member can be
@@ -178,6 +192,15 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
       await installBinding(rootId, binding.workspace, binding.template, record);
     } catch (error) { restoreFailures.set(rootId, codeOf(error)); }
   }
+  // Serial native creation covers cold resume before its first model/tool step;
+  // the scan covers roots already alive when this profile entry is reloaded.
+  const prepareRetainedRoot = async agent => {
+    if (agent?.session?.header?.origin === 'subagent') return;
+    if (restoreFailures.has(agent?.id)) fail(restoreFailures.get(agent.id));
+    if (instances.has(agent?.id)) await readyRoot(agent);
+  };
+  ctx.on('agent/created', ({ agent }) => prepareRetainedRoot(agent));
+  for (const agent of ctx.agents.list()) await prepareRetainedRoot(agent);
 
   async function invoke(request) {
     try {

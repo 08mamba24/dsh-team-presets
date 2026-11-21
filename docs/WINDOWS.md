@@ -46,8 +46,9 @@ rc.7 推荐使用会话 skill，可逐角色修改 provider、model、effort、�
 - 重启后回读已保存模板及配置、替换两个 skill，卸载后确认两个 skill 同时消失。
 - 在官方 Electron 中执行已安装 TGZ 的原生准入、profile 持久化和完整替换脚本。使用本地 scripted provider 与独立临时 Session/profile，覆盖 Standby、真实任务改派／写回、失败同候选恢复、多任务部分移交、依赖拒绝、取消及完整 Loader 重载；无账号或远程推理。另下载并校验固定 rc.6 包，以未改旧实现通过原生 Commands 建队，再分别验证原默认值自动迁移、默认值改变后验证 adopt 的完整链路。
 - 在官方 Electron 内导入真实 ToolsService、原生执行器、Scope 与 SkillRegistry，验证角色工具隔离、临时文件读写、父级限制、最终拒绝及旧 skill 缓存替换；该探针使用隔离身份和临时文件处理函数，不声称验证了 OS 沙箱后端。
+- 在同一原生工具管线验证稳定角色的消息、列表、任务 owner 寻址；完整替换脚本还通过真实 manager 和 JSONL 验证首次、再次替换与冷重载后的实际消息投递。
 
-`windows-host-<commit>` artifact 保存 `artifact.json`、`acceptance.json`、`native-admission.json`、`native-replacement-store.json`、`native-replacement.json` 与有界日志。`acceptance.json.status=passed` 才表示上述 Host 链路全部通过；TGZ artifact 只在全部步骤成功时上传。临时 profile、账号目录和原始会话文件不上传。
+`windows-host-<commit>` artifact 保存 `artifact.json`、`acceptance.json`、`native-admission.json`、`native-replacement-store.json`、`native-team-addressing.json`、`native-replacement.json` 与有界日志。`acceptance.json.status=passed` 才表示上述 Host 链路全部通过；TGZ artifact 只在全部步骤成功时上传。临时 profile、账号目录和原始会话文件不上传。
 
 **这不证明 Windows GUI 操作、模型驱动的完整 skill 对话、实际 provider 的 effort 元数据解析、真实 provider 的双模型建队或后续协作已经通过。** 配置工具的审批、局部修改、并发冲突、取消和写入不确定分支通过隔离测试覆盖；真实 Host 链路使用原生设置 RPC。模型行为仍需明确授权的测试账号与预算，不能引用历史 macOS low-effort 结果代替。
 

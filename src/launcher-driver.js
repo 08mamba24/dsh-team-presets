@@ -50,7 +50,7 @@ function startupPrompt(member, op, template) {
 export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry, currentBinding) {
   if (rawConfig?.mode === 'current-session') {
     const { applyCurrentLauncher } = await import('./launcher-current.js');
-    return applyCurrentLauncher(ctx, rawConfig, nativeSubagent, controlEntry);
+    return applyCurrentLauncher(ctx, rawConfig, nativeSubagent, controlEntry, currentBinding);
   }
   const config = parseLauncherConfig(rawConfig);
   if (!config) {

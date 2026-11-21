@@ -31,7 +31,7 @@ export function nativeReadiness(messages, operation) {
 /** Inspect a child's own native tool call/result pairs. An owner field by itself,
  * an assistant claim or a failed/stale write is never a takeover receipt. */
 export function nativeTaskWrites(events, childId, operation) {
-  if (typeof operation.instanceName !== 'string') return [];
+  if (typeof operation.instanceName !== 'string' || childId !== operation.newChildId) return [];
   const calls = new Map(), writes = [];
   for (const event of events) {
     if (event.type === 'tool/call' && event.data?.name === 'team_task_update') {
@@ -47,7 +47,13 @@ export function nativeTaskWrites(events, childId, operation) {
       if (result.isError === true) continue;
       let task;
       try { task = JSON.parse(textOf(result)); } catch { continue; }
-      if (task?.id !== call.args.task_id || task.owner !== operation.instanceName
+      // Retained pre-projection native results use the physical instance name;
+      // current native TaskView uses its stable logical role. Identity comes
+      // from the candidate's own Session, then the live Board owner is checked
+      // before persisting proof. A display name alone grants no authority.
+      const ownName = task?.owner === operation.instanceName
+        || (['implementer', 'reviewer'].includes(operation.role) && task?.owner === operation.role);
+      if (task?.id !== call.args.task_id || !ownName
         || task.revision !== call.args.expected_revision + 1) continue;
       writes.push({ childId, operationId: operation.id, handoffDigest: operation.handoffDigest,
         taskId: task.id, revision: task.revision, expectedRevision: call.args.expected_revision,
@@ -100,7 +106,7 @@ export async function quietReplacementTree(ctx, root, childId, signal) {
       const work = jobs.list(row.id);
       if (!Array.isArray(work)) fail('REPLACEMENT_BACKGROUND_UNOBSERVABLE');
       if (work.some(job => job.owner === row.id && ['running', 'stopping'].includes(job.status))) fail('REPLACEMENT_BACKGROUND_ACTIVE');
-      jobSnapshot = structuredClone(work);
+      jobSnapshot = structuredClone(work.filter(job => job.owner === row.id));
     }
     const agent = ctx.agents.get(row.id);
     if (agent !== undefined) {

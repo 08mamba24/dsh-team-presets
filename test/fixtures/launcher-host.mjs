@@ -351,6 +351,9 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       if (entry.name === CONTROL.name) {
         assert.deepEqual(entry.config, { interrupt: false });
         ['send_message', 'wait_agent', 'list_agents'].forEach(name => ancestor.add(name));
+      } else if (entry.name === 'dsh-subagent-live-rc2-local/role-control') {
+        assert.deepEqual(entry.config, { ownedSessionId: root.id, replacementOwner: 'dsh-native-current-team' });
+        ['send_message', 'wait_agent', 'list_agents'].forEach(name => ancestor.add(name));
       } else {
         assert.equal(entry.name, 'dsh-subagent-live-rc2-local/launcher-role');
         await applyLauncherRole({ tools: { ...ctx.tools,
@@ -420,7 +423,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       get(session) { return session.id === root.id ? effectiveWorkspace : childWorkspaces.get(session.id) ?? session.header.cwd; },
       async set(agent, cwd) { assert.equal(agent, root); effectiveWorkspace = cwd; return cwd; },
     },
-    agents: { get: id => agents.get(id) }, agentTeams: board,
+    agents: { get: id => agents.get(id), list: () => [...agents.values()] }, agentTeams: board,
     sessionProjections: { stateOf(_session, key) {
       if (key === 'agentTeam') return { ...(enabled ? { enabled: true } : options.rawEnabledMissing ? {} : { enabled: false }),
         id: root.id, inheritedEventCount: 0, tasks: [...tasks.values()].map(clone), nextTaskNumber: nextTask };

@@ -121,6 +121,7 @@ async function startFixture(resumeRoot = false, legacy = false) {
   await ctx.plugin(ToolsService); ctx.tools.setExecutor(new NativeToolExecutor(ctx));
   new SkillRegistry(ctx);
   await ctx.plugin(AgentPresetRegistry, { default: 'standard' });
+  await ctx.agentPresets.register({ id: 'standard', name: 'Isolated root preset', plugins: [] });
   await ctx.plugin(subagent.SubagentRuntime, { maxDepth: 1 });
   await ctx.plugin(spawn.default ?? spawn, { providerName: 'spawn' });
   await ctx.plugin(TeamService); await ctx.plugin(teamTools.default ?? teamTools);
@@ -166,9 +167,10 @@ async function startFixture(resumeRoot = false, legacy = false) {
         { readTemplate: () => profileTemplate?.get() ?? template, readRecords: () => profileRecords.get() });
       if (!legacy) await applyTeamReplacement(scope, control, { defineTool });
     } });
+  const setup = async agentCtx => { await ctx.agentPresets.mount(agentCtx, 'standard'); };
   rootHandle = resumeRoot
-    ? await ctx.agents.resume({ resumeSessionId: ROOT, agentOptions: route })
-    : await ctx.agents.create({ sessionId: ROOT, meta: { cwd: workspace }, agentOptions: route });
+    ? await ctx.agents.resume({ resumeSessionId: ROOT, agentOptions: route, setup })
+    : await ctx.agents.create({ sessionId: ROOT, meta: { cwd: workspace }, agentOptions: route, setup });
   return selected;
 }
 
@@ -177,16 +179,43 @@ async function stopFixture() {
   if (ctx) { const previous = ctx; ctx = undefined; await previous.fiber.dispose(); }
 }
 
-async function invokeReplacement(args) {
+async function invokeRootTool(name, args) {
   await rootHandle.agent.whenIdle();
   const toolSet = await ctx.tools.resolve({ agent: rootHandle.agent, modelSelection: route, signal });
   try {
     // An Agent tool already owns the root phase. It cannot acquire root maintenance.
     const batch = await rootHandle.agent.runMaintenance(() => ctx.tools.execute({ agent: rootHandle.agent, signal, toolSet,
-      calls: [{ type: 'tool-call', id: 'replace-' + randomUUID(), name: 'dsh_team_replace', arguments: JSON.stringify(args) }] }));
-    assert.notEqual(batch.results[0].result.isError, true, JSON.stringify(batch.results[0].result));
-    return JSON.parse(batch.results[0].result.content[0].text);
+      calls: [{ type: 'tool-call', id: 'root-call-' + randomUUID(), name, arguments: JSON.stringify(args) }] }));
+    return batch.results[0].result;
   } finally { toolSet.dispose(); }
+}
+
+async function invokeReplacement(args) {
+  const result = await invokeRootTool('dsh_team_replace', args);
+  assert.notEqual(result.isError, true, JSON.stringify(result));
+  return JSON.parse(result.content[0].text);
+}
+
+async function assertNativeAddressing(childId, label) {
+  const listed = await invokeRootTool('list_agents', {});
+  assert.equal(listed.isError, false, JSON.stringify(listed));
+  assert.equal(listed.value.filter(member => member.name === 'implementer').length, 1);
+  assert.equal(listed.value.some(member => /^implementer-r\d+(?:\/|$)/.test(member.name)), false);
+  const owned = await invokeRootTool('team_task_list', { owner: 'implementer' });
+  assert.equal(owned.isError, false, JSON.stringify(owned));
+  assert.ok(owned.value.tasks.some(task => task.id === taskId && task.owner === 'implementer'));
+  assert.equal((await invokeRootTool('send_message', { agent: OLD, message: 'Forbidden retired address.' })).isError, true);
+  const message = `Native logical address ${label}.`;
+  const sent = await invokeRootTool('send_message', { agent: 'implementer', message });
+  assert.equal(sent.isError, false, JSON.stringify(sent));
+  await pollReplacement(signal, timeoutMs, async () => ctx.agents.get(childId) === undefined ? true : undefined, 'LOGICAL_DELIVERY_NOT_SETTLED');
+  const events = await ownSessionEvents(ctx, childId, signal);
+  const delivered = events.flatMap(event => event.type === 'user/message' ? [event.data]
+    : event.type === 'agent/inbox/spliced' ? event.data.inserted ?? [] : []);
+  assert.ok(delivered.some(item => item.source?.senderSessionId === ROOT
+    && item.content?.some(block => block.type === 'text' && block.text === message)));
+  assert.equal(ctx.agentTeams.getTask(rootHandle.agent, taskId).ownerId, childId);
+  check(`real native root send/list/task-owner addressing follows ${label}`, { childId });
 }
 
 try {
@@ -289,6 +318,7 @@ try {
   assert.equal(errors.length, 0, JSON.stringify(errors));
   check('a real cold continuation of the retired member reaches no provider or business tool and produces no Agent exception');
   await pollReplacement(signal, timeoutMs, async () => ctx.agents.get(result.newChildId) === undefined ? true : undefined, 'FIRST_ACTIVE_NOT_SETTLED');
+  await assertNativeAddressing(result.newChildId, 'the first replacement');
   const secondTask = await ctx.agentTeams.createTask(rootHandle.agent, { subject: 'Second unfinished task',
     description: 'Keep the second task progress.', blockedBy: [dependency.id] }, signal);
   await ctx.agentTeams.updateTask(rootHandle.agent, { taskId: secondTask.id, expectedRevision: secondTask.revision,
@@ -308,6 +338,7 @@ try {
   assert.equal(ctx.agentTeams.getTask(rootHandle.agent, secondTask.id).ownerId, recovered.newChildId);
   assert.deepEqual(ctx.agentTeams.getTask(rootHandle.agent, secondTask.id).blockedBy, [dependency.id]);
   check('a second replacement recovers a real partial multi-task transfer using the same candidate and preserves native dependencies', { faults });
+  await assertNativeAddressing(recovered.newChildId, 'the second replacement');
   const cancelAfterTransfer = await invokeReplacement({ action: 'cancel', operationId: recovered.operationId });
   assert.equal(cancelAfterTransfer.code, 'REPLACEMENT_CANNOT_CANCEL_AFTER_TRANSFER');
   const activeId = recovered.newChildId;
@@ -357,6 +388,7 @@ try {
   assert.equal(ctx.agentTeams.getTask(rootHandle.agent, taskId).ownerId, activeId);
   assert.equal(errors.length, 0, JSON.stringify(errors));
   check('fresh Loader/profile/JSONL reload mounts the original and candidate Presets before continuation, retains the current mapping, blocks old and permits new');
+  await assertNativeAddressing(activeId, 'the retained replacement after full reload');
 
 } catch (error) {
   checks.push({ name: 'native replacement failure', passed: false, error: { code: error.code ?? null, message: error.message, stack: error.stack }, errors });
@@ -365,7 +397,7 @@ try {
   await rm(lab, { recursive: true, force: true });
 }
 const hashes = {};
-for (const name of ['src/launcher-current.js', 'src/launcher-driver.js', 'src/launcher-replace.js', 'src/member-replacement.js',
+for (const name of ['current-entry.js', 'src/team-addressing.js', 'role-control.js', 'src/launcher-current.js', 'src/launcher-driver.js', 'src/launcher-replace.js', 'src/member-replacement.js',
   'src/replacement-native.js', 'src/replacement-store.js', 'launcher-role.js', 'src/team-replace.js']) {
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }

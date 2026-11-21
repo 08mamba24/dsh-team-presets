@@ -310,6 +310,7 @@ async function accept(paths) {
     // services. Each script creates and removes its own profile/Session data.
     await runNativeAcceptance(installedRoot, 'accept-native-admission.mjs', 'native-admission.json');
     await runNativeAcceptance(installedRoot, 'accept-native-replacement-store.mjs', 'native-replacement-store.json');
+    await runNativeAcceptance(installedRoot, 'probe-native-team-addressing.mjs', 'native-team-addressing.json');
     await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement.json');
     if (paths.legacyPlugin) {
       const legacy = JSON.parse(await readFile(join(paths.legacyPlugin, 'package.json'), 'utf8'));

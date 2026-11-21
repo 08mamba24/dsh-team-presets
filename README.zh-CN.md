@@ -105,6 +105,8 @@ Agent 先调用 `dsh_team_replace action: inspect`，再将精确的 `expectedOl
 
 系统先持久冻结旧成员的执行资格，再创建强制 Standby 候选。候选只可读取交接任务，并向 Lead 发送绑定 operation、handoff、config 的精确就绪 ACK。Lead 逐任务按原生 revision CAS 改派，全部确认后才放行工作。已完成任务、依赖、进度与双方 Session 历史保留。`activating` 表示获准工作、接管仍待证明；候选自己的原生工具调用和成功任务写回匹配后才进入 `active`。没有未完成任务时明确返回 `not-required`。就绪 ACK 本身不代表接管成功。
 
+替换后，Lead 和同伴仍使用 `implementer`、`reviewer` 发消息和填写任务 owner。原生工具结果显示当前逻辑角色，多次替换和重载后继续有效；旧名称和退役 Session ID 会被拒绝。替换尚未完成时，该业务角色暂不可寻址，应 inspect 或 recover 原操作。
+
 遇到超时、部分改派或写入不确定，先 inspect，再对原 operationId 调用 `recover`。恢复会重新核对当前 owner/status，并续接同一个候选 Session，不重复创建。首次 owner 写入意图之前可明确调用 `cancel`，包括候选尚未创建的冻结计划；确认候选已停止、任务 owner 安全后才解冻旧成员。首次 owner 意图之后只能恢复对账，旧成员持续退役。
 
 旧版本团队可在原生启动指纹和 child header 均验证原绑定后自动迁移。默认值已改变时会返回 `REPLACEMENT_ORIGINAL_TEMPLATE_REQUIRED`，需向 `dsh_team_replace action: adopt` 提供完整原模板，由工具验证后才注册受管 Preset；无法找回原配置时保留现场，不猜旧 persona。
