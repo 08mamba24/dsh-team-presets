@@ -422,6 +422,9 @@ try {
   checks.push({ name: 'native replacement failure', passed: false, error: { code: error.code ?? null, message: error.message, stack: error.stack }, errors });
 } finally {
   await stopFixture().catch(error => { errors.push({ message: error.message }); });
+  // Windows cannot remove this process's cwd. All owned services are stopped;
+  // leave the laboratory workspace before removing its complete data tree.
+  process.chdir(dirname(lab));
   await rm(lab, { recursive: true, force: true });
 }
 const hashes = {};
