@@ -16,7 +16,7 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
   const { roleToolCatalog } = await import(pathToFileURL(join(plugin, 'src', 'role-tools.js')).href);
   const { applyTeamConfigurator } = await import(pathToFileURL(join(plugin, 'src', 'team-configure.js')).href);
   const ctx = new Context(), checks = [];
-  const scopes = [];
+  const scopes = [], presetContexts = new WeakMap();
   ctx.provide('systemPrompt', { tools() { return () => {}; }, section() { return () => {}; } });
   new ToolsService(ctx); new SkillRegistry(ctx);
   ctx.tools.setExecutor(new NativeToolExecutor(ctx));
@@ -38,10 +38,13 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
   const signal = new AbortController().signal;
   let sequence = 0;
   async function child(role, tools) {
-    const presetKey = {}, preset = createScope(ctx, presetKey, { parent: root }); scopes.push(preset);
+    // Native standing Presets have their own generation scope, rather than
+    // inheriting an unrelated root Agent's scoped registrations.
+    const presetKey = {}, preset = createScope(ctx, presetKey); scopes.push(preset);
     await applyRole(preset.ctx, { ownedSessionId: root.id, roleName: role, personaPrompt: 'Native tool probe.', tools });
     const agent = { id: `native-probe-${role}`, session: { header: { origin: 'subagent', parentSession: root.id } } };
     const scope = createScope(ctx, agent, { parent: presetKey }); scopes.push(scope); agent.ctx = scope.ctx;
+    presetContexts.set(agent, preset.ctx);
     await ctx.serial(scopeTarget(agent, agent), 'agent/created', { agent });
     return agent;
   }
@@ -71,11 +74,13 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     assert.equal(bodyWrites, 1);
     assert.equal(await readFile(allowed, 'utf8'), 'native executor wrote this');
     deny(); checks.push('native-final-guard-refusal-is-preserved');
-    const restrict = root.ctx.tools.restrict({ deny: ['write'] });
+    const rootRestriction = root.ctx.tools.restrict({ deny: ['write'] });
     assert.equal(roleToolCatalog(ctx, root).some(tool => tool.name === 'write'), false);
+    rootRestriction();
+    const restrict = presetContexts.get(writer).tools.restrict({ deny: ['write'] });
     assert.equal((await call(writer, 'write', { content: 'must not run' })).isError, true);
     assert.equal(bodyWrites, 1); restrict();
-    checks.push('parent-native-restriction-intersects-role-selection');
+    checks.push('native-preset-mask-intersection-and-root-catalog-restriction');
 
     const base = JSON.parse(await readFile(join(plugin, 'examples', 'team-template.json'), 'utf8'));
     ctx.provide('settings', { describe: () => [{ ns: 'dsh-native-current-team', revision: 1, value: { template: base } }],
