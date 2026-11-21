@@ -1,8 +1,8 @@
 # DSH 团队预设与一键建队
 
-在 DeepSeek Harness 的目标会话中，一次创建 implementer 和 reviewer，为两者分别配置模型路由、持久角色提示词与原生任务／消息工具。
+在 DeepSeek Harness 的目标会话中，一次创建 implementer 和 reviewer，为两者分别配置模型、持久提示词与工作工具集。
 
-**当前源码：0.5.0-rc.5。** 安装后提供 profile 全局的 `dsh-team-configure` skill，可以在 Agent 会话中配置两角色的 provider、模型、effort 与提示词，无需手工编辑 YAML。默认 effort 为 `max`，由实际配置的原生 adapter 验证。本次更新未进行付费模型运行；历史 rc.2 的 macOS low 实机结果不代表本版本的任意模型已验。[验收范围与已知限制](docs/ACCEPTANCE.md)。
+**当前源码：0.5.0-rc.6。** 安装后提供 profile 全局的 `dsh-team-configure` skill，可以在 Agent 会话中配置两角色的 provider、模型、effort、提示词与工具集，无需手工编辑 YAML。默认 effort 为 `max`，由实际配置的原生 adapter 验证。本次更新未进行付费模型运行；历史 rc.2 的 macOS low 实机结果不代表本版本的任意模型已验。[验收范围与已知限制](docs/ACCEPTANCE.md)。
 
 Windows x64 适配面向已检查的 Harness 0.2.2-rc.5 和当前会话 `/dsh-team` 入口，见 [Windows 安装与 CI 验收](docs/WINDOWS.md)。旧的本地文件绑定入口仍只支持 macOS。
 
@@ -14,9 +14,9 @@ Windows x64 适配面向已检查的 Harness 0.2.2-rc.5 和当前会话 `/dsh-te
 npm pack
 ```
 
-在 Harness 官方插件管理器中安装生成的 `dsh-subagent-live-rc2-local-0.5.0-rc.5.tgz`。打包不会更新已安装副本。安装会同时注册当前会话入口、配置工具和 skill；该 profile 的根会话均可发现 skill，不必另拷到每个项目。无需填写 Session ID 或运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 Harness rc.5 的安装源。
+在 Harness 官方插件管理器中安装生成的 `dsh-subagent-live-rc2-local-0.5.0-rc.6.tgz`。打包不会更新已安装副本。安装会同时注册当前会话入口、配置工具和 skill；该 profile 的根会话均可发现 skill，不必另拷到每个项目。无需填写 Session ID 或运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 Harness rc.5 的安装源。
 
-[已发布的 v0.5.0-rc.2 私有预发行](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) 保持原先实机验收时的 low 配置，不包含本次 max 更新。该插件未发布到 npm 或插件市场。包名中的 `rc2-local` 是历史名称。
+[历史 v0.5.0-rc.2 预发行](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) 保持原先实机验收时的 low 配置，不包含本次 max 更新。该插件未发布到 npm 或插件市场。包名中的 `rc2-local` 是历史名称。
 
 ## 在会话中配置团队
 
@@ -30,16 +30,24 @@ npm pack
 
 Agent 会读取实际 provider/model ID，预检明确修改的路由与 effort，再通过原生审批和持久设置保存。只需提供本机真实模型选择；不需要贴整份 profile 或凭据。仅询问方案时只预览，不保存。
 
-当前支持 `implementer` 与 `reviewer` 两个稳定角色，可分别改职责、模型、effort、持久提示词和首次启动输入。任意角色数量尚不支持。“全局”指当前安装 profile 的默认模板；已有团队不随默认值变更。保存后按工具提示使用尚未绑定团队的根会话；若模型授权也有变化，须保存原生授权并新建根会话。skill 不自动授权或启动成员。完整说明见[模型与提示词](docs/MODELS-AND-PROMPTS.md)。
+当前支持 `implementer` 与 `reviewer` 两个稳定角色，可分别改职责、模型、effort、提示词和工具集。任意角色数量尚不支持。“全局”指当前安装 profile 的默认模板；已有团队不随默认值变更。保存后按工具提示使用尚未绑定团队的根会话；若模型授权也有变化，须保存原生授权并新建根会话。skill 不自动授权或启动成员。完整说明见[模型与提示词](docs/MODELS-AND-PROMPTS.md)。
+
+## 按角色配置工具
+
+例如：“使用 dsh-team-configure，实现者开放文件读写、搜索和终端；复核者只开放读取、搜索与协作。”Agent 会查询实际工具目录，列出各角色的增加／移除项，再通过原生审批保存。
+
+未保存模板的新默认值会加入 Host 已注册且当前根可见的基础文件、搜索、终端和 skill 工具（包括标准 Preset 中无条件注册的工具）。终端以实际目录为准，例如 `bash` 或 `pwsh`；已保存的模板及显式工具列表保持原值。可用工具也可以包含已安装的 MCP 工具。工具可见性与文件／终端权限是两层控制；实际调用仍服从原生沙箱、审批和逐步激活条件。开放 shell 不能承诺强制只读。
+
+配置 skill 随插件打包和注册。升级插件并完成重新加载后，后续调用使用新版 skill，无需另外安装全局副本；旧对话中已注入的说明会保留，需要时重新调用 skill。模型与提示词配置从 rc.5 起可用，工具集配置需要 rc.6。
 
 ## 允许两条模型路由
 
 默认模板使用：
 
-| 角色 | provider/model | 原生工具 |
+| 角色 | provider/model | 默认 effort |
 | --- | --- | --- |
-| implementer | `deepseek-account/deepseek-flash` | `team_task_get`、`team_task_update`、`send_message` |
-| reviewer | `deepseek-account/deepseek-v4-pro` | `team_task_get`、`team_task_update`、`wait_agent` |
+| implementer | `deepseek-account/deepseek-flash` | `max` |
+| reviewer | `deepseek-account/deepseek-v4-pro` | `max` |
 
 在原生界面的“插件 → 官方 → 子智能体 → 模型选择”开启 Agent 选择模型，并勾选模板所需路由。保存后创建新根会话；已有会话不会因为全局选项改变而自动获得新的持久模型授权。`plan` 只给出成员创建／冲突计划；`launch` 才检查目标会话的真实 policy。规划通过不代表模型已经获授权，本插件不会替会话授予权限。
 
@@ -71,7 +79,7 @@ DeepSeek 官方提供方的 Pro 菜单项可能标注路由到 Flash；它不能
 
 ## 给现有成员分配任务
 
-本模板提供原生任务板与成员消息工具，未配置文件或 shell 能力。可先分配一个能通过任务板验真的小任务。工作顺序应当是：
+新默认值会按实际 Host 目录加入基础工作工具，已有模板可通过 skill 调整；历史 rc.2 实机验收仅使用任务板与消息。工作顺序应当是：
 
 1. Lead 只分配可执行的实现任务。
 2. implementer 写回证据、完成实现任务，再向 reviewer 交接实际任务 ID。
@@ -82,11 +90,11 @@ DeepSeek 官方提供方的 Pro 菜单项可能标注路由到 Flash；它不能
 
 ## 配置、恢复与限制
 
-推荐使用上面的会话 skill；rc.4 用户须安装新包才能获得该能力。没有专用的模型选择表单。手动配置仍可使用，Windows 文件位置和完整补丁见 [Windows 手动配置](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration)。两种方式都无需重新打包插件。
+推荐使用上面的会话 skill；旧版用户须安装新包才能获得新增能力。没有专用的模型选择表单。手动配置仍可使用，Windows 文件位置和完整补丁见 [Windows 手动配置](docs/MODELS-AND-PROMPTS.md#windows-manual-configuration)。两种方式都无需重新打包插件。
 
 skill 保存不会重载当前 launcher；当前 Host 中已执行 plan/launch 的根继续使用原模板，未绑定的根读取新默认值。模板持久化与完整旧团队冷恢复是不同能力；改默认值后不要用旧根 plan/launch 强行迁移成员，完整冷恢复仍未验收。
 
-`examples/team-template.json` 是完整两角色模板。可在当前组件配置中将可选 `template` 替换为同格式对象，调整角色提示词、模型、启动提示与原生工具白名单。组件支持 `timeoutMs` 和每角色 `maxStreams`；默认每角色一次普通启动 stream，可配置 1～12 次。模板只表达配置，真实准入仍由原生 policy 和工具权限决定。逐字段说明见[修改模型与提示词](docs/MODELS-AND-PROMPTS.md)。
+`examples/team-template.json` 是完整两角色基础示例；未设置 `template` 时，当前会话入口另外按 Host 目录生成工作工具默认值。可在当前组件配置中将可选 `template` 替换为同格式对象，调整角色提示词、模型、启动提示与原生工具白名单。组件支持 `timeoutMs` 和每角色 `maxStreams`；默认每角色一次普通启动 stream，可配置 1～12 次。模板只表达配置，真实准入仍由原生 policy 和工具权限决定。逐字段说明见[修改模型与提示词](docs/MODELS-AND-PROMPTS.md)。
 
 默认模板的 `reasoning_effort` 已改为 `max`，也可逐角色填入其原生模型支持的 effort ID。两名角色可以使用同一个 provider/model。原生 `resolveCallConfig` 会在修改 Team 或创建成员前拒绝路由解析失败、不支持的 effort，不会偷偷降档；元数据检查不代表远端模型一定执行成功。启动请求的 `maxTokens=1024` 是独立限制，不是团队生命周期、总 token 或金额上限；历史 rc.2 验收中的后续任务和自我介绍曾使用 `maxTokens=256000`。本次更新不修改续接 token 预算。
 

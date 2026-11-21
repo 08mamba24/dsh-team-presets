@@ -1,8 +1,9 @@
+import { captureRoleToolAuthority, validRoleToolList } from './src/role-tools.js';
+
 const CONFIG_KEYS = ['ownedSessionId', 'roleName', 'personaPrompt', 'tools'];
-const VERIFIED_TOOLS = ['team_task_get', 'team_task_update', 'send_message', 'wait_agent'];
 
 export const name = 'dsh-launcher-role';
-export const inject = ['systemPrompt', 'tools'];
+export const inject = ['systemPrompt', 'tools', 'agents'];
 
 class LauncherRoleError extends Error {
   constructor(code) { super(code); this.name = 'LauncherRoleError'; this.code = code; }
@@ -23,12 +24,12 @@ function parseConfig(raw) {
   if (typeof ownedSessionId !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$/.test(ownedSessionId)) fail('LAUNCHER_ROLE_INVALID_OWNER');
   if (typeof roleName !== 'string' || !/^[a-z][a-z0-9-]{0,31}$/.test(roleName) || roleName === 'lead') fail('LAUNCHER_ROLE_INVALID_NAME');
   if (typeof personaPrompt !== 'string' || personaPrompt.length > 16384 || !personaPrompt.trim() || personaPrompt.includes('\0')) fail('LAUNCHER_ROLE_INVALID_PERSONA');
-  if (!Array.isArray(inputTools) || inputTools.length > VERIFIED_TOOLS.length) fail('LAUNCHER_ROLE_INVALID_TOOLS');
+  if (!validRoleToolList(inputTools)) fail('LAUNCHER_ROLE_INVALID_TOOLS');
   const tools = [];
   try {
     for (let index = 0; index < inputTools.length; index++) {
       const tool = inputTools[index];
-      if (!VERIFIED_TOOLS.includes(tool) || tools.includes(tool)) fail('LAUNCHER_ROLE_INVALID_TOOLS');
+      if (tools.includes(tool)) fail('LAUNCHER_ROLE_INVALID_TOOLS');
       tools.push(tool);
     }
   } catch { fail('LAUNCHER_ROLE_INVALID_TOOLS'); }
@@ -39,13 +40,47 @@ function parseConfig(raw) {
 export async function apply(ctx, raw) {
   const config = parseConfig(raw);
   if (typeof ctx?.systemPrompt?.section !== 'function' || typeof ctx?.on !== 'function') fail('LAUNCHER_ROLE_HOST_UNAVAILABLE');
+  const delegated = new Map();
   ctx.systemPrompt.section({ name: 'deployment:persona-prefix', order: 0, text: config.personaPrompt, interpolate: false });
   ctx.on('agent/created', payload => {
     const agent = payload?.agent;
     if (agent?.session?.header?.origin !== 'subagent') fail('LAUNCHER_ROLE_WRONG_ORIGIN');
     if (agent.session.header.parentSession !== config.ownedSessionId) fail('LAUNCHER_ROLE_WRONG_PARENT');
     if (typeof agent.ctx?.tools?.restrict !== 'function') fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
-    try { agent.ctx.tools.restrict({ allow: [...config.tools] }); }
+    try {
+      const root = ctx.agents.get(config.ownedSessionId);
+      if (root?.id !== config.ownedSessionId || root.session?.id !== config.ownedSessionId
+        || root.session.header?.origin === 'subagent') fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
+      const authority = captureRoleToolAuthority(ctx, root, [config.tools]);
+      const shared = new Map(ctx.tools.definitions().map(tool => [tool.name, tool]));
+      const rootTools = new Map(ctx.tools.definitions(root).map(tool => [tool.name, tool]));
+      for (const name of config.tools) {
+        if (name === 'send_message' || name === 'wait_agent') continue;
+        const definition = rootTools.get(name);
+        if (definition !== shared.get(name)) {
+          // Keep the actual native schema/body and service closure. Never copy
+          // a conditional registration without its private activation callback.
+          if (ctx.tools.executable(name, root) !== definition) fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
+          const existing = delegated.get(name);
+          if (existing !== undefined && existing !== definition) fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE');
+          if (existing === undefined) {
+            // Own the definition in the role Preset. The child inherits it, so
+            // every subsequent native child/Preset restriction still applies.
+            ctx.tools.register(definition);
+            delegated.set(name, definition);
+          }
+        }
+      }
+      agent.ctx.tools.restrict({ allow: [...config.tools] });
+      agent.ctx.tools.guard(exec => {
+        if (exec.agent !== agent) return;
+        try {
+          if (ctx.agents.get(config.ownedSessionId) === root && authority.allows(exec)) return;
+        } catch { /* A removed registry or root cannot grant a stale capability. */ }
+        return { reason: 'TEAM_ROOT_TOOL_AUTHORITY_CHANGED',
+          info: { name: 'DshRoleToolError', code: 'TEAM_ROOT_TOOL_AUTHORITY_CHANGED' } };
+      });
+    }
     catch { fail('LAUNCHER_ROLE_TOOLS_UNAVAILABLE'); }
   });
 }

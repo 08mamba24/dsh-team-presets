@@ -65,12 +65,12 @@ test('names, presets, explicit routes and effort are checked before any executio
   ]) { const input = clone(example); change(input); rejects(input, code); }
 });
 
-test('capability validation accepts subsets and empty sets, refuses duplicates and unverified names', () => {
+test('capability validation accepts work tool names and empty sets, refuses duplicates and orchestration', () => {
   const empty = clone(example); empty.members[0].native_tool_allowlist = [];
   assert.deepEqual(parseLauncherTemplate(empty).members[0].nativeToolAllowlist, []);
   for (const [allowlist, code] of [
     [['send_message', 'send_message'], 'DUPLICATE_MEMBER_TOOL'],
-    [['bash'], 'UNSUPPORTED_MEMBER_TOOL'], [['team_task_list'], 'UNSUPPORTED_MEMBER_TOOL'],
+    [['spawn_agent'], 'UNSUPPORTED_MEMBER_TOOL'], [['team_task_list'], 'UNSUPPORTED_MEMBER_TOOL'],
     [['subagent'], 'UNSUPPORTED_MEMBER_TOOL'], [[{ name: 'send_message' }], 'UNSUPPORTED_MEMBER_TOOL'],
   ]) { const input = clone(example); input.members[0].native_tool_allowlist = allowlist; rejects(input, code); }
 });
@@ -107,7 +107,7 @@ test('JSON structure and all required fields are checked without evaluating acce
 test('errors never echo private persona or startup text', () => {
   const input = clone(example), sentinel = 'PRIVATE-PERSONA-AND-STARTUP-DO-NOT-LOG';
   input.members[0].prompt = sentinel; input.members[0].persona_prompt = sentinel;
-  input.members[0].native_tool_allowlist = ['bash'];
+  input.members[0].native_tool_allowlist = ['spawn_agent'];
   assert.throws(() => parseLauncherTemplate(input), error => {
     assert.equal(error.code, 'UNSUPPORTED_MEMBER_TOOL');
     assert.ok(!String(error).includes(sentinel) && !String(error.stack).includes(sentinel)); return true;

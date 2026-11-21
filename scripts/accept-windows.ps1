@@ -32,13 +32,20 @@ if ($asarSha -ne '5ec8acd9e72b93b6680c953c1be44a729fd3a5170e472e8025690a1713d20f
    gitCommit = $env:GITHUB_SHA } | ConvertTo-Json | Set-Content (Join-Path $receiptDir 'artifact.json')
 
 $packageRoot = Split-Path $PSScriptRoot -Parent
+$baselineDir = Join-Path $WorkDir 'baseline'
+New-Item -ItemType Directory -Path $baselineDir | Out-Null
+$previousTgz = Join-Path $baselineDir 'dsh-subagent-live-rc2-local-0.5.0-rc.5.tgz'
+Invoke-WebRequest -Uri 'https://github.com/08mamba24/dsh-team-presets/releases/download/v0.5.0-rc.5/dsh-subagent-live-rc2-local-0.5.0-rc.5.tgz' -OutFile $previousTgz
+if ((Get-FileHash $previousTgz -Algorithm SHA256).Hash.ToLowerInvariant() -ne '4cfd9ae7215f511f370a25a357aafe513c9621bef184429792bf092f05070765') {
+  throw 'Previous rc.5 upgrade baseline digest changed.'
+}
 Push-Location $packageRoot
 try {
   $pack = & npm pack --json --ignore-scripts --pack-destination $WorkDir
   if ($LASTEXITCODE -ne 0) { throw 'npm pack failed.' }
   $tgz = Join-Path $WorkDir (($pack | ConvertFrom-Json)[0].filename)
   & node (Join-Path $PSScriptRoot 'accept-windows-host.mjs') `
-    --install-dir $installDir --tgz $tgz --lab-dir (Join-Path $WorkDir 'lab') --receipt-dir $receiptDir
+    --install-dir $installDir --tgz $tgz --previous-tgz $previousTgz --lab-dir (Join-Path $WorkDir 'lab') --receipt-dir $receiptDir
   if ($LASTEXITCODE -ne 0) { throw 'Real Windows Host acceptance failed. See receipts.' }
 } finally {
   Pop-Location

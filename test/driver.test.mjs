@@ -14,7 +14,9 @@ async function fixture(t, options = {}) {
   t.after(() => rm(workspace, { recursive: true, force: true }));
   const config = { ownedSessionId: 'session-20000000-0000-4000-8000-000000000001', workspace,
     runTag: 'live-one-648', memberName: 'live-648-implementer', presetId: 'dsh-live-648-implementer',
-    personaNonce: 'persona-live-648-abc123', timeoutMs: options.hang ? 15 : 1000,
+    // Let async ownership checks finish during parallel package tests before
+    // timing out the deliberately hung, published child lifecycle.
+    personaNonce: 'persona-live-648-abc123', timeoutMs: 1000,
     route: { provider: 'deepseek-account', model: 'deepseek-flash', reasoningEffort: 'low', maxTokens: 1024 } };
   await writeFile(join(workspace, '.dsh-subagent-live.json'), JSON.stringify({ purpose: 'dsh-subagent-live-one', ownedSessionId: config.ownedSessionId, runTag: config.runTag }), { mode: 0o600 });
   const commands = new Map(), hooks = new Map(), agents = new Map(), effects = [], calls = [];

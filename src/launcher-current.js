@@ -5,6 +5,7 @@ import { parse } from 'node:path';
 import { fail } from './config.js';
 import { parseLauncherConfig, validateLauncherTemplate } from './launcher-config.js';
 import { applyLauncher } from './launcher-driver.js';
+import { defaultWorkTemplate } from './role-tools.js';
 
 const digest = value => createHash('sha256').update(value).digest('hex');
 const codeOf = error => /^[A-Z][A-Z0-9_]{0,95}$/.test(error?.code) ? error.code : 'CURRENT_SESSION_SETUP_FAILED';
@@ -49,8 +50,9 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
   const input = config.template ?? bundled;
   validateLauncherTemplate(input);
   const template = structuredClone(input);
-  const defaultTemplate = () => {
-    const current = liveConfig ? liveConfig.readTemplate() ?? bundled : template;
+  const defaultTemplate = agent => {
+    const current = liveConfig ? liveConfig.readTemplate() ?? defaultWorkTemplate(ctx, agent, bundled)
+      : config.template === undefined ? defaultWorkTemplate(ctx, agent, bundled) : template;
     validateLauncherTemplate(current);
     return structuredClone(current);
   };
@@ -65,7 +67,7 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
       return existing.ready;
     }
     const suffix = digest(agent.id).slice(0, 24);
-    const scoped = defaultTemplate();
+    const scoped = defaultTemplate(agent);
     for (const member of scoped.members) member.agent_preset = `dsh-current-${suffix}-${member.name}`;
     const bound = parseLauncherConfig({ mode: 'launcher', ownedSessionId: agent.id, workspace,
       runTag: `current-${suffix}`, timeoutMs: config.timeoutMs, templateSha256: digest(JSON.stringify(scoped)),

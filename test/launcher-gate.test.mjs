@@ -79,7 +79,7 @@ test('invalid option, role and tool shapes return one stable code without echoin
     { roleTools: masks(), rootQuarantine: false },
     { roleTools: { ...masks(), reviewer: 'wait_agent' } },
     { roleTools: { ...masks(), reviewer: ['wait_agent', 'wait_agent'] } },
-    { roleTools: { ...masks(), reviewer: ['private-secret-sentinel'] } },
+    { roleTools: { ...masks(), reviewer: ['spawn_agent'] } },
     { roleTools: { ...masks(), reviewer: [undefined] } },
     { roleTools: { ...masks(), reviewer: Array(1) } },
     { roleTools: { ...masks(), reviewer: [null] } },

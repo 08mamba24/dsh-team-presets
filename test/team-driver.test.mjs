@@ -19,7 +19,9 @@ async function fixture(t, options = {}) {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'dsh-live-team-')));
   t.after(() => rm(workspace, { recursive: true, force: true }));
   const config = { mode: 'team', ownedSessionId: 'session-20000000-0000-4000-8000-000000000001', workspace,
-    runTag: 'live-team-test', timeoutMs: options.hang === true ? 20 : 1000,
+    // A setup deadline of 20ms can fire before either child is published under
+    // parallel npm packing. Keep enough setup time to test the actual drain.
+    runTag: 'live-team-test', timeoutMs: 1000,
     roles: Object.fromEntries(['implementer', 'reviewer'].map((role, i) => [role, {
       memberName: `live-test-${role}`, presetId: `dsh-live-test-${role}`, personaNonce: `persona-test-${role}-abc123`,
       maxStreams: i === 0 ? 6 : 5, route: { provider: 'deepseek-account', model: i === 0 ? 'deepseek-flash' : 'deepseek-v4-pro', reasoningEffort: 'low', maxTokens: 1024 },
