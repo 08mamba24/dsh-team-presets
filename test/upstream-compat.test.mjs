@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { join, resolve } from 'node:path';
 import { parseFeed, selectReleases, sourceDelta, fingerprint, shouldProbe, normalizeResult,
   publishVersion, makePlan, BASELINE } from '../.github/scripts/upstream-compat.mjs';
 import { isolatedEnvironment } from '../.github/scripts/accept-upstream-host.mjs';
@@ -87,7 +88,7 @@ test('one version keeps one Issue across repeat runs and reopens after a previou
   };
   const report = status => ({ version: observation.version, observations: {
     'mac-arm64': { fingerprint: 'x', status }, 'win-x64': { fingerprint: 'y', status },
-  } });
+  }, controls: { 'mac-arm64': { status: 'verified' }, 'win-x64': { status: 'verified' } } });
   const first = await publishVersion(api, 'owner/repo', report('verified'), issues);
   assert.equal(first.state, 'closed');
   await publishVersion(api, 'owner/repo', report('verified'), issues);
@@ -95,6 +96,9 @@ test('one version keeps one Issue across repeat runs and reopens after a previou
   const changed = await publishVersion(api, 'owner/repo', report('needs-review'), issues);
   assert.equal(changed.number, first.number);
   assert.equal(changed.state, 'open');
+  const missingControl = report('verified'); delete missingControl.controls;
+  const incomplete = await publishVersion(api, 'owner/repo', missingControl, issues);
+  assert.equal(incomplete.state, 'open', 'platform observations alone cannot replace the reviewed baseline controls');
   await assert.rejects(() => publishVersion(api, 'owner/repo', report('verified'),
     [{ title: '[upstream-compat] Harness ' + observation.version, user: { login: 'github-actions[bot]' }, body: 'corrupt' }]), /verifiable/);
 });
@@ -113,11 +117,13 @@ test('a verified platform requires all six suites, CLI installation, reviewed ad
 });
 
 test('Host environment inherits neither GitHub credentials, model keys nor operator startup options', () => {
-  const env = isolatedEnvironment('/private/lab', '/official/resources', 'darwin', {
+  const lab = resolve('isolated-test-home');
+  const env = isolatedEnvironment(lab, resolve('official-resources'), process.platform, {
+    SystemRoot: process.env.SystemRoot ?? 'C:\\Windows',
     HOME: '/operator', GH_TOKEN: 'secret', GITHUB_TOKEN: 'secret', OPENAI_API_KEY: 'secret',
     NODE_OPTIONS: '--require /operator/preload.js', PATH: '/operator/bin',
   });
-  assert.equal(env.HOME, '/private/lab/home');
+  assert.equal(env.HOME, join(lab, 'home'));
   for (const key of ['GH_TOKEN', 'GITHUB_TOKEN', 'OPENAI_API_KEY', 'NODE_OPTIONS']) assert.equal(env[key], undefined);
   assert.ok(!env.PATH.includes('/operator'));
 });
@@ -139,8 +145,9 @@ test('planning consumes public prereleases and official feeds, without writing o
   const plan = await makePlan({ api, repo: 'owner/repo', feedReader: async target => ({
     ...parseFeed(feed, 'mac-arm64'), target,
   }) });
-  assert.equal(plan.cases.length, 2);
-  assert.deepEqual(plan.cases.map(c => c.target), ['mac-arm64', 'win-x64']);
+  assert.equal(plan.cases.length, 4);
+  assert.deepEqual(plan.cases.filter(c => !c.control).map(c => c.target), ['mac-arm64', 'win-x64']);
+  assert.deepEqual(plan.cases.filter(c => c.control).map(c => c.target), ['mac-arm64', 'win-x64']);
   assert.equal(plan.plugin.tag, 'v0.5.0-rc.7');
   assert.equal(plan.cases[0].source.changed.length, 0);
   assert.equal(plan.cases[0].admission, undefined);

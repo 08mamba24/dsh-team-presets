@@ -7,6 +7,15 @@ import { fileURLToPath } from 'node:url';
 export const UPSTREAM = 'deepseek-ai/deepseek-harness';
 export const BASELINE = { version: '0.2.2-rc.5', commit: '9c2670d3bce5275e0d1610272958121af87787bb' };
 export const TARGETS = ['mac-arm64', 'win-x64'];
+// Original reviewed distributions are separate regression controls.
+export const REVIEWED_INSTALLERS = {
+  'mac-arm64': { format: 'dmg',
+    url: 'https://download.deepseek.com/dsh-desk/bin/mac-arm64/deepseek-harness-0.2.2-rc.5-mac-arm64.dmg',
+    sha256: '9f0c4406ce97f0cdd3862ba1e70a085b422dbeb1390fdeb8a6e810c38b0a8ffd' },
+  'win-x64': { format: 'exe',
+    url: 'https://download.deepseek.com/dsh-desk/bin/win-x64/deepseek-harness-0.2.2-rc.5-win-x64.exe',
+    sha256: '013e28bc8c714749331308386d814108336851914d243aa6bcfd14de1ab30923' },
+};
 const MARKER = /<!-- dsh-upstream-compat:v1 ([A-Za-z0-9+/=]+) -->/;
 const VERSION = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)?$/;
 const SHA = /^[a-f0-9]{40}$/;
@@ -116,6 +125,7 @@ export function renderIssue(state) {
     lines.push(`| ${target} | ${r?.status ?? 'not-tested'} | ${r?.runUrl ? `[Actions](${r.runUrl})` : 'No run receipt'} |`);
   }
   lines.push('', 'Results are specific to the recorded plugin build and official installer bytes. Unknown archive admission is **needs-review**, not a demonstrated API conflict. GUI and paid-provider behavior are not tested.', '');
+  lines.push('Reviewed rc.5 regression controls: ' + TARGETS.map(t => `${t}: **${state.controls?.[t]?.status ?? 'not-tested'}**`).join('; '), '');
   for (const target of TARGETS) {
     const r = state.observations[target];
     if (!r) continue;
@@ -145,7 +155,8 @@ export async function publishVersion(api, repo, state, issues) {
   if (matches.length > 1) fail('Duplicate managed version Issues; reconcile before writing');
   const body = renderIssue(state), title = `[upstream-compat] Harness ${checkedVersion(state.version)}`;
   if (!matches.length && issues.some(i => i.title === title)) fail('Existing version Issue has no verifiable managed state');
-  const closed = TARGETS.every(t => state.observations[t]?.status === 'verified');
+  const closed = TARGETS.every(t => state.observations[t]?.status === 'verified'
+    && state.controls?.[t]?.status === 'verified');
   let issue = matches[0];
   if (!issue) issue = await api(`repos/${repo}/issues`, { method: 'POST', body: { title, body } });
   const wanted = closed ? 'closed' : 'open';
@@ -254,6 +265,12 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, repo, tag,
       }
     }
   }
+  if (cases.length) for (const target of TARGETS) {
+    const control = { version: BASELINE.version, tag: 'dsh-v' + BASELINE.version,
+      commit: BASELINE.commit, target, control: true, artifact: REVIEWED_INSTALLERS[target],
+      plugin, source: sourceDelta(baseTree, baseTree), runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' };
+    control.fingerprint = fingerprint(control); cases.push(control);
+  }
   return { schemaVersion: 1, status: 'planned', repo, createdAt: new Date(now).toISOString(), plugin, states, cases };
 }
 
@@ -288,16 +305,18 @@ async function main() {
     const files = await readdir(directory, { recursive: true });
     const raw = [];
     for (const name of files.filter(n => n.endsWith('result.json'))) raw.push(JSON.parse(await readFile(join(directory, name), 'utf8')));
-    const touched = new Set();
+    const touched = new Set(), controls = {};
     for (const c of plan.cases) {
       const matches = raw.filter(r => r.fingerprint === c.fingerprint);
       const result = normalizeResult(c, matches.length === 1 ? matches[0] : undefined);
       Object.assign(result, { commit: c.commit, source: c.source, plugin: c.plugin, runUrl });
+      if (c.control) { controls[c.target] = result; continue; }
       plan.states[c.version].observations[c.target] = result; touched.add(c.version);
     }
     const published = [];
     for (const version of touched) {
       const state = plan.states[version];
+      state.controls = controls;
       if (process.env.COMPAT_PUBLISH === 'true') {
         const issue = await publishVersion(ghApi, repo, state, issues);
         published.push({ version, issue: issue.html_url, state: issue.state });
@@ -309,7 +328,8 @@ async function main() {
     if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY,
       `## Upstream compatibility\n\n${published.map(p => `- [${p.version}](${p.issue}): ${p.state}`).join('\n') || 'No new observations; unchanged inputs were deduplicated.'}\n`);
     console.log(JSON.stringify({ planned: plan.cases.length, published }));
-    if ([...touched].some(v => Object.values(plan.states[v].observations).some(r => r.status === 'infrastructure-error' || r.status === 'incompatible'))) process.exitCode = 1;
+    if (Object.values(controls).some(r => r.status !== 'verified')
+      || [...touched].some(v => Object.values(plan.states[v].observations).some(r => r.status === 'infrastructure-error' || r.status === 'incompatible'))) process.exitCode = 1;
   } else fail('Usage: upstream-compat.mjs plan|publish');
 }
 

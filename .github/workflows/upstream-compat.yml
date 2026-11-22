@@ -76,6 +76,7 @@ jobs:
           retention-days: 90
 
   canary:
+    name: canary (${{ matrix.version }}, ${{ matrix.target }}, ${{ matrix.control && 'baseline' || 'observed' }})
     needs: plan
     if: needs.plan.result == 'success' && needs.plan.outputs.count != '0'
     strategy:
@@ -103,7 +104,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: compat-result-${{ matrix.version }}-${{ matrix.target }}
+          name: compat-result-${{ matrix.version }}-${{ matrix.target }}-${{ matrix.control && 'baseline' || 'observed' }}
           path: compat-result/
           if-no-files-found: error
           retention-days: 90

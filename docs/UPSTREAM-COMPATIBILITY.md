@@ -48,6 +48,14 @@ unchanged defaults. The CLI then removes the plugin. Cleanup failure prevents a
 verified receipt. Known-runtime Windows lifecycle regression remains in the
 existing Windows acceptance workflow.
 
+Each changed observation also runs both original reviewed rc.5 distributions as
+regression controls. These installers have frozen SHA256 values and still must
+pass the plugin's existing app.asar admission before business tests run. The Mac
+DMG was read-only mounted to confirm its archive matches the original reviewed
+`6f0198…` bytes; the Windows installer is the existing `013e28…` acceptance input.
+Controls have separate receipts and cannot replace the current feed observation.
+Both controls must verify before a version Issue can close.
+
 ## Results and ownership
 
 The metadata-only reporting job has `issues: write`; the Host jobs have only

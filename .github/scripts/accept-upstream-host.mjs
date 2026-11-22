@@ -88,7 +88,7 @@ async function main() {
     plugin: c.plugin, status: 'infrastructure-error', stage: 'prepare', checkedAt: new Date().toISOString(),
     isolatedDataRemoved: false, suites: [] };
   const lab = await mkdtemp(join(tmpdir(), 'dsh-upstream-'));
-  let installedMac = false, stage = 'prepare';
+  let installedMac = false, mounted = false, stage = 'prepare';
   try {
     assert.ok(c.target === 'mac-arm64' && process.platform === 'darwin' && process.arch === 'arm64'
       || c.target === 'win-x64' && process.platform === 'win32' && process.arch === 'x64', 'Wrong platform runner');
@@ -103,17 +103,24 @@ async function main() {
     let resources = process.platform === 'darwin' ? '/Applications/DeepSeek Harness.app/Contents/Resources' : join(install, 'resources');
     let env = isolatedEnvironment(lab, resources);
     stage = 'download';
-    const installer = join(lab, process.platform === 'darwin' ? 'official.zip' : 'official.exe');
-    result.installerSha256 = await download(c.artifact.url, installer, c.artifact.sha512, 'sha512', 'base64');
+    const installer = join(lab, c.artifact.format === 'dmg' ? 'official.dmg' : process.platform === 'darwin' ? 'official.zip' : 'official.exe');
+    result.installerSha256 = await download(c.artifact.url, installer, c.artifact.sha512 ?? c.artifact.sha256,
+      c.artifact.sha512 ? 'sha512' : 'sha256', c.artifact.sha512 ? 'base64' : 'hex');
     stage = 'extract';
     if (process.platform === 'darwin') {
       try { await access('/Applications/DeepSeek Harness.app'); throw new Error('Refusing to replace an existing Host'); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
-      await run('/usr/bin/ditto', ['-x', '-k', installer, payload], { env, cwd: lab });
-      const apps = (await readdir(payload)).filter(name => name.endsWith('.app'));
+      let appRoot = payload;
+      if (c.artifact.format === 'dmg') {
+        appRoot = join(lab, 'mount'); await mkdir(appRoot);
+        await run('/usr/bin/hdiutil', ['attach', installer, '-readonly', '-nobrowse', '-mountpoint', appRoot], { env, cwd: lab });
+        mounted = true;
+      } else await run('/usr/bin/ditto', ['-x', '-k', installer, payload], { env, cwd: lab });
+      const apps = (await readdir(appRoot)).filter(name => name.endsWith('.app'));
       assert.deepEqual(apps, ['DeepSeek Harness.app']);
       installedMac = true;
-      await cp(join(payload, apps[0]), '/Applications/DeepSeek Harness.app', { recursive: true, errorOnExist: true, force: false });
+      await cp(join(appRoot, apps[0]), '/Applications/DeepSeek Harness.app', { recursive: true, errorOnExist: true, force: false });
+      if (mounted) { await run('/usr/bin/hdiutil', ['detach', appRoot], { env, cwd: lab }); mounted = false; }
     } else {
       // 7z is installed on the standard Windows runner; no installer or GUI runs.
       const sevenZip = 'C:\\Program Files\\7-Zip\\7z.exe';
@@ -193,6 +200,8 @@ async function main() {
     result.reason = error.message.replaceAll(lab, '<isolated-lab>').slice(0, 500); result.stage = stage;
   } finally {
     try {
+      if (mounted) await run('/usr/bin/hdiutil', ['detach', join(lab, 'mount')],
+        { env: isolatedEnvironment(lab, '/Applications/DeepSeek Harness.app/Contents/Resources'), cwd: lab });
       if (installedMac) await rm('/Applications/DeepSeek Harness.app', { recursive: true });
       await rm(lab, { recursive: true }); result.isolatedDataRemoved = true;
     } catch (error) { result.status = 'infrastructure-error'; result.reason = 'Isolated cleanup failed: ' + error.code; }
