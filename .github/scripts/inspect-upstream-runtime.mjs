@@ -4,20 +4,12 @@ import { createRequire } from 'node:module';
 import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
+import { CONTRACT_EXPORTS } from './upstream-contract.mjs';
 
-const [runtime, destination, profile] = process.argv.slice(2);
+const [runtime, destination, profile, sourceHead] = process.argv.slice(2);
 const require = createRequire(join(runtime, 'package.json'));
-const contracts = {
-  'cordis': ['Context'],
-  'dsh-scope': ['createScope', 'scopeOf', 'scopeParentOf'],
-  'dsh-tools': ['ToolsService', 'defineTool'],
-  'dsh-agent': ['AgentRegistry'],
-  'dsh-agent-preset-registry': ['AgentPresetRegistry'],
-  'dsh-agent-loop': ['AgentLoop'],
-  'dsh-tool-executor-native': ['NativeToolExecutor'],
-};
-const result = { passed: true, packages: [], errors: [] };
-for (const [short, exports] of Object.entries(contracts)) {
+const result = { passed: true, sourceHead, packages: [], errors: [] };
+for (const [short, exports] of Object.entries(CONTRACT_EXPORTS)) {
   const name = '@deepseek-ai/' + short;
   try {
     const metadata = JSON.parse(await readFile(require.resolve(name + '/package.json'), 'utf8'));
@@ -25,7 +17,7 @@ for (const [short, exports] of Object.entries(contracts)) {
     const missing = exports.filter(key => typeof module[key] !== 'function');
     if (missing.length) throw new Error('Missing public exports: ' + missing.join(', '));
     result.packages.push({ name, version: metadata.version, exports });
-  } catch (error) { result.passed = false; result.errors.push({ name, message: error.message }); }
+  } catch (error) { result.passed = false; result.errors.push({ name, code: error.code, message: error.message }); }
 }
 if (profile && result.passed) {
   try {

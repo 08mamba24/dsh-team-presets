@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { CONTRACT_EXPORTS, SUITE_NAMES } from './upstream-contract.mjs';
 
 export const UPSTREAM = 'deepseek-ai/deepseek-harness';
 export const BASELINE = { version: '0.2.2-rc.5', commit: '9c2670d3bce5275e0d1610272958121af87787bb' };
@@ -98,11 +99,33 @@ export function normalizeResult(c, raw) {
     status: 'infrastructure-error', reason, checkedAt: new Date().toISOString() });
   const statuses = ['verified', 'needs-review', 'incompatible', 'infrastructure-error'];
   if (!raw || raw.fingerprint !== c.fingerprint || raw.target !== c.target || raw.version !== c.version
+    || raw.commit !== c.commit || !samePlugin(raw.plugin, c.plugin)
     || !statuses.includes(raw.status)) return invalid('Missing or mismatched platform receipt');
-  if (raw.status === 'verified' && (raw.admission !== 'reviewed' || !DIGEST.test(raw.archiveSha256)
-    || raw.install?.passed !== true || raw.isolatedDataRemoved !== true || !Array.isArray(raw.suites)
-    || raw.suites.length !== 6 || raw.suites.some(s => s.passed !== true || !Number.isInteger(s.checks) || s.checks < 1))) {
-    return invalid('Receipt does not prove installation, six native suites and cleanup');
+  if (raw.status === 'verified') {
+    const sourceHead = 'tgz-sha256:' + raw.pluginSha256;
+    const exactSet = (actual, expected) => Array.isArray(actual) && actual.length === expected.length
+      && new Set(actual).size === expected.length && expected.every(value => actual.includes(value));
+    const contracts = raw.contract?.packages;
+    const contractValid = raw.contract?.passed === true && raw.contract.sourceHead === sourceHead
+      && Array.isArray(raw.contract.errors) && raw.contract.errors.length === 0
+      && Array.isArray(contracts)
+      && exactSet(contracts.map(p => p?.name), Object.keys(CONTRACT_EXPORTS).map(n => '@deepseek-ai/' + n))
+      && contracts.every(p => exactSet(p.exports, CONTRACT_EXPORTS[p.name.slice(13)])
+        && (p.name === '@deepseek-ai/cordis' || p.version === c.version));
+    const artifactValid = c.artifact && DIGEST.test(raw.installerSha256 ?? '')
+      && typeof raw.installerSha512 === 'string' && Buffer.from(raw.installerSha512, 'base64').length === 64
+      && (c.artifact.sha512 ? raw.installerSha512 === c.artifact.sha512 : raw.installerSha256 === c.artifact.sha256);
+    if (raw.admission !== 'reviewed' || !DIGEST.test(raw.archiveSha256 ?? '') || !artifactValid
+      || !DIGEST.test(raw.pluginSha256 ?? '') || c.plugin.kind === 'release' && raw.pluginSha256 !== c.plugin.sha256
+      || raw.install?.passed !== true || raw.install.name !== 'dsh-subagent-live-rc2-local'
+      || raw.install.bundleActivated !== true || !VERSION.test(raw.install.version ?? '')
+      || c.plugin.kind === 'release' && raw.install.version !== c.plugin.tag.slice(1)
+      || !contractValid || raw.isolatedDataRemoved !== true
+      || !Array.isArray(raw.suites) || !exactSet(raw.suites.map(s => s?.name), SUITE_NAMES)
+      || raw.suites.some(s => s.passed !== true || !Number.isInteger(s.checks) || s.checks < 1
+        || s.sourceHead !== sourceHead || !DIGEST.test(s.receiptSha256 ?? ''))) {
+      return invalid('Incomplete installer/plugin identity, native contract, exact suite set or cleanup proof');
+    }
   }
   if (raw.status === 'verified' && (c.source?.reviewed !== true || c.plugin?.kind !== 'release')) {
     return { ...raw, status: 'needs-review', candidateChecksPassed: true,
@@ -110,6 +133,21 @@ export function normalizeResult(c, raw) {
         : 'Upstream source commit has no review attestation; review the source before declaring compatibility' };
   }
   return raw;
+}
+
+function samePlugin(a, b) {
+  return a?.kind === b?.kind && a?.repo === b?.repo && a?.commit === b?.commit
+    && SHA.test(a?.commit ?? '') && (b?.kind === 'source' || b?.kind === 'release'
+      && a.tag === b.tag && a.url === b.url && a.sha256 === b.sha256);
+}
+
+function verifiedFor(result, expected, target, control = false) {
+  const fp = (control ? expected?.controls : expected?.observations)?.[target];
+  if (result?.status !== 'verified' || !DIGEST.test(fp ?? '') || expected.plugin?.kind !== 'release') return false;
+  const c = { ...result, target, version: control ? BASELINE.version : expected.version,
+    commit: control ? BASELINE.commit : expected.commit, plugin: expected.plugin, fingerprint: fp,
+    ...(control ? { artifact: REVIEWED_INSTALLERS[target] } : {}) };
+  return fingerprint(c) === fp && normalizeResult(c, result).status === 'verified';
 }
 
 function stateFrom(issue) {
@@ -160,8 +198,8 @@ export async function publishVersion(api, repo, state, issues) {
   if (matches.length > 1) fail('Duplicate managed version Issues; reconcile before writing');
   const body = renderIssue(state), title = `[upstream-compat] Harness ${checkedVersion(state.version)}`;
   if (!matches.length && issues.some(i => i.title === title)) fail('Existing version Issue has no verifiable managed state');
-  const closed = TARGETS.every(t => state.observations[t]?.status === 'verified'
-    && state.controls?.[t]?.status === 'verified');
+  const closed = state.expected?.version === state.version && TARGETS.every(t =>
+    verifiedFor(state.observations[t], state.expected, t) && verifiedFor(state.controls?.[t], state.expected, t, true));
   let issue = matches[0];
   if (!issue) issue = await api(`repos/${repo}/issues`, { method: 'POST', body: { title, body } });
   const wanted = closed ? 'closed' : 'open';
@@ -260,6 +298,8 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, headReader
     const source = { ...sourceDelta(baseTree, tree), reviewed: REVIEWED_SOURCE_COMMITS[version] === resolved.sha };
     const prior = issues.map(stateFrom).find(s => s?.version === version);
     states[version] = prior ?? { version, observations: {} };
+    states[version].expected = { version, commit: resolved.sha, plugin,
+      observations: {}, controls: prior?.expected?.controls ?? {} };
     for (const target of TARGETS) {
       const feed = feeds[target];
       let artifact = feed.version === version ? feed : null, historicalError;
@@ -276,6 +316,7 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, headReader
       const c = { version, tag: release.tag_name, commit: resolved.sha, target, artifact, plugin, source,
         pendingReason: historicalError ?? feed.error ?? (!artifact ? `Official ${target} feed has not published this version` : null) };
       c.fingerprint = fingerprint(c);
+      states[version].expected.observations[target] = c.fingerprint;
       if (shouldProbe(prior?.observations[target], c.fingerprint, now, force)) {
         cases.push({ ...c, runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' });
       }
@@ -286,6 +327,7 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, headReader
       commit: BASELINE.commit, target, control: true, artifact: REVIEWED_INSTALLERS[target],
       plugin, source: { ...sourceDelta(baseTree, baseTree), reviewed: true }, runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' };
     control.fingerprint = fingerprint(control); cases.push(control);
+    for (const state of Object.values(states)) state.expected.controls[target] = control.fingerprint;
   }
   return { schemaVersion: 1, status: 'planned', repo, createdAt: new Date(now).toISOString(), plugin, states, cases };
 }
@@ -320,7 +362,10 @@ async function main() {
     }
     const files = await readdir(directory, { recursive: true });
     const raw = [];
-    for (const name of files.filter(n => n.endsWith('result.json'))) raw.push(JSON.parse(await readFile(join(directory, name), 'utf8')));
+    for (const name of files.filter(n => n.endsWith('result.json'))) {
+      try { const result = JSON.parse(await readFile(join(directory, name), 'utf8')); if (result) raw.push(result); }
+      catch { /* An unreadable receipt becomes missing proof for its planned case. */ }
+    }
     const touched = new Set(), controls = {};
     for (const c of plan.cases) {
       const matches = raw.filter(r => r.fingerprint === c.fingerprint);

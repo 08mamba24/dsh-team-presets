@@ -2,14 +2,44 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { join, resolve } from 'node:path';
 import { parseFeed, selectReleases, sourceDelta, fingerprint, shouldProbe, normalizeResult,
-  publishVersion, makePlan, BASELINE, renderIssue } from '../.github/scripts/upstream-compat.mjs';
+  publishVersion, makePlan, BASELINE, REVIEWED_INSTALLERS, renderIssue } from '../.github/scripts/upstream-compat.mjs';
 import { isolatedEnvironment } from '../.github/scripts/accept-upstream-host.mjs';
+import { CONTRACT_EXPORTS, SUITE_NAMES, classifyProbe } from '../.github/scripts/upstream-contract.mjs';
 
 const sha = 'a'.repeat(40), hash = 'b'.repeat(64);
 const feed = `version: 0.2.2-rc.5\npath: >-\n  https://download.deepseek.com/dsh-desk/bin/mac-arm64/stable/deepseek-harness-0.2.2-rc.5-mac-arm64.zip\nsha512: >-\n  ${Buffer.alloc(64, 7).toString('base64')}\n`;
 const observation = { version: '0.2.2-rc.5', tag: 'dsh-v0.2.2-rc.5', commit: sha,
-  target: 'mac-arm64', artifact: { url: 'https://download.deepseek.com/dsh-desk/bin/mac-arm64/a.zip', sha512: 'digest', etag: 'v1' },
-  plugin: { kind: 'release', commit: sha, sha256: hash }, source: { changed: [], reviewed: true } };
+  target: 'mac-arm64', artifact: { ...parseFeed(feed, 'mac-arm64'), etag: 'v1' },
+  plugin: { kind: 'release', repo: 'owner/repo', tag: 'v0.5.0-rc.7', commit: sha, sha256: hash,
+    url: 'https://github.com/owner/repo/releases/download/v0.5.0-rc.7/plugin.tgz' }, source: { changed: [], reviewed: true } };
+
+function caseFor(target = 'mac-arm64', control = false) {
+  const c = { ...observation, target,
+    ...(control ? { commit: BASELINE.commit, control: true } : {}),
+    artifact: control ? REVIEWED_INSTALLERS[target] : parseFeed(feed.replaceAll('mac-arm64', target)
+      .replaceAll('.zip', target === 'win-x64' ? '.exe' : '.zip'), target) };
+  return { ...c, fingerprint: fingerprint(c) };
+}
+function verified(c) {
+  const sourceHead = 'tgz-sha256:' + (c.plugin.sha256 ?? hash);
+  return { ...c, status: 'verified', archiveSha256: hash,
+    installerSha256: c.artifact.sha256 ?? hash, installerSha512: c.artifact.sha512 ?? Buffer.alloc(64, 7).toString('base64'),
+    pluginSha256: c.plugin.sha256 ?? hash, admission: 'reviewed', isolatedDataRemoved: true,
+    install: { passed: true, name: 'dsh-subagent-live-rc2-local', version: '0.5.0-rc.7', bundleActivated: true },
+    contract: { passed: true, sourceHead, errors: [], packages: Object.entries(CONTRACT_EXPORTS)
+      .map(([name, exports]) => ({ name: '@deepseek-ai/' + name, version: name === 'cordis' ? '4.0.0' : c.version, exports })) },
+    suites: SUITE_NAMES.map(name => ({ name, passed: true, checks: 5, sourceHead, receiptSha256: hash })) };
+}
+function report(status = 'verified') {
+  const observations = {}, controls = {}, expected = { version: observation.version, commit: sha,
+    plugin: observation.plugin, observations: {}, controls: {} };
+  for (const target of ['mac-arm64', 'win-x64']) {
+    const c = caseFor(target), control = caseFor(target, true);
+    observations[target] = { ...verified(c), status }; controls[target] = verified(control);
+    expected.observations[target] = c.fingerprint; expected.controls[target] = control.fingerprint;
+  }
+  return { version: observation.version, expected, observations, controls };
+}
 
 test('official folded update feed resolves its exact version and SHA512, with no arbitrary installer URL', () => {
   const actual = parseFeed(feed, 'mac-arm64');
@@ -65,8 +95,7 @@ test('unchanged verified and pending versions deduplicate; infrastructure failur
 
 test('unknown archive admission is pending; missing, forged and failed results cannot become compatible', () => {
   const c = { ...observation, fingerprint: fingerprint(observation) };
-  assert.equal(normalizeResult(c, { fingerprint: c.fingerprint, target: c.target,
-    version: c.version, status: 'needs-review', archiveSha256: hash }).status, 'needs-review');
+  assert.equal(normalizeResult(c, { ...c, status: 'needs-review', archiveSha256: hash }).status, 'needs-review');
   assert.equal(normalizeResult(c, undefined).status, 'infrastructure-error');
   assert.equal(normalizeResult(c, { ...c, status: 'verified' }).status, 'infrastructure-error');
   assert.equal(normalizeResult(c, { ...c, fingerprint: 'forged', status: 'verified',
@@ -86,9 +115,6 @@ test('one version keeps one Issue across repeat runs and reopens after a previou
     if (options.method === 'PATCH') { Object.assign(issues.find(i => i.number === id), options.body); return issues.find(i => i.number === id); }
     return issues;
   };
-  const report = status => ({ version: observation.version, observations: {
-    'mac-arm64': { fingerprint: 'x', status }, 'win-x64': { fingerprint: 'y', status },
-  }, controls: { 'mac-arm64': { status: 'verified' }, 'win-x64': { status: 'verified' } } });
   const first = await publishVersion(api, 'owner/repo', report('verified'), issues);
   assert.equal(first.state, 'closed');
   await publishVersion(api, 'owner/repo', report('verified'), issues);
@@ -99,24 +125,52 @@ test('one version keeps one Issue across repeat runs and reopens after a previou
   const missingControl = report('verified'); delete missingControl.controls;
   const incomplete = await publishVersion(api, 'owner/repo', missingControl, issues);
   assert.equal(incomplete.state, 'open', 'platform observations alone cannot replace the reviewed baseline controls');
+  for (const field of ['commit', 'pluginSha256']) {
+    const mixed = report(); mixed.observations['win-x64'][field] = 'c'.repeat(field === 'commit' ? 40 : 64);
+    assert.equal((await publishVersion(api, 'owner/repo', mixed, issues)).state, 'open', 'mixed builds cannot close the version');
+  }
   await assert.rejects(() => publishVersion(api, 'owner/repo', report('verified'),
     [{ title: '[upstream-compat] Harness ' + observation.version, user: { login: 'github-actions[bot]' }, body: 'corrupt' }]), /verifiable/);
 });
 
 test('a verified platform requires all six suites, CLI installation, reviewed admission and successful cleanup', () => {
-  const c = { ...observation, fingerprint: fingerprint(observation) };
-  const raw = { fingerprint: c.fingerprint, target: c.target, version: c.version, status: 'verified',
-    archiveSha256: hash, admission: 'reviewed', isolatedDataRemoved: true, install: { passed: true },
-    suites: Array.from({ length: 6 }, (_, n) => ({ name: String(n), passed: true, checks: 5 })) };
+  const c = caseFor(), raw = verified(c);
   assert.equal(normalizeResult(c, raw).status, 'verified');
   for (const invalid of [{ ...raw, isolatedDataRemoved: false }, { ...raw, admission: 'unreviewed' },
     { ...raw, suites: raw.suites.slice(1) }, { ...raw, install: { passed: false } }]) {
     assert.equal(normalizeResult(c, invalid).status, 'infrastructure-error');
   }
-  assert.equal(normalizeResult({ ...c, source: { changed: ['native.ts'], reviewed: false } }, raw).status, 'needs-review');
-  assert.equal(normalizeResult({ ...c, plugin: { ...c.plugin, kind: 'source' } }, raw).status, 'needs-review');
-  assert.equal(normalizeResult({ ...c, source: { changed: [], reviewed: false } }, raw).status, 'needs-review');
-  assert.equal(normalizeResult({ ...c, source: { changed: ['native.ts'], reviewed: true } }, raw).status, 'verified');
+  for (const [next, wanted] of [[{ ...c, source: { changed: ['native.ts'], reviewed: false } }, 'needs-review'],
+    [{ ...c, plugin: { ...c.plugin, kind: 'source' } }, 'needs-review'],
+    [{ ...c, source: { changed: [], reviewed: false } }, 'needs-review'],
+    [{ ...c, source: { changed: ['native.ts'], reviewed: true } }, 'verified']]) {
+    next.fingerprint = fingerprint(next);
+    assert.equal(normalizeResult(next, verified(next)).status, wanted);
+  }
+});
+
+test('matching public fingerprints cannot turn incomplete or mismatched proof into verified', () => {
+  const c = caseFor(), raw = verified(c);
+  const invalid = [ { ...raw, commit: 'c'.repeat(40) }, { ...raw, plugin: { ...raw.plugin, commit: 'c'.repeat(40) } },
+    { ...raw, installerSha256: undefined }, { ...raw, installerSha512: Buffer.alloc(64, 8).toString('base64') },
+    { ...raw, pluginSha256: 'd'.repeat(64) }, { ...raw, contract: undefined },
+    { ...raw, contract: { ...raw.contract, packages: {} } }, { ...raw, suites: {} },
+    { ...raw, install: { ...raw.install, version: '0.5.0-rc.6' } },
+    { ...raw, suites: raw.suites.map(s => ({ ...s, name: 'same-fake-suite' })) } ];
+  for (const r of invalid) assert.equal(normalizeResult(c, r).status, 'infrastructure-error');
+});
+
+test('timeouts, signals and cleanup errors stay infrastructure failures; source-bound contract failures are distinct', () => {
+  const outcome = { code: 1, signal: null, timedOut: false }, sourceHead = 'tgz-sha256:' + hash;
+  const receipt = { sourceHead, passed: false, errors: [{ code: 'ERR_ASSERTION', message: 'Native contract changed' }] };
+  assert.equal(classifyProbe(outcome, receipt, sourceHead), 'incompatible');
+  for (const [o, r] of [[{ ...outcome, timedOut: true }, receipt], [{ ...outcome, signal: 'SIGABRT' }, receipt],
+    [outcome, undefined], [outcome, { ...receipt, isolatedDataRemoved: false }],
+    [outcome, { ...receipt, errors: [{ code: 'EPERM', message: 'unlink' }] }],
+    [outcome, { ...receipt, checks: [{ passed: false, error: { code: 'EPERM', message: 'unlink' } }] }],
+    [outcome, { ...receipt, errors: 'corrupt' }], [{ ...outcome, code: undefined }, receipt]]) {
+    assert.equal(classifyProbe(o, r, sourceHead), 'infrastructure-error');
+  }
 });
 
 test('Host environment inherits neither GitHub credentials, model keys nor operator startup options', () => {

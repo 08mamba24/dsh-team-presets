@@ -57,7 +57,14 @@ pass the plugin's existing app.asar admission before business tests run. The Mac
 DMG was read-only mounted to confirm its archive matches the original reviewed
 `6f0198…` bytes; the Windows installer is the existing `013e28…` acceptance input.
 Controls have separate receipts and cannot replace the current feed observation.
-Both controls must verify before a version Issue can close.
+Both controls must verify the same plugin build before a version Issue can close.
+Every successful receipt binds the planned upstream commit, plugin commit and
+TGZ digest, installer digests, native API contract, installed name/version and
+the six uniquely named suite receipts. The publisher checks these identities
+again against one expected build for both platforms. Missing or inconsistent
+proof cannot close an Issue. Timeouts, crashes, CLI/runner errors and failed
+cleanup remain infrastructure failures; only source-bound API or business
+assertions establish an incompatibility.
 
 ## Results and ownership
 

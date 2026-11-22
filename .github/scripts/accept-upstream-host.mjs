@@ -1,13 +1,14 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
-import { access, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, cp, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve, parse } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
+import { classifyProbe } from './upstream-contract.mjs';
 
 export function isolatedEnvironment(lab, resources, platform = process.platform, source = process.env) {
   const home = join(lab, 'home'), temporary = join(lab, 'tmp');
@@ -55,7 +56,7 @@ async function download(url, destination, expected, algorithm = 'sha256', encodi
   return hashFile(destination);
 }
 
-async function run(executable, args, { env, cwd, log, timeout = 180000 } = {}) {
+async function run(executable, args, { env, cwd, log, timeout = 180000, allowFailure = false } = {}) {
   const child = spawn(executable, args, { env, cwd, detached: process.platform !== 'win32',
     windowsHide: true, stdio: ['ignore', 'pipe', 'pipe'] });
   let output = '', expired = false, killing;
@@ -76,7 +77,18 @@ async function run(executable, args, { env, cwd, log, timeout = 180000 } = {}) {
   }).finally(() => clearTimeout(timer));
   if (killing) await killing;
   if (log) await writeFile(log, output, { flag: 'wx' });
-  if (code !== 0 || expired) throw Object.assign(new Error(`${executable.split(/[\\/]/).at(-1)} failed (${expired ? 'timeout' : code ?? signal})`), { executionFailed: true });
+  if ((code !== 0 || expired) && !allowFailure) throw Object.assign(new Error(`${executable.split(/[\\/]/).at(-1)} failed (${expired ? 'timeout' : code ?? signal})`), { executionFailed: true });
+  return { code, signal, timedOut: expired };
+}
+
+async function readProof(path) {
+  try { return JSON.parse(await readFile(path, 'utf8')); }
+  catch { return undefined; }
+}
+function requireProof(outcome, receipt, sourceHead, label) {
+  const status = classifyProbe(outcome, receipt, sourceHead);
+  if (status !== 'passed') throw Object.assign(new Error(`${label}: ${status}; ${receipt?.errors?.[0]?.message ?? 'no complete successful source-bound receipt'}`),
+    { compatibilityFailure: status === 'incompatible' });
 }
 
 async function main() {
@@ -87,7 +99,9 @@ async function main() {
   const result = { fingerprint: c.fingerprint, version: c.version, target: c.target, commit: c.commit,
     plugin: c.plugin, status: 'infrastructure-error', stage: 'prepare', checkedAt: new Date().toISOString(),
     isolatedDataRemoved: false, suites: [] };
-  const lab = await mkdtemp(join(tmpdir(), 'dsh-upstream-'));
+  // Windows TEMP may use an 8.3 alias. One canonical path prevents duplicate
+  // native module/Service identities across CLI, Loader and child fixtures.
+  const lab = await realpath(await mkdtemp(join(tmpdir(), 'dsh-upstream-')));
   let installedMac = false, mounted = false, stage = 'prepare';
   try {
     assert.ok(c.target === 'mac-arm64' && process.platform === 'darwin' && process.arch === 'arm64'
@@ -106,6 +120,7 @@ async function main() {
     const installer = join(lab, c.artifact.format === 'dmg' ? 'official.dmg' : process.platform === 'darwin' ? 'official.zip' : 'official.exe');
     result.installerSha256 = await download(c.artifact.url, installer, c.artifact.sha512 ?? c.artifact.sha256,
       c.artifact.sha512 ? 'sha512' : 'sha256', c.artifact.sha512 ? 'base64' : 'hex');
+    result.installerSha512 = await hashFile(installer, 'sha512', 'base64');
     stage = 'extract';
     if (process.platform === 'darwin') {
       try { await access('/Applications/DeepSeek Harness.app'); throw new Error('Refusing to replace an existing Host'); }
@@ -155,9 +170,11 @@ async function main() {
     result.admission = hostVersionForArchive(result.archiveSha256) === c.version ? 'reviewed' : 'unreviewed';
     stage = 'contract';
     const contractReceipt = join(output, 'runtime-contract.json');
-    await run(exe, ['--expose-internals', join(dirname(fileURLToPath(import.meta.url)), 'inspect-upstream-runtime.mjs'), runtime, contractReceipt],
-      { env, cwd: lab, log: join(output, 'contract.log') });
-    result.contract = JSON.parse(await readFile(contractReceipt, 'utf8'));
+    const sourceHead = 'tgz-sha256:' + result.pluginSha256;
+    const inspected = await run(exe, ['--expose-internals', join(dirname(fileURLToPath(import.meta.url)), 'inspect-upstream-runtime.mjs'),
+      runtime, contractReceipt, '', sourceHead], { env, cwd: lab, log: join(output, 'contract.log'), allowFailure: true });
+    result.contract = await readProof(contractReceipt);
+    requireProof(inspected, result.contract, sourceHead, 'public API inspection');
     if (result.admission !== 'reviewed') {
       result.status = 'needs-review'; result.reason = 'Unknown app.asar: public API surface inspected; product allowlist and business execution were not changed.';
       result.stage = 'admission'; return;
@@ -170,7 +187,7 @@ async function main() {
       { env, cwd: join(lab, 'workspace'), log: join(output, label + '.log') });
     stage = 'profile';
     await run(exe, ['--expose-internals', join(dirname(fileURLToPath(import.meta.url)), 'inspect-upstream-runtime.mjs'),
-      runtime, join(output, 'profile-initialization.json'), join(lab, 'harness', 'profiles', 'desktop')],
+      runtime, join(output, 'profile-initialization.json'), join(lab, 'harness', 'profiles', 'desktop'), sourceHead],
       { env, cwd: lab, log: join(output, 'profile-initialization.log') });
     stage = 'install';
     await cliRun('install', ['add', 'file:' + pluginTgz, '--offline', '--ignore-scripts']);
@@ -179,8 +196,11 @@ async function main() {
     const expectedVersion = c.plugin.kind === 'release' ? c.plugin.tag.slice(1)
       : JSON.parse(await readFile(resolve('candidate', 'package.json'), 'utf8')).version;
     assert.equal(metadata.version, expectedVersion, 'CLI installed a different plugin version');
-    result.install = { passed: metadata.name === 'dsh-subagent-live-rc2-local', version: metadata.version };
+    const profile = JSON.parse(await readFile(join(lab, 'harness', 'profiles', 'desktop', 'package.json'), 'utf8'));
+    result.install = { passed: metadata.name === 'dsh-subagent-live-rc2-local', name: metadata.name,
+      version: metadata.version, bundleActivated: profile.dsh?.profile?.bundles?.includes(metadata.name) === true };
     assert.ok(result.install.passed);
+    assert.ok(result.install.bundleActivated);
     const legacyTgz = join(lab, 'legacy.tgz');
     await download('https://github.com/08mamba24/dsh-team-presets/releases/download/v0.5.0-rc.6/dsh-subagent-live-rc2-local-0.5.0-rc.6.tgz',
       legacyTgz, '2cf65d1b843ead3b5fc051df2f1b6f8027022c4ecabb1d9d0375173cfd47f03d');
@@ -193,23 +213,19 @@ async function main() {
       ['legacy-unchanged', 'accept-native-replacement.mjs', join(lab, 'legacy', 'package'), 'unchanged'] ];
     for (const [name, script, ...extra] of suites) {
       const receipt = join(output, name + '.json');
-      await run(exe, ['--expose-internals', join(installed, 'scripts', script), runtime, installed, receipt,
-        'tgz-sha256:' + result.pluginSha256, ...extra], { env, cwd: join(lab, 'workspace'), log: join(output, name + '.log') });
-      const evidence = JSON.parse(await readFile(receipt, 'utf8'));
-      assert.equal(evidence.passed, true);
+      const executed = await run(exe, ['--expose-internals', join(installed, 'scripts', script), runtime, installed, receipt,
+        'tgz-sha256:' + result.pluginSha256, ...extra], { env, cwd: join(lab, 'workspace'), log: join(output, name + '.log'), allowFailure: true });
+      const evidence = await readProof(receipt);
+      requireProof(executed, evidence, sourceHead, name);
       assert.ok(evidence.checks.length > 0 && evidence.checks.every(check => check.passed === true));
-      result.suites.push({ name, passed: true, checks: evidence.checks.length });
+      result.suites.push({ name, passed: true, checks: evidence.checks.length,
+        sourceHead: evidence.sourceHead, receiptSha256: await hashFile(receipt) });
     }
     stage = 'uninstall';
-    await cliRun('uninstall', ['remove', 'dsh-subagent-live-rc2-local', '--offline', '--ignore-scripts']);
+    await cliRun('uninstall', ['remove', 'dsh-subagent-live-rc2-local']);
     result.status = 'verified'; result.stage = 'complete';
   } catch (error) {
-    let contractFailure = false;
-    if (stage === 'contract') {
-      try { contractFailure = JSON.parse(await readFile(join(output, 'runtime-contract.json'), 'utf8')).passed === false; }
-      catch { /* A process startup/crash with no API receipt is infrastructure failure. */ }
-    }
-    result.status = (contractFailure || ['install', 'native', 'uninstall'].includes(stage)) && error.executionFailed ? 'incompatible' : 'infrastructure-error';
+    result.status = error.compatibilityFailure === true ? 'incompatible' : 'infrastructure-error';
     result.reason = error.message.replaceAll(lab, '<isolated-lab>').slice(0, 500); result.stage = stage;
   } finally {
     try {
