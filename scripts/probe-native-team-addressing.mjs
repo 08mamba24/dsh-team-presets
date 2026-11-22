@@ -1,5 +1,6 @@
 /** Physical native ToolsService/control/scope probe for stable team role addressing. */
 import assert from 'node:assert/strict';
+import { describeNativeError } from './native-error.mjs';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { readFile, writeFile } from 'node:fs/promises';
@@ -589,6 +590,10 @@ try {
   await disposeFixture(fixture);
 }
 
+if (failureProbe === '--nested-io-failure') {
+  await assert.rejects(Promise.reject(Object.assign(new Error('Injected native fixture IO denial'), { code: 'EPERM' })),
+    { code: 'TEAM_ADDRESS_LAYER_OCCUPIED' });
+}
 await assert.rejects(runGeneration(activeSecond, 'unproven-control', 'fixture/unproven-control'),
   { code: 'TEAM_ADDRESS_LAYER_OCCUPIED' });
 check('a Preset-scoped control remains occupied unless the Registry proves the official native module');
@@ -624,7 +629,7 @@ try {
 
 try { await runChecks(); }
 catch (error) {
-  const described = { code: error.code ?? null, message: error.message, stack: error.stack };
+  const described = describeNativeError(error);
   checks.push({ name: 'native logical addressing failure', passed: false, error: described });
   if (failureStage === 'setup') setupError = described;
   if (failureStage === 'cleanup') cleanupError = described;

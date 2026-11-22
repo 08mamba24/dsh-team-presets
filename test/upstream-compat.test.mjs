@@ -6,6 +6,7 @@ import { parseFeed, selectReleases, sourceDelta, fingerprint, shouldProbe, norma
 import { isolatedEnvironment } from '../.github/scripts/accept-upstream-host.mjs';
 import { CONTRACT_EXPORTS, SUITE_NAMES, CLASSIFICATION_PROBES, classifyProbe } from '../.github/scripts/upstream-contract.mjs';
 import { nativeAdmissionCheck } from '../scripts/native-admission-check.mjs';
+import { describeNativeError } from '../scripts/native-error.mjs';
 
 const sha = 'a'.repeat(40), hash = 'b'.repeat(64);
 const feed = `version: 0.2.2-rc.5\npath: >-\n  https://download.deepseek.com/dsh-desk/bin/mac-arm64/stable/deepseek-harness-0.2.2-rc.5-mac-arm64.zip\nsha512: >-\n  ${Buffer.alloc(64, 7).toString('base64')}\n`;
@@ -181,6 +182,8 @@ test('timeouts, signals and cleanup errors stay infrastructure failures; source-
     [outcome, { ...receipt, errors: [{}] }], [outcome, { ...receipt, errors: ['not an error record'] }],
     [outcome, { ...receipt, checks: null }], [outcome, { ...receipt, errors: null }],
     [outcome, { ...receipt, cleanupError: { code: 'ERR_ASSERTION', message: 'fixture teardown' } }],
+    [outcome, { ...receipt, errors: [{ code: 'ERR_ASSERTION', message: 'wrapper', provenance: ['corrupt'] }] }],
+    [outcome, { ...receipt, errors: [{ code: 'ERR_ASSERTION', message: 'wrapper', provenanceIncomplete: true }] }],
     [outcome, { sourceHead, passed: false, checks: [{ passed: false }] }],
     [outcome, { sourceHead, passed: false, checks: [{ name: 'business', passed: false }] }]]) {
     assert.equal(classifyProbe(o, r, sourceHead), 'infrastructure-error');
@@ -227,9 +230,32 @@ test('the admission suite emits explicit business failures while setup exception
   assert.equal(classifyProbe({ code: 1 }, { sourceHead, passed: false, checks: [failed] }, sourceHead), 'incompatible');
   assert.equal(classifyProbe({ code: 1 }, { sourceHead, passed: false, checks: [failed],
     setupError: { code: 'EPERM', message: 'setup write failed' } }, sourceHead), 'infrastructure-error');
+  const ioFailed = nativeAdmissionCheck(failed.name, false, { stats: { ...failed.stats,
+    agentErrors: [describeNativeError(Object.assign(new Error('body IO failure'), { code: 'EPERM' }))] } });
+  assert.equal(classifyProbe({ code: 1 }, { sourceHead, passed: false, checks: [ioFailed] }, sourceHead), 'infrastructure-error');
   const success = nativeAdmissionCheck('normal-role', true, { stats: { prepare: 1 } });
   assert.equal(success.error, undefined);
   assert.equal(classifyProbe({ code: 0 }, { sourceHead, passed: true, checks: [success] }, sourceHead), 'passed');
+});
+
+test('real Node assertion wrappers retain nested actual/cause IO provenance', async () => {
+  const sourceHead = 'tgz-sha256:' + hash;
+  const io = Object.assign(new Error('native fixture IO denied'), { code: 'EPERM' });
+  let wrapped;
+  try { await assert.rejects(Promise.reject(io), { code: 'TEAM_ADDRESS_LAYER_OCCUPIED' }); }
+  catch (error) { wrapped = error; }
+  assert.equal(wrapped.code, 'ERR_ASSERTION'); assert.equal(wrapped.actual.code, 'EPERM');
+  for (const error of [wrapped, Object.assign(new Error('outer assertion'), { code: 'ERR_ASSERTION', cause: io }),
+    Object.assign(new AggregateError([io], 'aggregate assertion'), { code: 'ERR_ASSERTION' })]) {
+    const described = describeNativeError(error);
+    const receipt = { sourceHead, passed: false, checks: [{ name: 'native failure', passed: false, error: described }] };
+    assert.equal(classifyProbe({ code: 1 }, receipt, sourceHead), 'infrastructure-error');
+    const c = caseFor(), raw = verified(c);
+    assert.equal(normalizeResult(c, { ...raw, status: 'incompatible', stage: 'native', failureProof: {
+      stage: 'native', suite: 'addressing', sourceHead: raw.contract.sourceHead,
+      receiptSha256: hash, harnessSha256: hash, assertions: [described],
+    } }).status, 'infrastructure-error');
+  }
 });
 
 test('Host environment inherits neither GitHub credentials, model keys nor operator startup options', () => {

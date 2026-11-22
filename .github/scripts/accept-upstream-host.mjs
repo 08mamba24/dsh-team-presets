@@ -235,6 +235,10 @@ async function main() {
           assert.equal(proof?.sourceHead, sourceHead); assert.equal(proof.passed, false);
           if (fault === '--setup-failure') assert.equal(proof.setupError?.code, 'ERR_ASSERTION');
           if (fault === '--cleanup-failure') assert.equal(proof.cleanupError?.code, 'ERR_ASSERTION');
+          if (fault === '--nested-io-failure') {
+            assert.equal(proof.checks.at(-1).error.code, 'ERR_ASSERTION');
+            assert.ok(proof.checks.at(-1).error.provenance.some(error => error.code === 'EPERM'));
+          }
           const actual = classifyProbe(outcome, proof, sourceHead);
           assert.equal(actual, expected, label);
           let failureProof;

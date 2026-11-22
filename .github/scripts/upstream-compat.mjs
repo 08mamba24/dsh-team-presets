@@ -93,7 +93,7 @@ async function validationDigest() {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
   const files = ['.github/scripts/upstream-compat.mjs', '.github/scripts/upstream-contract.mjs',
     '.github/scripts/accept-upstream-host.mjs', '.github/scripts/inspect-upstream-runtime.mjs',
-    'scripts/accept-native-admission.mjs', 'scripts/native-admission-check.mjs',
+    'scripts/accept-native-admission.mjs', 'scripts/native-admission-check.mjs', 'scripts/native-error.mjs',
     'scripts/accept-native-replacement-store.mjs', 'scripts/probe-native-team-addressing.mjs',
     'scripts/accept-native-replacement.mjs'];
   return digest(await Promise.all(files.map(async path => [path, digest(await readFile(join(root, path), 'utf8'))])));

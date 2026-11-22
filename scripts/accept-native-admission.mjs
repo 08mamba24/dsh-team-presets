@@ -7,6 +7,7 @@
  */
 import { createHash, randomUUID } from 'node:crypto';
 import { nativeAdmissionCheck } from './native-admission-check.mjs';
+import { describeNativeError } from './native-error.mjs';
 import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -52,7 +53,7 @@ const CANDIDATE_PRESET = 'native-admission-candidate-' + randomUUID();
 const HANDOFF = 'a'.repeat(64);
 const checks = [];
 const check = (name, passed, evidence = {}) => checks.push(nativeAdmissionCheck(name, passed, evidence));
-const describeError = error => ({ code: error?.code ?? null, message: error?.message ?? String(error), stack: error?.stack });
+const describeError = describeNativeError;
 const hashes = {};
 for (const name of ['launcher-role.js', 'src/launcher-native.js', 'src/member-replacement.js', 'src/role-tools.js']) {
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');

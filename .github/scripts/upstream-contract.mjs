@@ -13,12 +13,16 @@ export const CLASSIFICATION_PROBES = [
   ['early-addressing-assertion', '--assertion-failure', 'incompatible'],
   ['addressing-setup', '--setup-failure', 'infrastructure-error'],
   ['addressing-cleanup', '--cleanup-failure', 'infrastructure-error'],
+  ['addressing-nested-io', '--nested-io-failure', 'infrastructure-error'],
 ];
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = value => typeof value === 'string' && value.trim().length > 0;
-const errorRecord = value => record(value) && text(value.message)
+const basicError = value => record(value) && text(value.message)
   && (value.code === undefined || text(value.code)) && (value.name === undefined || text(value.name));
+const errorRecord = value => basicError(value) && !value.provenanceIncomplete
+  && (value.provenance === undefined || Array.isArray(value.provenance)
+    && value.provenance.every(nested => basicError(nested) && nested.provenance === undefined));
 export const isFailureAssertion = value => errorRecord(value) && (text(value.code) || text(value.name));
 
 function inspectReceipt(receipt) {
@@ -35,8 +39,10 @@ function inspectReceipt(receipt) {
     diagnostics.push(...nested);
     assertions.push(...nested.map(error => ({ ...error, name: error.name ?? check.name })));
   }
-  return { diagnostics, assertions: assertions.map(error => ({ message: error.message.slice(0, 1000),
-    ...(error.name ? { name: error.name.slice(0, 128) } : {}), ...(error.code ? { code: error.code.slice(0, 128) } : {}) })) };
+  return { diagnostics: diagnostics.flatMap(error => [error, ...(error.provenance ?? [])]),
+    assertions: assertions.map(error => ({ message: error.message.slice(0, 1000),
+    ...(error.name ? { name: error.name.slice(0, 128) } : {}), ...(error.code ? { code: error.code.slice(0, 128) } : {}),
+    ...(error.provenance ? { provenance: error.provenance.map(nested => ({ ...nested })) } : {}) })) };
 }
 
 export const failureAssertions = receipt => record(receipt) ? inspectReceipt(receipt)?.assertions : undefined;

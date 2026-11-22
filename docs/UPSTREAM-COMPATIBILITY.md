@@ -57,11 +57,15 @@ existing Windows acceptance workflow.
 The validation generation includes the monitor and harness source digests.
 Changing the judge invalidates deduplication and rechecks both platforms, even
 when the upstream installer and published plugin bytes have not changed.
-Reviewed controls also run three deliberate fault probes through the real
+Reviewed controls also run four deliberate fault probes through the real
 addressing harness: an early business assertion must produce a source-bound
 incompatibility proof, while fixture setup and cleanup assertions must remain
 infrastructure failures. These diagnostic outcomes are separate from the Host's
 compatibility result.
+The fourth probe produces a real Node assertion wrapping an `EPERM` rejection.
+All native error writers preserve `actual`, `cause` and aggregate-error codes;
+nested IO stays infrastructure, and incomplete bounded provenance cannot become
+an incompatibility claim.
 
 Each changed observation also runs both original reviewed rc.5 distributions as
 regression controls. These installers have frozen SHA256 values and still must
