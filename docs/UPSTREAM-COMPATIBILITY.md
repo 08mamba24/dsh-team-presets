@@ -65,6 +65,11 @@ again against one expected build for both platforms. Missing or inconsistent
 proof cannot close an Issue. Timeouts, crashes, CLI/runner errors and failed
 cleanup remain infrastructure failures; only source-bound API or business
 assertions establish an incompatibility.
+Failed checks retain the suite/stage, source digest, receipt digest and explicit
+assertions. The publisher revalidates those assertions, including infrastructure
+error codes. Admission-pending results still need the complete API contract,
+artifact identities and cleanup; an unpublished official artifact has a separate
+pending result without implying execution.
 
 ## Results and ownership
 

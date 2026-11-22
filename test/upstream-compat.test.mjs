@@ -95,13 +95,13 @@ test('unchanged verified and pending versions deduplicate; infrastructure failur
 
 test('unknown archive admission is pending; missing, forged and failed results cannot become compatible', () => {
   const c = { ...observation, fingerprint: fingerprint(observation) };
-  assert.equal(normalizeResult(c, { ...c, status: 'needs-review', archiveSha256: hash }).status, 'needs-review');
+  assert.equal(normalizeResult(c, { ...verified(c), status: 'needs-review', stage: 'admission', admission: 'unreviewed', suites: [] }).status, 'needs-review');
   assert.equal(normalizeResult(c, undefined).status, 'infrastructure-error');
   assert.equal(normalizeResult(c, { ...c, status: 'verified' }).status, 'infrastructure-error');
   assert.equal(normalizeResult(c, { ...c, fingerprint: 'forged', status: 'verified',
     admission: 'reviewed', suites: [{ passed: true }] }).status, 'infrastructure-error');
   assert.equal(normalizeResult(c, { ...c, status: 'incompatible', stage: 'native',
-    admission: 'reviewed' }).status, 'incompatible');
+    admission: 'reviewed' }).status, 'infrastructure-error');
 });
 
 test('one version keeps one Issue across repeat runs and reopens after a previously verified version changes', async () => {
@@ -168,9 +168,44 @@ test('timeouts, signals and cleanup errors stay infrastructure failures; source-
     [outcome, undefined], [outcome, { ...receipt, isolatedDataRemoved: false }],
     [outcome, { ...receipt, errors: [{ code: 'EPERM', message: 'unlink' }] }],
     [outcome, { ...receipt, checks: [{ passed: false, error: { code: 'EPERM', message: 'unlink' } }] }],
-    [outcome, { ...receipt, errors: 'corrupt' }], [{ ...outcome, code: undefined }, receipt]]) {
+    [outcome, { ...receipt, errors: 'corrupt' }], [{ ...outcome, code: undefined }, receipt],
+    [outcome, { ...receipt, errors: [{}] }], [outcome, { ...receipt, errors: ['not an error record'] }],
+    [outcome, { ...receipt, checks: null }], [outcome, { ...receipt, errors: null }],
+    [outcome, { sourceHead, passed: false, checks: [{ passed: false }] }],
+    [outcome, { sourceHead, passed: false, checks: [{ name: 'business', passed: false }] }]]) {
     assert.equal(classifyProbe(o, r, sourceHead), 'infrastructure-error');
   }
+});
+
+test('pending admission and incompatibility require the corresponding source-bound execution proof', () => {
+  const c = caseFor(), raw = verified(c);
+  for (const status of ['incompatible', 'needs-review']) assert.equal(normalizeResult(c, { ...c, status }).status, 'infrastructure-error');
+  const failed = { ...raw, status: 'incompatible', stage: 'native', failureProof: {
+    stage: 'native', suite: 'replacement', sourceHead: raw.contract.sourceHead, receiptSha256: hash,
+    assertions: [{ name: 'native replacement', code: 'ERR_ASSERTION', message: 'Native behavior changed' }] } };
+  assert.equal(normalizeResult(c, failed).status, 'incompatible');
+  for (const proof of [undefined, { ...failed.failureProof, receiptSha256: undefined },
+    { ...failed.failureProof, sourceHead: 'other-source' }, { ...failed.failureProof, assertions: [{}] },
+    { ...failed.failureProof, assertions: [{ code: 'EPERM', message: 'unlink' }] }]) {
+    assert.equal(normalizeResult(c, { ...failed, failureProof: proof }).status, 'infrastructure-error');
+  }
+  assert.equal(normalizeResult(c, { ...failed, install: undefined }).status, 'infrastructure-error');
+  assert.equal(normalizeResult(c, { ...failed, stage: undefined, failureProof: undefined }).status, 'infrastructure-error');
+  const apiFailure = { ...failed, stage: 'contract', contract: { ...raw.contract, passed: false,
+    errors: [{ name: '@deepseek-ai/dsh-scope', message: 'Missing public export' }] },
+    failureProof: { ...failed.failureProof, stage: 'contract', suite: 'contract',
+      assertions: [{ name: '@deepseek-ai/dsh-scope', message: 'Missing public export' }] } };
+  assert.equal(normalizeResult(c, apiFailure).status, 'incompatible');
+  assert.equal(normalizeResult(c, { ...apiFailure, contract: undefined }).status, 'infrastructure-error');
+  const pending = { ...raw, status: 'needs-review', stage: 'admission', admission: 'unreviewed', suites: [] };
+  assert.equal(normalizeResult(c, pending).status, 'needs-review');
+  for (const missing of ['contract', 'installerSha256', 'pluginSha256', 'archiveSha256']) {
+    assert.equal(normalizeResult(c, { ...pending, [missing]: undefined }).status, 'infrastructure-error');
+  }
+  const unavailable = { ...c, artifact: null, pendingReason: 'Official mac-arm64 feed has not published this version' };
+  unavailable.fingerprint = fingerprint(unavailable);
+  assert.equal(normalizeResult(unavailable, { ...unavailable, status: 'needs-review', stage: 'artifact',
+    reason: unavailable.pendingReason, isolatedDataRemoved: true }).status, 'needs-review');
 });
 
 test('Host environment inherits neither GitHub credentials, model keys nor operator startup options', () => {

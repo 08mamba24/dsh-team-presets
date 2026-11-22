@@ -10,19 +10,41 @@ export const CONTRACT_EXPORTS = {
 };
 export const SUITE_NAMES = ['admission', 'store', 'addressing', 'replacement', 'legacy-changed', 'legacy-unchanged'];
 
-// A process exit is transport evidence, not a product-contract verdict. Native
-// scripts must provide a source-bound receipt before a failure is called
-// incompatibility; timeouts, signals, missing data and cleanup failures remain
-// infrastructure failures even when some test output was produced.
+const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
+const text = value => typeof value === 'string' && value.trim().length > 0;
+const errorRecord = value => record(value) && text(value.message)
+  && (value.code === undefined || text(value.code)) && (value.name === undefined || text(value.name));
+export const isFailureAssertion = value => errorRecord(value) && (text(value.code) || text(value.name));
+
+function inspectReceipt(receipt) {
+  const errors = receipt.errors === undefined ? [] : receipt.errors;
+  const checks = receipt.checks === undefined ? [] : receipt.checks;
+  if (!Array.isArray(errors) || !errors.every(errorRecord) || !Array.isArray(checks)) return;
+  const diagnostics = [...errors], assertions = errors.filter(isFailureAssertion);
+  for (const check of checks) {
+    if (!record(check) || !text(check.name) || typeof check.passed !== 'boolean') return;
+    if (check.passed) continue;
+    if (check.errors !== undefined && !Array.isArray(check.errors)) return;
+    const nested = [...(check.error === undefined ? [] : [check.error]), ...(check.errors ?? [])];
+    if (!nested.length || !nested.every(errorRecord)) return;
+    diagnostics.push(...nested);
+    assertions.push(...nested.map(error => ({ ...error, name: error.name ?? check.name })));
+  }
+  return { diagnostics, assertions: assertions.map(error => ({ message: error.message.slice(0, 1000),
+    ...(error.name ? { name: error.name.slice(0, 128) } : {}), ...(error.code ? { code: error.code.slice(0, 128) } : {}) })) };
+}
+
+export const failureAssertions = receipt => record(receipt) ? inspectReceipt(receipt)?.assertions : undefined;
+
+// Exit codes and generic transport messages cannot establish a product failure.
 export function classifyProbe(outcome, receipt, expectedSource) {
   if (!outcome || outcome.timedOut || outcome.signal || !Number.isInteger(outcome.code)
     || receipt?.sourceHead !== expectedSource || typeof receipt.passed !== 'boolean'
-    || receipt.errors !== undefined && !Array.isArray(receipt.errors)
-    || receipt.checks !== undefined && !Array.isArray(receipt.checks)
     || receipt.isolatedDataRemoved === false || receipt.isolatedProfileRemoved === false) return 'infrastructure-error';
+  const inspected = inspectReceipt(receipt);
+  if (!inspected) return 'infrastructure-error';
   const io = /^(?:EACCES|EPERM|EBUSY|ENOSPC|EIO|ENOENT|ECONNRESET|ETIMEDOUT|ABORT_ERR)$/;
-  const errors = [...receipt.errors ?? [], ...receipt.checks?.flatMap(check => [check.error, ...Array.isArray(check.errors) ? check.errors : []]) ?? []].filter(Boolean);
-  if (errors.some(error => io.test(error.code ?? '') || /cleanup|timed?\s*out/i.test(error.message ?? ''))) return 'infrastructure-error';
-  if (receipt.passed === true) return outcome.code === 0 ? 'passed' : 'infrastructure-error';
-  return receipt.errors?.length || receipt.checks?.some(check => check.passed === false) ? 'incompatible' : 'infrastructure-error';
+  if (inspected.diagnostics.some(error => io.test(error.code ?? '') || /cleanup|timed?\s*out/i.test(error.message))) return 'infrastructure-error';
+  if (receipt.passed) return outcome.code === 0 && !inspected.diagnostics.length ? 'passed' : 'infrastructure-error';
+  return inspected.assertions.length ? 'incompatible' : 'infrastructure-error';
 }

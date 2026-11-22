@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONTRACT_EXPORTS, SUITE_NAMES } from './upstream-contract.mjs';
+import { CONTRACT_EXPORTS, SUITE_NAMES, isFailureAssertion, classifyProbe, failureAssertions } from './upstream-contract.mjs';
 
 export const UPSTREAM = 'deepseek-ai/deepseek-harness';
 export const BASELINE = { version: '0.2.2-rc.5', commit: '9c2670d3bce5275e0d1610272958121af87787bb' };
@@ -101,32 +101,58 @@ export function normalizeResult(c, raw) {
   if (!raw || raw.fingerprint !== c.fingerprint || raw.target !== c.target || raw.version !== c.version
     || raw.commit !== c.commit || !samePlugin(raw.plugin, c.plugin)
     || !statuses.includes(raw.status)) return invalid('Missing or mismatched platform receipt');
-  if (raw.status === 'verified') {
-    const sourceHead = 'tgz-sha256:' + raw.pluginSha256;
-    const exactSet = (actual, expected) => Array.isArray(actual) && actual.length === expected.length
-      && new Set(actual).size === expected.length && expected.every(value => actual.includes(value));
-    const contracts = raw.contract?.packages;
-    const contractValid = raw.contract?.passed === true && raw.contract.sourceHead === sourceHead
-      && Array.isArray(raw.contract.errors) && raw.contract.errors.length === 0
-      && Array.isArray(contracts)
-      && exactSet(contracts.map(p => p?.name), Object.keys(CONTRACT_EXPORTS).map(n => '@deepseek-ai/' + n))
-      && contracts.every(p => exactSet(p.exports, CONTRACT_EXPORTS[p.name.slice(13)])
-        && (p.name === '@deepseek-ai/cordis' || p.version === c.version));
-    const artifactValid = c.artifact && DIGEST.test(raw.installerSha256 ?? '')
-      && typeof raw.installerSha512 === 'string' && Buffer.from(raw.installerSha512, 'base64').length === 64
-      && (c.artifact.sha512 ? raw.installerSha512 === c.artifact.sha512 : raw.installerSha256 === c.artifact.sha256);
-    if (raw.admission !== 'reviewed' || !DIGEST.test(raw.archiveSha256 ?? '') || !artifactValid
-      || !DIGEST.test(raw.pluginSha256 ?? '') || c.plugin.kind === 'release' && raw.pluginSha256 !== c.plugin.sha256
-      || raw.install?.passed !== true || raw.install.name !== 'dsh-subagent-live-rc2-local'
-      || raw.install.bundleActivated !== true || !VERSION.test(raw.install.version ?? '')
-      || c.plugin.kind === 'release' && raw.install.version !== c.plugin.tag.slice(1)
-      || !contractValid || raw.isolatedDataRemoved !== true
-      || !Array.isArray(raw.suites) || !exactSet(raw.suites.map(s => s?.name), SUITE_NAMES)
+  if (raw.status === 'infrastructure-error') return raw;
+  if (raw.status === 'needs-review' && !c.artifact) {
+    return raw.stage === 'artifact' && raw.isolatedDataRemoved === true
+      && c.pendingReason?.startsWith('Official ') && c.pendingReason.includes('has not published')
+      && raw.reason === c.pendingReason ? raw : invalid('No attested artifact or valid pending reason');
+  }
+  const sourceHead = 'tgz-sha256:' + raw.pluginSha256;
+  const exactSet = (actual, expected) => Array.isArray(actual) && actual.length === expected.length
+    && new Set(actual).size === expected.length && expected.every(value => actual.includes(value));
+  const contracts = raw.contract?.packages;
+  const contractValid = raw.contract?.passed === true && raw.contract.sourceHead === sourceHead
+    && Array.isArray(raw.contract.errors) && raw.contract.errors.length === 0 && Array.isArray(contracts)
+    && exactSet(contracts.map(p => p?.name), Object.keys(CONTRACT_EXPORTS).map(n => '@deepseek-ai/' + n))
+    && contracts.every(p => exactSet(p.exports, CONTRACT_EXPORTS[p.name.slice(13)])
+      && (p.name === '@deepseek-ai/cordis' || p.version === c.version));
+  const artifactValid = c.artifact && DIGEST.test(raw.installerSha256 ?? '')
+    && typeof raw.installerSha512 === 'string' && Buffer.from(raw.installerSha512, 'base64').length === 64
+    && (c.artifact.sha512 ? raw.installerSha512 === c.artifact.sha512 : raw.installerSha256 === c.artifact.sha256);
+  const installValid = raw.install?.passed === true && raw.install.name === 'dsh-subagent-live-rc2-local'
+    && raw.install.bundleActivated === true && VERSION.test(raw.install.version ?? '')
+    && (c.plugin.kind !== 'release' || raw.install.version === c.plugin.tag.slice(1));
+  if (!artifactValid || !DIGEST.test(raw.archiveSha256 ?? '') || !DIGEST.test(raw.pluginSha256 ?? '')
+    || c.plugin.kind === 'release' && raw.pluginSha256 !== c.plugin.sha256 || raw.isolatedDataRemoved !== true) {
+    return invalid('Incomplete installer/plugin/archive identity or cleanup proof');
+  }
+  if (raw.status === 'incompatible') {
+    const proof = raw.failureProof;
+    const apiAssertions = failureAssertions(raw.contract);
+    const valid = proof && proof.stage === raw.stage && (proof.stage === 'contract' && proof.suite === 'contract'
+      || proof.stage === 'native' && SUITE_NAMES.includes(proof.suite))
+      && proof.sourceHead === sourceHead && DIGEST.test(proof.receiptSha256 ?? '')
+      && Array.isArray(proof.assertions) && proof.assertions.length > 0 && proof.assertions.every(isFailureAssertion)
+      && classifyProbe({ code: 1 }, { passed: false, sourceHead, errors: proof.assertions }, sourceHead) === 'incompatible'
+      && (proof.stage !== 'contract' || raw.contract?.passed === false
+        && classifyProbe({ code: 1 }, raw.contract, sourceHead) === 'incompatible'
+        && apiAssertions?.length === proof.assertions.length
+        && apiAssertions.every((assertion, i) => ['message', 'name', 'code'].every(key => assertion[key] === proof.assertions[i][key])))
+      && (proof.stage !== 'native' || contractValid && installValid && raw.admission === 'reviewed');
+    return valid ? raw : invalid('No source-bound structured incompatibility proof');
+  }
+  if (raw.status === 'needs-review' && raw.stage === 'admission') {
+    return contractValid && raw.admission === 'unreviewed' && Array.isArray(raw.suites) && raw.suites.length === 0
+      ? raw : invalid('No complete public API/admission proof');
+  }
+  if (raw.status === 'verified' || raw.status === 'needs-review' && raw.candidateChecksPassed === true) {
+    if (raw.admission !== 'reviewed' || !installValid
+      || !contractValid || !Array.isArray(raw.suites) || !exactSet(raw.suites.map(s => s?.name), SUITE_NAMES)
       || raw.suites.some(s => s.passed !== true || !Number.isInteger(s.checks) || s.checks < 1
         || s.sourceHead !== sourceHead || !DIGEST.test(s.receiptSha256 ?? ''))) {
-      return invalid('Incomplete installer/plugin identity, native contract, exact suite set or cleanup proof');
+      return invalid('Incomplete native contract, installation or exact suite proof');
     }
-  }
+  } else return invalid('No executed proof for this status/stage');
   if (raw.status === 'verified' && (c.source?.reviewed !== true || c.plugin?.kind !== 'release')) {
     return { ...raw, status: 'needs-review', candidateChecksPassed: true,
       reason: c.plugin?.kind === 'source' ? 'Candidate checks passed; non-author review and published-byte verification are still required'

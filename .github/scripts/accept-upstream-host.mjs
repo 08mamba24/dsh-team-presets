@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { classifyProbe } from './upstream-contract.mjs';
+import { classifyProbe, failureAssertions } from './upstream-contract.mjs';
 
 export function isolatedEnvironment(lab, resources, platform = process.platform, source = process.env) {
   const home = join(lab, 'home'), temporary = join(lab, 'tmp');
@@ -85,10 +85,11 @@ async function readProof(path) {
   try { return JSON.parse(await readFile(path, 'utf8')); }
   catch { return undefined; }
 }
-function requireProof(outcome, receipt, sourceHead, label) {
+async function requireProof(outcome, receipt, sourceHead, path, stage, suite) {
   const status = classifyProbe(outcome, receipt, sourceHead);
-  if (status !== 'passed') throw Object.assign(new Error(`${label}: ${status}; ${receipt?.errors?.[0]?.message ?? 'no complete successful source-bound receipt'}`),
-    { compatibilityFailure: status === 'incompatible' });
+  if (status !== 'passed') throw Object.assign(new Error(`${suite}: ${status}; ${receipt?.errors?.[0]?.message ?? 'no complete successful source-bound receipt'}`),
+    { compatibilityFailure: status === 'incompatible', ...(status === 'incompatible' ? { failureProof: {
+      stage, suite, sourceHead, receiptSha256: await hashFile(path), assertions: failureAssertions(receipt) } } : {}) });
 }
 
 async function main() {
@@ -174,7 +175,7 @@ async function main() {
     const inspected = await run(exe, ['--expose-internals', join(dirname(fileURLToPath(import.meta.url)), 'inspect-upstream-runtime.mjs'),
       runtime, contractReceipt, '', sourceHead], { env, cwd: lab, log: join(output, 'contract.log'), allowFailure: true });
     result.contract = await readProof(contractReceipt);
-    requireProof(inspected, result.contract, sourceHead, 'public API inspection');
+    await requireProof(inspected, result.contract, sourceHead, contractReceipt, 'contract', 'contract');
     if (result.admission !== 'reviewed') {
       result.status = 'needs-review'; result.reason = 'Unknown app.asar: public API surface inspected; product allowlist and business execution were not changed.';
       result.stage = 'admission'; return;
@@ -216,7 +217,7 @@ async function main() {
       const executed = await run(exe, ['--expose-internals', join(installed, 'scripts', script), runtime, installed, receipt,
         'tgz-sha256:' + result.pluginSha256, ...extra], { env, cwd: join(lab, 'workspace'), log: join(output, name + '.log'), allowFailure: true });
       const evidence = await readProof(receipt);
-      requireProof(executed, evidence, sourceHead, name);
+      await requireProof(executed, evidence, sourceHead, receipt, 'native', name);
       assert.ok(evidence.checks.length > 0 && evidence.checks.every(check => check.passed === true));
       result.suites.push({ name, passed: true, checks: evidence.checks.length,
         sourceHead: evidence.sourceHead, receiptSha256: await hashFile(receipt) });
@@ -226,6 +227,7 @@ async function main() {
     result.status = 'verified'; result.stage = 'complete';
   } catch (error) {
     result.status = error.compatibilityFailure === true ? 'incompatible' : 'infrastructure-error';
+    if (error.failureProof) result.failureProof = error.failureProof;
     result.reason = error.message.replaceAll(lab, '<isolated-lab>').slice(0, 500); result.stage = stage;
   } finally {
     try {
