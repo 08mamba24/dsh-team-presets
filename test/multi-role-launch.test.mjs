@@ -25,7 +25,7 @@ nodeTest('template validation accepts one to eight complete named members and re
 });
 
 nodeTest('startup stream bounds are per member name and default to one when omitted', () => {
-  const base = { mode: 'launcher', ownedSessionId: 'session-00000000-0000-4000-8000-000000000000', workspace: '/',
+  const base = { mode: 'launcher', ownedSessionId: 'session-00000000-0000-4000-8000-000000000000', workspace: process.cwd(),
     runTag: 'multi-role', timeoutMs: 1000, templateSha256: '0'.repeat(64) };
   const parsed = parseLauncherConfig({ ...base, startup: { maxTokens: 1024, maxStreams: { frontend: 2, backend: 12 } } });
   assert.deepEqual(parsed.startup.maxStreams, { frontend: 2, backend: 12 });
