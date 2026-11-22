@@ -2,14 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { join, resolve } from 'node:path';
 import { parseFeed, selectReleases, sourceDelta, fingerprint, shouldProbe, normalizeResult,
-  publishVersion, makePlan, BASELINE } from '../.github/scripts/upstream-compat.mjs';
+  publishVersion, makePlan, BASELINE, renderIssue } from '../.github/scripts/upstream-compat.mjs';
 import { isolatedEnvironment } from '../.github/scripts/accept-upstream-host.mjs';
 
 const sha = 'a'.repeat(40), hash = 'b'.repeat(64);
 const feed = `version: 0.2.2-rc.5\npath: >-\n  https://download.deepseek.com/dsh-desk/bin/mac-arm64/stable/deepseek-harness-0.2.2-rc.5-mac-arm64.zip\nsha512: >-\n  ${Buffer.alloc(64, 7).toString('base64')}\n`;
 const observation = { version: '0.2.2-rc.5', tag: 'dsh-v0.2.2-rc.5', commit: sha,
   target: 'mac-arm64', artifact: { url: 'https://download.deepseek.com/dsh-desk/bin/mac-arm64/a.zip', sha512: 'digest', etag: 'v1' },
-  plugin: { kind: 'release', commit: sha, sha256: hash }, source: { changed: [] } };
+  plugin: { kind: 'release', commit: sha, sha256: hash }, source: { changed: [], reviewed: true } };
 
 test('official folded update feed resolves its exact version and SHA512, with no arbitrary installer URL', () => {
   const actual = parseFeed(feed, 'mac-arm64');
@@ -113,7 +113,10 @@ test('a verified platform requires all six suites, CLI installation, reviewed ad
     { ...raw, suites: raw.suites.slice(1) }, { ...raw, install: { passed: false } }]) {
     assert.equal(normalizeResult(c, invalid).status, 'infrastructure-error');
   }
-  assert.equal(normalizeResult({ ...c, source: { changed: ['native.ts'] } }, raw).status, 'needs-review');
+  assert.equal(normalizeResult({ ...c, source: { changed: ['native.ts'], reviewed: false } }, raw).status, 'needs-review');
+  assert.equal(normalizeResult({ ...c, plugin: { ...c.plugin, kind: 'source' } }, raw).status, 'needs-review');
+  assert.equal(normalizeResult({ ...c, source: { changed: [], reviewed: false } }, raw).status, 'needs-review');
+  assert.equal(normalizeResult({ ...c, source: { changed: ['native.ts'], reviewed: true } }, raw).status, 'verified');
 });
 
 test('Host environment inherits neither GitHub credentials, model keys nor operator startup options', () => {
@@ -151,4 +154,33 @@ test('planning consumes public prereleases and official feeds, without writing o
   assert.equal(plan.plugin.tag, 'v0.5.0-rc.7');
   assert.equal(plan.cases[0].source.changed.length, 0);
   assert.equal(plan.cases[0].admission, undefined);
+});
+
+test('an old tag move is still observed after Desktop feeds advance; its attested installer remains usable', async () => {
+  const packageInfo = { kind: 'release', tag: 'v0.5.0-rc.7', commit: sha, repo: 'owner/repo',
+    url: 'https://github.com/owner/repo/releases/download/v0.5.0-rc.7/plugin.tgz', sha256: hash };
+  const previous = { version: '0.2.2-rc.5', observations: {} };
+  const artifact = target => parseFeed(feed.replaceAll('mac-arm64', target)
+    .replaceAll('.zip', target === 'win-x64' ? '.exe' : '.zip'), target);
+  for (const target of ['mac-arm64', 'win-x64']) previous.observations[target] = {
+    fingerprint: 'previous', status: 'verified', commit: BASELINE.commit, plugin: packageInfo, artifact: artifact(target),
+  };
+  const native = { tree: [{ type: 'blob', path: 'packages/agent/subagent/src/index.ts', sha }] };
+  const api = async path => {
+    if (path.startsWith('repos/owner/repo/issues')) return [{ user: { login: 'github-actions[bot]' }, body: renderIssue(previous) }];
+    if (path.startsWith('repos/owner/repo/releases')) return [{ tag_name: packageInfo.tag, assets: [
+      { name: 'plugin.tgz', digest: 'sha256:' + hash, browser_download_url: packageInfo.url }] }];
+    if (path.startsWith('repos/owner/repo/commits/')) return { sha };
+    if (path.includes('/releases?')) return [{ tag_name: 'dsh-v0.2.2-rc.5' }, { tag_name: 'dsh-v0.2.2-rc.6' }];
+    if (path.includes('/commits/')) return { sha: 'c'.repeat(40) };
+    if (path.includes('/git/trees/')) return native;
+    throw new Error('Unexpected endpoint: ' + path);
+  };
+  const plan = await makePlan({ api, repo: 'owner/repo', feedReader: async target => ({
+    ...artifact(target), version: '0.2.2-rc.6',
+  }), headReader: async () => ({ etag: 'same' }) });
+  const old = plan.cases.filter(c => !c.control && c.version === previous.version);
+  assert.equal(old.length, 2);
+  assert.equal(old[0].artifact.sha512, previous.observations['mac-arm64'].artifact.sha512);
+  assert.equal(old[0].commit, 'c'.repeat(40));
 });

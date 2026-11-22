@@ -5,7 +5,7 @@ import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 import { join } from 'node:path';
 
-const [runtime, destination] = process.argv.slice(2);
+const [runtime, destination, profile] = process.argv.slice(2);
 const require = createRequire(join(runtime, 'package.json'));
 const contracts = {
   'cordis': ['Context'],
@@ -26,6 +26,14 @@ for (const [short, exports] of Object.entries(contracts)) {
     if (missing.length) throw new Error('Missing public exports: ' + missing.join(', '));
     result.packages.push({ name, version: metadata.version, exports });
   } catch (error) { result.passed = false; result.errors.push({ name, message: error.message }); }
+}
+if (profile && result.passed) {
+  try {
+    const load = name => import(pathToFileURL(require.resolve('@deepseek-ai/' + name)).href);
+    const [{ initProfile }, { PROFILE_TEMPLATES }] = await Promise.all([load('dsh-app-boot'), load('dsh-official-bundles')]);
+    initProfile(profile, PROFILE_TEMPLATES.web.bundles);
+    result.profileInitialized = true;
+  } catch (error) { result.passed = false; result.errors.push({ name: 'profile-initialization', message: error.message }); }
 }
 await writeFile(destination, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
 process.exitCode = result.passed ? 0 : 1;

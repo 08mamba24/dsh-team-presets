@@ -6,6 +6,9 @@ import { fileURLToPath } from 'node:url';
 
 export const UPSTREAM = 'deepseek-ai/deepseek-harness';
 export const BASELINE = { version: '0.2.2-rc.5', commit: '9c2670d3bce5275e0d1610272958121af87787bb' };
+// Source-review attestations complement, rather than replace, archive admission.
+// Extend only in the reviewed support-update PR.
+export const REVIEWED_SOURCE_COMMITS = { [BASELINE.version]: BASELINE.commit };
 export const TARGETS = ['mac-arm64', 'win-x64'];
 // Original reviewed distributions are separate regression controls.
 export const REVIEWED_INSTALLERS = {
@@ -101,8 +104,10 @@ export function normalizeResult(c, raw) {
     || raw.suites.length !== 6 || raw.suites.some(s => s.passed !== true || !Number.isInteger(s.checks) || s.checks < 1))) {
     return invalid('Receipt does not prove installation, six native suites and cleanup');
   }
-  if (raw.status === 'verified' && (!c.source || c.source.changed?.length !== 0)) {
-    return { ...raw, status: 'needs-review', reason: 'Native source differs or could not be compared; independent review is required' };
+  if (raw.status === 'verified' && (c.source?.reviewed !== true || c.plugin?.kind !== 'release')) {
+    return { ...raw, status: 'needs-review', candidateChecksPassed: true,
+      reason: c.plugin?.kind === 'source' ? 'Candidate checks passed; non-author review and published-byte verification are still required'
+        : 'Upstream source commit has no review attestation; review the source before declaring compatibility' };
   }
   return raw;
 }
@@ -142,7 +147,7 @@ export function renderIssue(state) {
   lines.push('### Maintenance loop', '',
     '- [ ] Inspect native source/API changes and installer identity; fix affected bindings on a candidate branch.',
     '- [ ] Run both platform canaries with `tag` and an exact 40-character `plugin_ref` in the manual workflow; keep the existing reviewed runtime as regression coverage.',
-    '- [ ] Obtain non-author review before merging changes to `REVIEWED_HOSTS` / `engines.dsh`; this monitor never adds an archive to the product allowlist.',
+    '- [ ] Obtain non-author review before merging `REVIEWED_HOSTS` / `engines.dsh` changes and the exact `REVIEWED_SOURCE_COMMITS` attestation; the monitor never approves these itself.',
     '- [ ] After merge, publish a new plugin TGZ and checksum, then update the existing community catalog tarball entry and verify its public readback.',
     '- [ ] Run the monitor against the published plugin again. The same version Issue closes only after both platform receipts verify the exact build.', '',
     'See [upstream maintenance instructions](../blob/main/docs/UPSTREAM-COMPATIBILITY.md). Human discussion belongs in comments; the monitor owns this report body.', '',
@@ -196,19 +201,23 @@ async function pages(api, path) {
   fail('GitHub collection exceeds bounded scan; no incomplete deduplication');
 }
 
+async function fetchArtifactHead(url) {
+  if (new URL(url).origin !== 'https://download.deepseek.com') fail('Untrusted historical artifact origin');
+  const head = await fetch(url, { method: 'HEAD', redirect: 'error', signal: AbortSignal.timeout(20000) });
+  if (!head.ok) fail(`Official artifact HTTP ${head.status}`);
+  return { etag: head.headers.get('etag'), size: head.headers.get('content-length'), lastModified: head.headers.get('last-modified') };
+}
+
 async function fetchFeed(target) {
   const suffix = target === 'mac-arm64' ? 'stable-mac.yml' : 'stable.yml';
   const url = `https://download.deepseek.com/dsh-desk/feeds/${target}/${suffix}`;
   const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(20000) });
   if (!response.ok) fail(`Official ${target} feed HTTP ${response.status}`);
   const artifact = parseFeed(await response.text(), target);
-  const head = await fetch(artifact.url, { method: 'HEAD', redirect: 'error', signal: AbortSignal.timeout(20000) });
-  if (!head.ok) fail(`Official ${target} artifact HTTP ${head.status}`);
-  return { ...artifact, etag: head.headers.get('etag'), size: head.headers.get('content-length'),
-    lastModified: head.headers.get('last-modified') };
+  return { ...artifact, ...await fetchArtifactHead(artifact.url) };
 }
 
-export async function makePlan({ api = ghApi, feedReader = fetchFeed, repo, tag, force = false, pluginRef,
+export async function makePlan({ api = ghApi, feedReader = fetchFeed, headReader = fetchArtifactHead, repo, tag, force = false, pluginRef,
   now = Date.now() }) {
   repoName(repo);
   const [allReleases, issues, baseTree] = await Promise.all([
@@ -248,17 +257,24 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, repo, tag,
     if (!SHA.test(resolved.sha)) fail('Upstream tag did not resolve to a commit');
     const tree = resolved.sha === BASELINE.commit ? baseTree
       : await api(`repos/${UPSTREAM}/git/trees/${resolved.sha}?recursive=1`);
-    const source = sourceDelta(baseTree, tree);
+    const source = { ...sourceDelta(baseTree, tree), reviewed: REVIEWED_SOURCE_COMMITS[version] === resolved.sha };
     const prior = issues.map(stateFrom).find(s => s?.version === version);
     states[version] = prior ?? { version, observations: {} };
     for (const target of TARGETS) {
       const feed = feeds[target];
-      const artifact = feed.version === version ? feed : null;
-      // Current feeds cannot attest historical installers. Keep the previous
-      // verified fact, rather than replacing it with a guessed download URL.
-      if (!artifact && !feed.error && compareVersions(feed.version, version) > 0 && prior?.observations[target] && !force) continue;
+      let artifact = feed.version === version ? feed : null, historicalError;
+      const retained = prior?.observations[target]?.artifact;
+      // A previously observed official feed is an attestation for its original
+      // bytes, even after the live feed advances. Revalidate its URL and HTTP
+      // object; never skip an old tag move or invent a historical download URL.
+      if (!artifact && !feed.error && compareVersions(feed.version, version) > 0 && retained) {
+        try {
+          const original = parseFeed(`version: ${version}\npath: ${retained.url}\nsha512: ${retained.sha512}\n`, target);
+          artifact = { ...original, ...await headReader(original.url) };
+        } catch (error) { historicalError = error.message; }
+      }
       const c = { version, tag: release.tag_name, commit: resolved.sha, target, artifact, plugin, source,
-        pendingReason: feed.error ?? (!artifact ? `Official ${target} feed has not published this version` : null) };
+        pendingReason: historicalError ?? feed.error ?? (!artifact ? `Official ${target} feed has not published this version` : null) };
       c.fingerprint = fingerprint(c);
       if (shouldProbe(prior?.observations[target], c.fingerprint, now, force)) {
         cases.push({ ...c, runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' });
@@ -268,7 +284,7 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, repo, tag,
   if (cases.length) for (const target of TARGETS) {
     const control = { version: BASELINE.version, tag: 'dsh-v' + BASELINE.version,
       commit: BASELINE.commit, target, control: true, artifact: REVIEWED_INSTALLERS[target],
-      plugin, source: sourceDelta(baseTree, baseTree), runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' };
+      plugin, source: { ...sourceDelta(baseTree, baseTree), reviewed: true }, runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' };
     control.fingerprint = fingerprint(control); cases.push(control);
   }
   return { schemaVersion: 1, status: 'planned', repo, createdAt: new Date(now).toISOString(), plugin, states, cases };
@@ -309,7 +325,7 @@ async function main() {
     for (const c of plan.cases) {
       const matches = raw.filter(r => r.fingerprint === c.fingerprint);
       const result = normalizeResult(c, matches.length === 1 ? matches[0] : undefined);
-      Object.assign(result, { commit: c.commit, source: c.source, plugin: c.plugin, runUrl });
+      Object.assign(result, { commit: c.commit, source: c.source, plugin: c.plugin, artifact: c.artifact, runUrl });
       if (c.control) { controls[c.target] = result; continue; }
       plan.states[c.version].observations[c.target] = result; touched.add(c.version);
     }
@@ -328,7 +344,7 @@ async function main() {
     if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY,
       `## Upstream compatibility\n\n${published.map(p => `- [${p.version}](${p.issue}): ${p.state}`).join('\n') || 'No new observations; unchanged inputs were deduplicated.'}\n`);
     console.log(JSON.stringify({ planned: plan.cases.length, published }));
-    if (Object.values(controls).some(r => r.status !== 'verified')
+    if (Object.values(controls).some(r => r.status !== 'verified' && r.candidateChecksPassed !== true)
       || [...touched].some(v => Object.values(plan.states[v].observations).some(r => r.status === 'infrastructure-error' || r.status === 'incompatible'))) process.exitCode = 1;
   } else fail('Usage: upstream-compat.mjs plan|publish');
 }

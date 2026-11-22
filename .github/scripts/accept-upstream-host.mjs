@@ -71,12 +71,12 @@ async function run(executable, args, { env, cwd, log, timeout = 180000 } = {}) {
       });
     } else { try { process.kill(-child.pid, 'SIGKILL'); } catch { /* Already exited. */ } }
   }, timeout);
-  const code = await new Promise((done, reject) => {
-    child.once('error', reject); child.once('close', done);
+  const { code, signal } = await new Promise((done, reject) => {
+    child.once('error', reject); child.once('close', (code, signal) => done({ code, signal }));
   }).finally(() => clearTimeout(timer));
   if (killing) await killing;
   if (log) await writeFile(log, output, { flag: 'wx' });
-  if (code !== 0 || expired) throw Object.assign(new Error(`${executable.split(/[\\/]/).at(-1)} failed (${expired ? 'timeout' : code})`), { executionFailed: true });
+  if (code !== 0 || expired) throw Object.assign(new Error(`${executable.split(/[\\/]/).at(-1)} failed (${expired ? 'timeout' : code ?? signal})`), { executionFailed: true });
 }
 
 async function main() {
@@ -119,7 +119,8 @@ async function main() {
       const apps = (await readdir(appRoot)).filter(name => name.endsWith('.app'));
       assert.deepEqual(apps, ['DeepSeek Harness.app']);
       installedMac = true;
-      await cp(join(appRoot, apps[0]), '/Applications/DeepSeek Harness.app', { recursive: true, errorOnExist: true, force: false });
+      await cp(join(appRoot, apps[0]), '/Applications/DeepSeek Harness.app',
+        { recursive: true, errorOnExist: true, force: false, verbatimSymlinks: true });
       if (mounted) { await run('/usr/bin/hdiutil', ['detach', appRoot], { env, cwd: lab }); mounted = false; }
     } else {
       // 7z is installed on the standard Windows runner; no installer or GUI runs.
@@ -167,10 +168,17 @@ async function main() {
     const cli = join(runtime, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js');
     const cliRun = async (label, args) => run(exe, ['--expose-internals', cli, 'plugin', '--profile', 'desktop', ...args],
       { env, cwd: join(lab, 'workspace'), log: join(output, label + '.log') });
-    await cliRun('create-profile', ['create', '--template', 'web']);
+    stage = 'profile';
+    await run(exe, ['--expose-internals', join(dirname(fileURLToPath(import.meta.url)), 'inspect-upstream-runtime.mjs'),
+      runtime, join(output, 'profile-initialization.json'), join(lab, 'harness', 'profiles', 'desktop')],
+      { env, cwd: lab, log: join(output, 'profile-initialization.log') });
+    stage = 'install';
     await cliRun('install', ['add', 'file:' + pluginTgz, '--offline', '--ignore-scripts']);
     const installed = join(lab, 'harness', 'profiles', 'desktop', 'node_modules', 'dsh-subagent-live-rc2-local');
     const metadata = JSON.parse(await readFile(join(installed, 'package.json'), 'utf8'));
+    const expectedVersion = c.plugin.kind === 'release' ? c.plugin.tag.slice(1)
+      : JSON.parse(await readFile(resolve('candidate', 'package.json'), 'utf8')).version;
+    assert.equal(metadata.version, expectedVersion, 'CLI installed a different plugin version');
     result.install = { passed: metadata.name === 'dsh-subagent-live-rc2-local', version: metadata.version };
     assert.ok(result.install.passed);
     const legacyTgz = join(lab, 'legacy.tgz');
@@ -196,7 +204,12 @@ async function main() {
     await cliRun('uninstall', ['remove', 'dsh-subagent-live-rc2-local', '--offline', '--ignore-scripts']);
     result.status = 'verified'; result.stage = 'complete';
   } catch (error) {
-    result.status = ['contract', 'install', 'native', 'uninstall'].includes(stage) && error.executionFailed ? 'incompatible' : 'infrastructure-error';
+    let contractFailure = false;
+    if (stage === 'contract') {
+      try { contractFailure = JSON.parse(await readFile(join(output, 'runtime-contract.json'), 'utf8')).passed === false; }
+      catch { /* A process startup/crash with no API receipt is infrastructure failure. */ }
+    }
+    result.status = (contractFailure || ['install', 'native', 'uninstall'].includes(stage)) && error.executionFailed ? 'incompatible' : 'infrastructure-error';
     result.reason = error.message.replaceAll(lab, '<isolated-lab>').slice(0, 500); result.stage = stage;
   } finally {
     try {

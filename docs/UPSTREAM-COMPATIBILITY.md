@@ -27,8 +27,11 @@ GitHub SHA256 digest, including prereleases. Its release tag resolves to an exac
 commit and its downloaded digest is verified. New tags, tag moves, installer
 changes and plugin releases invalidate deduplication. Unchanged terminal results
 do not rerun; infrastructure failures retry after six hours. Manual `force`
-repeats immediately. Historical releases whose installers are no longer named in
-the current feeds retain their earlier evidence; URLs are never guessed.
+repeats immediately. Once a feed has attested an installer, the version Issue
+retains its URL and SHA512. After the feed advances, the original bytes can still
+be revalidated for tag moves and new plugin builds; HTTP object changes trigger
+another probe. A historical installer that was never observed remains unavailable;
+URLs are never guessed.
 
 ## Platform verification
 
@@ -64,7 +67,8 @@ workflow serializes reporters. It maintains one bot-owned Issue per Harness
 version, including closed Issues. The body contains the latest platform facts
 and a machine marker; comments remain available for human discussion. Changes
 reopen the same Issue. Only two complete verified platform receipts, with no
-unreviewed native source delta, close it. Missing artifacts, corrupt receipts,
+unreviewed upstream source commit, close it. Candidates that pass remain pending
+until non-author review and published-byte verification. Missing artifacts, corrupt receipts,
 missing jobs, failed downloads and unavailable source observations cannot be
 reported as compatible. Observation failures use a separate monitor-health Issue.
 The report distinguishes `verified`, `needs-review`, `incompatible`, and
@@ -86,8 +90,11 @@ the installable TGZ and checksum as in the rc.7 release process.
    repository, and `force` to true. Empty `plugin_ref` tests the published TGZ.
    The candidate is packaged with lifecycle scripts disabled. It is never merged
    or released by the monitor.
-3. Obtain non-author review of API changes and any proposed support-matrix and
-   manifest update. Merge only after appropriate candidate checks. The monitor
+3. Obtain non-author review of API changes, the proposed support-matrix and
+   manifest update, and the exact upstream commit added to
+   `REVIEWED_SOURCE_COMMITS` in `.github/scripts/upstream-compat.mjs`.
+   This source attestation records the reviewed tag identity; it does not grant
+   runtime admission. Merge only after appropriate candidate checks. The monitor
    does not auto-approve an archive or widen a version range.
 4. Validate merged main, publish a new plugin TGZ, SHA256 and sanitized acceptance
    summary, then download and verify the release. Update the existing
