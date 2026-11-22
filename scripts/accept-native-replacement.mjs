@@ -1,5 +1,6 @@
 /** Official Web profile replacement with a local scripted provider and temporary data. */
 import assert from 'node:assert/strict';
+import { describeNativeError } from './native-error.mjs';
 import { spawn } from 'node:child_process';
 import { randomUUID, createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -57,7 +58,7 @@ if (process.env.DSH_REPLACEMENT_ACCEPT_LAB === undefined) {
     }
   } catch (error) {
     result.passed = false;
-    result.errors.push({ code: error.code, message: error.message });
+    result.errors.push(describeNativeError(error));
   } finally {
     // Windows retains both cwd and native-addon file locks until process exit.
     // This supervisor imported no runtime code and owns the final cleanup and
@@ -67,7 +68,7 @@ if (process.env.DSH_REPLACEMENT_ACCEPT_LAB === undefined) {
       result.isolatedDataRemoved = true;
     } catch (error) {
       result.passed = false;
-      result.errors.push({ code: error.code, message: error.message });
+      result.errors.push(describeNativeError(error));
     }
     await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
     process.stdout.write(JSON.stringify(result) + '\n');
@@ -209,7 +210,7 @@ async function startFixture(resumeRoot = false, legacy = false) {
     } }));
   ctx.on('agent/error', ({ error }) => {
     const target = error.code === 'ISOLATED_CANDIDATE_MODEL_FAILURE' ? expectedErrors : errors;
-    target.push({ message: error.message, code: error.code });
+    target.push(describeNativeError(error));
   });
   ctx.on('subagent/start', info => {
     if (info.parentSessionId !== ROOT) return;
@@ -445,9 +446,9 @@ try {
   await assertNativeAddressing(activeId, 'the retained replacement after full reload');
 
 } catch (error) {
-  checks.push({ name: 'native replacement failure', passed: false, error: { code: error.code ?? null, message: error.message, stack: error.stack }, errors });
+  checks.push({ name: 'native replacement failure', passed: false, error: describeNativeError(error), errors });
 } finally {
-  await stopFixture().catch(error => { errors.push({ message: error.message }); });
+  await stopFixture().catch(error => { errors.push(describeNativeError(error)); });
 }
 const hashes = {};
 for (const name of ['current-entry.js', 'src/team-addressing.js', 'role-control.js', 'src/launcher-current.js', 'src/launcher-driver.js', 'src/launcher-replace.js', 'src/member-replacement.js',

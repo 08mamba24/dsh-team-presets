@@ -1,5 +1,6 @@
 /** Real SettingsForms/ConfigEditor/profile persistence; temporary profile only. */
 import assert from 'node:assert/strict';
+import { describeNativeError } from './native-error.mjs';
 import { randomUUID, createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { mkdtemp, mkdir, readFile, writeFile, rm } from 'node:fs/promises';
@@ -86,7 +87,7 @@ try {
   check('a fresh Context and Loader reload the same retirement and template from disk');
 } catch (error) {
   checks.push({ name: 'native persistence failure', passed: false,
-    error: { code: error.code ?? null, message: error.message, stack: error.stack } });
+    error: describeNativeError(error) });
 } finally {
   if (ctx) await ctx.fiber.dispose();
   await rm(isolated, { recursive: true, force: true });

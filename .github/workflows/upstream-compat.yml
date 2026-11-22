@@ -1,0 +1,152 @@
+name: Upstream Harness compatibility
+
+on:
+  schedule:
+    - cron: '17,47 * * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Exact upstream tag; empty checks all releases since the reviewed baseline'
+        type: string
+      plugin_ref:
+        description: 'Exact candidate commit in this repo; empty tests the latest published plugin TGZ'
+        type: string
+      force:
+        description: 'Repeat unchanged observations'
+        type: boolean
+        default: false
+  push:
+    branches: [main, feature/windows-upstream-compat]
+    paths: ['.github/scripts/**', '.github/workflows/upstream-compat.yml', 'test/upstream-compat.test.mjs', 'scripts/accept-native-*.mjs', 'scripts/probe-native-team-addressing.mjs', 'scripts/native-admission-check.mjs', 'scripts/native-error.mjs']
+  pull_request:
+    paths: ['.github/scripts/**', '.github/workflows/upstream-compat.yml', 'test/upstream-compat.test.mjs', 'scripts/accept-native-*.mjs', 'scripts/probe-native-team-addressing.mjs', 'scripts/native-admission-check.mjs', 'scripts/native-error.mjs']
+
+permissions:
+  contents: read
+
+# One publisher at a time also serializes manual and scheduled observations.
+concurrency:
+  group: upstream-compatibility
+  cancel-in-progress: false
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --test test/upstream-compat.test.mjs
+
+  plan:
+    if: github.event_name != 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: read
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - id: plan
+        run: node .github/scripts/upstream-compat.mjs plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          COMPAT_TAG: ${{ inputs.tag }}
+          COMPAT_PLUGIN_REF: ${{ inputs.plugin_ref }}
+          COMPAT_FORCE: ${{ inputs.force }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compat-plan
+          path: compat-output/plan.json
+          if-no-files-found: error
+          retention-days: 90
+
+  canary:
+    name: canary (${{ matrix.version }}, ${{ matrix.target }}, ${{ matrix.control && 'baseline' || 'observed' }})
+    needs: plan
+    if: needs.plan.result == 'success' && needs.plan.outputs.count != '0'
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        if: matrix.plugin.kind == 'source'
+        with:
+          ref: ${{ matrix.plugin.commit }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Isolated official Host and exact plugin artifact
+        run: node .github/scripts/accept-upstream-host.mjs
+        env:
+          COMPAT_CASE: ${{ toJSON(matrix) }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compat-result-${{ matrix.version }}-${{ matrix.target }}-${{ matrix.control && 'baseline' || 'observed' }}
+          path: compat-result/
+          if-no-files-found: error
+          retention-days: 90
+
+  report:
+    needs: [plan, canary]
+    if: always() && github.event_name != 'pull_request' && needs.plan.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Only this metadata-only job can write Issues. Official Host/package code
+    # executes in separate read-only jobs without a repository credential.
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/download-artifact@v4
+        with:
+          name: compat-plan
+          path: compat-output
+      - uses: actions/download-artifact@v4
+        if: needs.plan.outputs.count != '0' && needs.canary.result != 'skipped'
+        with:
+          pattern: compat-result-*
+          path: compat-output/results
+      - name: Update one managed Issue per upstream version
+        run: node .github/scripts/upstream-compat.mjs publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          # Feature pushes exercise all reads and workers but publish previews.
+          COMPAT_PUBLISH: ${{ github.ref == 'refs/heads/main' }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compat-summary
+          path: |
+            compat-output/summary.json
+            compat-output/preview-*.md
+          if-no-files-found: warn
+          retention-days: 90
