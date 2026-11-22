@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CONTRACT_EXPORTS, SUITE_NAMES, isFailureAssertion, classifyProbe, failureAssertions } from './upstream-contract.mjs';
+import { CONTRACT_EXPORTS, SUITE_NAMES, CLASSIFICATION_PROBES, isFailureAssertion, classifyProbe, failureAssertions } from './upstream-contract.mjs';
 
 export const UPSTREAM = 'deepseek-ai/deepseek-harness';
 export const BASELINE = { version: '0.2.2-rc.5', commit: '9c2670d3bce5275e0d1610272958121af87787bb' };
@@ -160,7 +160,19 @@ export function normalizeResult(c, raw) {
     if (raw.admission !== 'reviewed' || !installValid
       || !contractValid || !Array.isArray(raw.suites) || !exactSet(raw.suites.map(s => s?.name), SUITE_NAMES)
       || raw.suites.some(s => s.passed !== true || !Number.isInteger(s.checks) || s.checks < 1
-        || s.sourceHead !== sourceHead || !DIGEST.test(s.receiptSha256 ?? '') || !DIGEST.test(s.harnessSha256 ?? ''))) {
+        || s.sourceHead !== sourceHead || !DIGEST.test(s.receiptSha256 ?? '') || !DIGEST.test(s.harnessSha256 ?? ''))
+      || !Array.isArray(raw.classificationChecks)
+      || !exactSet(raw.classificationChecks.map(c => c?.name), CLASSIFICATION_PROBES.map(([name]) => name))
+      || raw.classificationChecks.some(check => check.passed !== true || check.sourceHead !== sourceHead
+        || !DIGEST.test(check.receiptSha256 ?? '') || check.expected !== check.actual
+        || check.actual !== CLASSIFICATION_PROBES.find(([name]) => name === check.name)?.[2]
+        || check.actual === 'incompatible' && (check.failureProof?.stage !== 'native'
+          || check.failureProof.suite !== 'addressing' || check.failureProof.sourceHead !== sourceHead
+          || check.failureProof.receiptSha256 !== check.receiptSha256
+          || check.failureProof.harnessSha256 !== raw.suites.find(s => s.name === 'addressing').harnessSha256
+          || !Array.isArray(check.failureProof.assertions) || !check.failureProof.assertions.length
+          || !check.failureProof.assertions.every(isFailureAssertion)
+          || classifyProbe({ code: 1 }, { sourceHead, passed: false, errors: check.failureProof.assertions }, sourceHead) !== 'incompatible'))) {
       return invalid('Incomplete native contract, installation or exact suite proof');
     }
   } else return invalid('No executed proof for this status/stage');

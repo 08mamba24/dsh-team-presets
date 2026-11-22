@@ -8,7 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import { spawn } from 'node:child_process';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
-import { classifyProbe, failureAssertions } from './upstream-contract.mjs';
+import { classifyProbe, failureAssertions, CLASSIFICATION_PROBES } from './upstream-contract.mjs';
 
 export function isolatedEnvironment(lab, resources, platform = process.platform, source = process.env) {
   const home = join(lab, 'home'), temporary = join(lab, 'tmp');
@@ -224,6 +224,24 @@ async function main() {
       assert.ok(evidence.checks.length > 0 && evidence.checks.every(check => check.passed === true));
       result.suites.push({ name, passed: true, checks: evidence.checks.length,
         sourceHead: evidence.sourceHead, receiptSha256: await hashFile(receipt), harnessSha256: await hashFile(harness) });
+      if (name === 'addressing') {
+        result.classificationChecks = [];
+        for (const [label, fault, expected] of CLASSIFICATION_PROBES) {
+          const faultReceipt = join(output, label + '.json');
+          const outcome = await run(exe, ['--expose-internals', harness, runtime, installed, faultReceipt, sourceHead, fault],
+            { env, cwd: join(lab, 'workspace'), log: join(output, label + '.log'), allowFailure: true });
+          const proof = await readProof(faultReceipt);
+          assert.equal(classifyProbe(outcome, proof, sourceHead), expected, label);
+          let failureProof;
+          try { await requireProof(outcome, proof, sourceHead, faultReceipt, 'native', 'addressing', harness); }
+          catch (error) {
+            assert.equal(error.compatibilityFailure, expected === 'incompatible'); failureProof = error.failureProof;
+          }
+          if (expected === 'incompatible') assert.ok(failureProof?.assertions.length > 0);
+          result.classificationChecks.push({ name: label, passed: true, expected, actual: expected, sourceHead,
+            receiptSha256: await hashFile(faultReceipt), ...(failureProof ? { failureProof } : {}) });
+        }
+      }
     }
     stage = 'uninstall';
     await cliRun('uninstall', ['remove', 'dsh-subagent-live-rc2-local']);

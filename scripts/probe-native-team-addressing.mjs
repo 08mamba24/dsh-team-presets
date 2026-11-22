@@ -395,9 +395,21 @@ async function runSharedPresetLifecycle() {
 
 const checks = [];
 const check = (name, evidence = {}) => checks.push({ name, passed: true, ...evidence });
+const failureProbe = process.argv[6];
+let failureStage = 'setup', setupError, cleanupError;
+async function disposeFixture(value) {
+  const previous = failureStage; failureStage = 'cleanup';
+  await value?.dispose();
+  if (failureProbe === '--cleanup-failure') assert.fail('Injected fixture teardown assertion');
+  failureStage = previous;
+}
+async function runChecks() {
 let fixture;
 try {
+  if (failureProbe === '--setup-failure') assert.fail('Injected fixture initialization assertion');
   fixture = await runGeneration(record, 'first');
+  failureStage = 'checks';
+  if (failureProbe === '--assertion-failure') assert.fail('Injected early addressing business assertion');
   assert.equal(await fixture.nativeSubagents.resolveName(fixture.root, 'implementer', signal), OLD_IMPLEMENTER);
   const sentFirst = await fixture.call(fixture.root, 'send_message', { agent: 'implementer', message: 'first' });
   assert.equal(sentFirst.isError, false, JSON.stringify(sentFirst));
@@ -560,10 +572,12 @@ try {
   ask();
   check('native conditions, Agent-scope masks, definition replacement and post-approval revocation stop unverified bodies');
 } finally {
-  await fixture?.dispose();
+  await disposeFixture(fixture);
 }
 
+failureStage = 'setup';
 fixture = await runGeneration(activeSecond, 'reload');
+failureStage = 'checks';
 try {
   const reloaded = await fixture.call(fixture.root, 'send_message', { agent: 'implementer', message: 'after reload' });
   assert.equal(reloaded.isError, false, JSON.stringify(reloaded));
@@ -572,14 +586,16 @@ try {
   assert.ok(names.includes('implementer')); assert.ok(!names.some(name => /implementer-r[23]/.test(name)));
   check('fresh native scope reload reads the durable second-generation mapping without respawn or catalog mutation');
 } finally {
-  await fixture.dispose();
+  await disposeFixture(fixture);
 }
 
 await assert.rejects(runGeneration(activeSecond, 'unproven-control', 'fixture/unproven-control'),
   { code: 'TEAM_ADDRESS_LAYER_OCCUPIED' });
 check('a Preset-scoped control remains occupied unless the Registry proves the official native module');
 
+failureStage = 'setup';
 fixture = await runSharedPresetLifecycle();
+failureStage = 'checks';
 try {
   const firstOwner = await fixture.install(fixture.roots[0]);
   const secondOwner = await fixture.install(fixture.roots[1]);
@@ -601,18 +617,24 @@ try {
   assert.equal(fixture.deliveries.at(-1).targetId, firstCurrent);
   await reinstalledOwner.dispose();
   check('one live root and Preset generation can unload and reinstall the addressing plugin');
-} catch (error) {
-  checks.push({ name: 'native logical addressing failure', passed: false,
-    error: { code: error.code ?? null, message: error.message, stack: error.stack } });
 } finally {
-  await fixture.dispose();
+  await disposeFixture(fixture);
+}
+}
+
+try { await runChecks(); }
+catch (error) {
+  const described = { code: error.code ?? null, message: error.message, stack: error.stack };
+  checks.push({ name: 'native logical addressing failure', passed: false, error: described });
+  if (failureStage === 'setup') setupError = described;
+  if (failureStage === 'cleanup') cleanupError = described;
 }
 
 const hashes = {};
 for (const name of ['src/team-addressing.js', 'role-control.js', 'src/launcher-native.js', 'src/team-host.js']) {
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }
-const result = { sourceHead, runtime, passed: checks.length === 14 && checks.every(item => item.passed), hashes, checks,
+const result = { sourceHead, runtime, passed: checks.length === 14 && checks.every(item => item.passed), hashes, checks, setupError, cleanupError,
   boundary: 'Physical rc.5 Cordis, dsh-scope, ToolsService, NativeToolExecutor and an official-Standard-equivalent Preset scope mounting unmodified dsh-tool-subagent-control (interrupt false), plus unmodified dsh-tool-agent-team definitions. Isolated in-memory Settings/AgentRegistry, catalog and task-board service; no user profile, Host daemon, model, network, manager mutation or persistent Session.' };
 await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
 process.stdout.write(JSON.stringify(result) + '\n');

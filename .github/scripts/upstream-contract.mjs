@@ -9,6 +9,11 @@ export const CONTRACT_EXPORTS = {
   'dsh-app-boot': ['initProfile'],
 };
 export const SUITE_NAMES = ['admission', 'store', 'addressing', 'replacement', 'legacy-changed', 'legacy-unchanged'];
+export const CLASSIFICATION_PROBES = [
+  ['early-addressing-assertion', '--assertion-failure', 'incompatible'],
+  ['addressing-setup', '--setup-failure', 'infrastructure-error'],
+  ['addressing-cleanup', '--cleanup-failure', 'infrastructure-error'],
+];
 
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = value => typeof value === 'string' && value.trim().length > 0;
@@ -40,7 +45,7 @@ export const failureAssertions = receipt => record(receipt) ? inspectReceipt(rec
 export function classifyProbe(outcome, receipt, expectedSource) {
   if (!outcome || outcome.timedOut || outcome.signal || !Number.isInteger(outcome.code)
     || receipt?.sourceHead !== expectedSource || typeof receipt.passed !== 'boolean'
-    || receipt.setupError !== undefined
+    || receipt.setupError !== undefined || receipt.cleanupError !== undefined
     || receipt.isolatedDataRemoved === false || receipt.isolatedProfileRemoved === false) return 'infrastructure-error';
   const inspected = inspectReceipt(receipt);
   if (!inspected) return 'infrastructure-error';

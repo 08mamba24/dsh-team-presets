@@ -57,6 +57,11 @@ existing Windows acceptance workflow.
 The validation generation includes the monitor and harness source digests.
 Changing the judge invalidates deduplication and rechecks both platforms, even
 when the upstream installer and published plugin bytes have not changed.
+Reviewed controls also run three deliberate fault probes through the real
+addressing harness: an early business assertion must produce a source-bound
+incompatibility proof, while fixture setup and cleanup assertions must remain
+infrastructure failures. These diagnostic outcomes are separate from the Host's
+compatibility result.
 
 Each changed observation also runs both original reviewed rc.5 distributions as
 regression controls. These installers have frozen SHA256 values and still must

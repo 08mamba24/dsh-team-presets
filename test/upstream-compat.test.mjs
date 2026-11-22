@@ -4,7 +4,7 @@ import { join, resolve } from 'node:path';
 import { parseFeed, selectReleases, sourceDelta, fingerprint, shouldProbe, normalizeResult,
   publishVersion, makePlan, BASELINE, REVIEWED_INSTALLERS, renderIssue } from '../.github/scripts/upstream-compat.mjs';
 import { isolatedEnvironment } from '../.github/scripts/accept-upstream-host.mjs';
-import { CONTRACT_EXPORTS, SUITE_NAMES, classifyProbe } from '../.github/scripts/upstream-contract.mjs';
+import { CONTRACT_EXPORTS, SUITE_NAMES, CLASSIFICATION_PROBES, classifyProbe } from '../.github/scripts/upstream-contract.mjs';
 import { nativeAdmissionCheck } from '../scripts/native-admission-check.mjs';
 
 const sha = 'a'.repeat(40), hash = 'b'.repeat(64);
@@ -29,7 +29,12 @@ function verified(c) {
     install: { passed: true, name: 'dsh-subagent-live-rc2-local', version: '0.5.0-rc.7', bundleActivated: true },
     contract: { passed: true, sourceHead, errors: [], packages: Object.entries(CONTRACT_EXPORTS)
       .map(([name, exports]) => ({ name: '@deepseek-ai/' + name, version: name === 'cordis' ? '4.0.0' : c.version, exports })) },
-    suites: SUITE_NAMES.map(name => ({ name, passed: true, checks: 5, sourceHead, receiptSha256: hash, harnessSha256: hash })) };
+    suites: SUITE_NAMES.map(name => ({ name, passed: true, checks: 5, sourceHead, receiptSha256: hash, harnessSha256: hash })),
+    classificationChecks: CLASSIFICATION_PROBES.map(([name, _fault, expected]) => ({ name, passed: true,
+      sourceHead, receiptSha256: hash, expected, actual: expected, ...(expected === 'incompatible' ? { failureProof: {
+        stage: 'native', suite: 'addressing', sourceHead, receiptSha256: hash, harnessSha256: hash,
+        assertions: [{ code: 'ERR_ASSERTION', name: 'early addressing assertion', message: 'Injected business failure' }],
+      } } : {}) })) };
 }
 function report(status = 'verified') {
   const observations = {}, controls = {}, expected = { version: observation.version, commit: sha,
@@ -154,6 +159,8 @@ test('a verified platform requires all six suites, CLI installation, reviewed ad
 test('matching public fingerprints cannot turn incomplete or mismatched proof into verified', () => {
   const c = caseFor(), raw = verified(c);
   const invalid = [ { ...raw, commit: 'c'.repeat(40) }, { ...raw, plugin: { ...raw.plugin, commit: 'c'.repeat(40) } },
+    { ...raw, classificationChecks: [] },
+    { ...raw, classificationChecks: raw.classificationChecks.map(check => ({ ...check, failureProof: undefined })) },
     { ...raw, installerSha256: undefined }, { ...raw, installerSha512: Buffer.alloc(64, 8).toString('base64') },
     { ...raw, pluginSha256: 'd'.repeat(64) }, { ...raw, contract: undefined },
     { ...raw, contract: { ...raw.contract, packages: {} } }, { ...raw, suites: {} },
@@ -173,6 +180,7 @@ test('timeouts, signals and cleanup errors stay infrastructure failures; source-
     [outcome, { ...receipt, errors: 'corrupt' }], [{ ...outcome, code: undefined }, receipt],
     [outcome, { ...receipt, errors: [{}] }], [outcome, { ...receipt, errors: ['not an error record'] }],
     [outcome, { ...receipt, checks: null }], [outcome, { ...receipt, errors: null }],
+    [outcome, { ...receipt, cleanupError: { code: 'ERR_ASSERTION', message: 'fixture teardown' } }],
     [outcome, { sourceHead, passed: false, checks: [{ passed: false }] }],
     [outcome, { sourceHead, passed: false, checks: [{ name: 'business', passed: false }] }]]) {
     assert.equal(classifyProbe(o, r, sourceHead), 'infrastructure-error');
