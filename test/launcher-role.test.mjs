@@ -236,6 +236,26 @@ test('known retirement stays denied across projection loss and registry identity
   assert.deepEqual(await h.prestep({ agent: child.agent }), { kind: 'reject' });
 });
 
+test('membership gates readiness tools, failed continuation and direct prompts after removal', async () => {
+  const { readReplacementRecord, ensureReplacementBaseBinding, withMembership } = await import('../src/member-replacement.js');
+  const { appendAddition, settleAddition, appendRemoval } = await import('../src/member-roster.js');
+  const h = fixture(), config = { ...example(), replacementOwner: 'dsh-native-current-team' };
+  const pending = appendAddition([], { name: 'implementer', member: { name: 'implementer', agent_preset: 'dsh-added' } });
+  const base = ensureReplacementBaseBinding(readReplacementRecord(undefined), JSON.stringify({ workspace: '/w', template: {} }));
+  h.setRecord(withMembership(base, pending.membership));
+  await apply(h.ctx, config);
+  const child = h.makeAgent({ id: pending.entry.childId }); h.created({ agent: child.agent });
+  assert.deepEqual(await child.prestep(), { kind: 'enter' });
+  assert.equal(child.guard('team_task_update', {})?.reason, 'TEAM_MEMBER_STARTING');
+  h.setRecord(withMembership(base, settleAddition(pending.membership, pending.entry.id, 'active')));
+  assert.equal(child.guard('team_task_update', {}), undefined);
+  h.setRecord(withMembership(base, settleAddition(pending.membership, pending.entry.id, 'failed')));
+  assert.deepEqual(await child.prestep(), { kind: 'reject' });
+  h.setRecord(withMembership(base, appendRemoval([], { name: 'implementer', childId: child.agent.id }).membership));
+  assert.deepEqual(await child.prestep(), { kind: 'reject' });
+  assert.equal(child.guard('team_task_get', {})?.reason, 'TEAM_MEMBER_REMOVED');
+});
+
 test('launcher role freezes accepted persona and tools instead of following later config edits', async () => {
   const config = example(), original = structuredClone(config), h = fixture(); await apply(h.ctx, config);
   config.personaPrompt = 'later replacement'; config.ownedSessionId = 'other-root'; config.tools.push('wait_agent');

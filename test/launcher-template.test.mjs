@@ -134,3 +134,43 @@ test('fingerprints are stable for key ordering and tool-set ordering, sensitive 
   const forged = clone(original); forged.authorized = true;
   assert.throws(() => launcherTemplateFingerprint(forged), error => error.code === 'INVALID_NORMALIZED_TEMPLATE');
 });
+
+test('an optional role tag round-trips as duty-template metadata and stays shape-checked', () => {
+  const input = clone(example);
+  input.members[0].role = 'implementer'; input.members[1].role = 'researcher';
+  const value = parseLauncherTemplate(input);
+  assert.equal(value.members[0].role, 'implementer');
+  assert.equal(value.members[1].role, 'researcher');
+  for (const item of [value.members[0], value.members[1]]) assert.ok(Object.isFrozen(item));
+  const absent = parseLauncherTemplate(clone(example));
+  assert.equal(Object.hasOwn(absent.members[0], 'role'), false);
+  const boundary = clone(example); boundary.members[0].role = 'a'.repeat(32);
+  assert.equal(parseLauncherTemplate(boundary).members[0].role, 'a'.repeat(32));
+  for (const role of ['', 'Implementer', 'impl menter', 'a'.repeat(33), 'a'.repeat(65), 'team_role', 42, null]) {
+    const bad = clone(example); bad.members[0].role = role;
+    rejects(bad, 'INVALID_MEMBER_ROLE');
+  }
+});
+
+test('fingerprints of role-less templates stay byte-identical to the pre-role digests', () => {
+  // Baselines captured from the pre-role parser at de6e113; adopting a duty
+  // template must never re-identify an existing saved or bound template.
+  const four = clone(example);
+  for (const name of ['frontend', 'backend']) {
+    const member = clone(example.members[0]);
+    member.name = name; member.agent_preset = `dsh-team-${name}`;
+    member.native_tool_allowlist = ['team_task_get', 'read'];
+    four.members.push(member);
+  }
+  const single = clone(example); single.members.pop(); single.seed_tasks.pop();
+  const baselines = [
+    [example, '84d57e434376bbb37632498efc632dafe8090d8ebc0f98db6c83a09c58bf4034'],
+    [four, '8899701bf05af988703fb752bf05fe16e929f95914a300e0a251c9dc384ea64b'],
+    [single, 'eb6817fe5aa7d437317f35a7c871967f1dc39f7792e0ea98fad1e619b30f7b41'],
+  ];
+  for (const [raw, digest] of baselines) {
+    assert.equal(launcherTemplateFingerprint(parseLauncherTemplate(raw)), digest);
+  }
+  const tagged = clone(example); tagged.members[0].role = 'implementer';
+  assert.notEqual(launcherTemplateFingerprint(parseLauncherTemplate(tagged)), baselines[0][1]);
+});

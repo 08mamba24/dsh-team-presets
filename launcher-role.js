@@ -106,7 +106,10 @@ export async function apply(ctx, raw) {
     const operation = config.standbyOperationId === undefined
       ? record.operations.find(entry => entry.oldChildId === childId || entry.newChildId === childId)
       : record.operations.find(entry => entry.id === config.standbyOperationId);
-    if (operation) managedChildren.add(childId);
+    const membership = record.membership?.find(entry => entry.childId === childId
+      || entry.kind === 'remove' && entry.name === config.roleName);
+    if (operation || membership) managedChildren.add(childId);
+    if (membership?.kind === 'remove') return unavailable('TEAM_MEMBER_REMOVED');
     const admit = eligibility => {
       // Until takeover is proved, the ACKed transfer bundle must still belong
       // to this candidate. Later work uses ordinary native per-task owner/CAS
@@ -136,7 +139,7 @@ export async function apply(ctx, raw) {
       }
       return admit(candidateEligibility(record, config.standbyOperationId, childId));
     }
-    if (!operation && managedChildren.has(childId)) return unavailable('TEAM_ELIGIBILITY_UNVERIFIABLE');
+    if (!operation && !membership && managedChildren.has(childId)) return unavailable('TEAM_ELIGIBILITY_UNVERIFIABLE');
     return admit(eligibilityOf(record, childId));
   };
   ctx.systemPrompt.section({ name: 'deployment:persona-prefix', order: 0, text: config.personaPrompt, interpolate: false });
@@ -212,7 +215,8 @@ export async function apply(ctx, raw) {
             : eligibility.kind === 'full' ? config.tools : [];
           if (!allowed.includes(exec.name)) {
             const code = eligibility.kind === 'none' ? eligibility.reason ?? 'TEAM_MEMBER_RETIRED'
-              : eligibility.kind === 'standby' ? 'TEAM_STANDBY_RESTRICTED' : 'TEAM_TOOL_OUT_OF_SCOPE';
+              : eligibility.kind === 'standby' ? 'TEAM_STANDBY_RESTRICTED'
+                : eligibility.kind === 'starting' ? 'TEAM_MEMBER_STARTING' : 'TEAM_TOOL_OUT_OF_SCOPE';
             return { reason: code, info: { name: 'DshRoleToolError', code } };
           }
           if (eligibility.kind === 'standby' && !standbyCallAllowed(exec, admission.operation)) {

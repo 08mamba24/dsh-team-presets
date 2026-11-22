@@ -28,6 +28,7 @@ const { values } = parseArgs({ options: {
   'install-dir': { type: 'string' }, tgz: { type: 'string' },
   'previous-tgz': { type: 'string' },
   'legacy-plugin': { type: 'string' },
+  'multi-role-legacy-plugin': { type: 'string' },
   'lab-dir': { type: 'string' }, 'receipt-dir': { type: 'string' },
   'electron-stage': { type: 'boolean', default: false }, help: { type: 'boolean', default: false },
 }, allowPositionals: false });
@@ -63,6 +64,7 @@ function pathsFor(options) {
     executable: join(install, 'DeepSeek Harness.exe'), tgz: resolve(options.tgz),
     previousTgz: options['previous-tgz'] ? resolve(options['previous-tgz']) : undefined,
     legacyPlugin: options['legacy-plugin'] ? resolve(options['legacy-plugin']) : undefined,
+    multiRoleLegacyPlugin: options['multi-role-legacy-plugin'] ? resolve(options['multi-role-legacy-plugin']) : undefined,
     receipts: resolve(options['receipt-dir']), profile: join(harness, 'profiles', 'desktop'),
     agents: join(lab, 'agents'), workspace: join(lab, 'workspace'), temporary: join(lab, 'tmp'),
     cli: join(runtime, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js'),
@@ -312,6 +314,10 @@ async function accept(paths) {
     await runNativeAcceptance(installedRoot, 'accept-native-replacement-store.mjs', 'native-replacement-store.json');
     await runNativeAcceptance(installedRoot, 'probe-native-team-addressing.mjs', 'native-team-addressing.json');
     await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement.json');
+    assert.ok(paths.multiRoleLegacyPlugin, 'published rc.7 migration fixture is required');
+    const multiRoleLegacy = JSON.parse(await readFile(join(paths.multiRoleLegacyPlugin, 'package.json'), 'utf8'));
+    assert.equal(multiRoleLegacy.name, PACKAGE); assert.equal(multiRoleLegacy.version, '0.5.0-rc.7');
+    await runNativeAcceptance(installedRoot, 'accept-native-multi-role.mjs', 'native-multi-role.json', [paths.multiRoleLegacyPlugin]);
     if (paths.legacyPlugin) {
       const legacy = JSON.parse(await readFile(join(paths.legacyPlugin, 'package.json'), 'utf8'));
       assert.equal(legacy.name, PACKAGE); assert.equal(legacy.version, '0.5.0-rc.6');

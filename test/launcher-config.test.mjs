@@ -44,7 +44,8 @@ test('configuration is strict, deeply frozen and contains no inferred authorizat
     x => { x.workspace = '/tmp/owned/../other'; }, x => { x.workspace = 'relative'; },
     x => { x.runTag = '../tag'; }, x => { x.timeoutMs = 120001; }, x => { x.templateSha256 = 'wrong'; },
     x => { x.startup.maxTokens = 4096; }, x => { x.startup.maxStreams.implementer = 0; },
-    x => { x.startup.maxStreams.reviewer = 13; }, x => { x.startup.maxStreams.other = 1; },
+    x => { x.startup.maxStreams.reviewer = 13; }, x => { x.startup.maxStreams.Other = 1; },
+    x => { x.startup.maxStreams.lead = 1; },
   ]) { const altered = structuredClone(config); change(altered); assert.throws(() => parseLauncherConfig(altered), code('INVALID_LAUNCHER_CONFIG')); }
 });
 
@@ -70,13 +71,13 @@ posixTest('template byte drift and marker binding changes are refused without di
   }
 });
 
-posixTest('a data-valid template still requires complete exact roles and an explicit effort', async t => {
+posixTest('a data-valid template still requires complete members, at most eight, and an explicit effort', async t => {
   const cases = [
     [x => { delete x.members[0].persona_prompt; }, 'LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE'],
     [x => { delete x.members[0].agent_preset; }, 'LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE'],
     [x => { delete x.members[0].native_tool_allowlist; }, 'LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE'],
     [x => { delete x.members[0].reasoning_effort; }, 'LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE'],
-    [x => { x.members.pop(); x.seed_tasks = []; }, 'LAUNCHER_EXACT_ROLES_REQUIRED'],
+    [x => { x.max_members = 8; while (x.members.length < 9) x.members.push({ ...x.members[0], name: `extra-${x.members.length}`, agent_preset: `dsh-team-extra-${x.members.length}` }); }, 'INVALID_TEMPLATE_MEMBERS'],
   ];
   for (const [change, expected] of cases) {
     const input = structuredClone(example); change(input); const h = await fixture(t, input);

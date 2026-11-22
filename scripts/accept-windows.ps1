@@ -48,6 +48,15 @@ $legacyDir = Join-Path $baselineDir 'legacy-rc6'
 New-Item -ItemType Directory -Path $legacyDir | Out-Null
 & tar.exe -xzf $legacyTgz -C $legacyDir
 if ($LASTEXITCODE -ne 0) { throw 'Legacy package extraction failed.' }
+$multiRoleTgz = Join-Path $baselineDir 'dsh-subagent-live-rc2-local-0.5.0-rc.7.tgz'
+Invoke-WebRequest -Uri 'https://github.com/08mamba24/dsh-team-presets/releases/download/v0.5.0-rc.7/dsh-subagent-live-rc2-local-0.5.0-rc.7.tgz' -OutFile $multiRoleTgz
+if ((Get-FileHash $multiRoleTgz -Algorithm SHA256).Hash.ToLowerInvariant() -ne 'e87677e91b24ac51505b22c64e81674f12c9c460452ad2e3c084db0d2c97ba16') {
+  throw 'Published rc.7 migration baseline digest changed.'
+}
+$multiRoleDir = Join-Path $baselineDir 'multi-role-rc7'
+New-Item -ItemType Directory -Path $multiRoleDir | Out-Null
+& tar.exe -xzf $multiRoleTgz -C $multiRoleDir
+if ($LASTEXITCODE -ne 0) { throw 'rc.7 migration package extraction failed.' }
 Push-Location $packageRoot
 try {
   $pack = & npm pack --json --ignore-scripts --pack-destination $WorkDir
@@ -55,6 +64,7 @@ try {
   $tgz = Join-Path $WorkDir (($pack | ConvertFrom-Json)[0].filename)
   & node (Join-Path $PSScriptRoot 'accept-windows-host.mjs') `
     --install-dir $installDir --tgz $tgz --previous-tgz $previousTgz --legacy-plugin (Join-Path $legacyDir 'package') `
+    --multi-role-legacy-plugin (Join-Path $multiRoleDir 'package') `
     --lab-dir (Join-Path $WorkDir 'lab') --receipt-dir $receiptDir
   if ($LASTEXITCODE -ne 0) { throw 'Real Windows Host acceptance failed. See receipts.' }
 } finally {

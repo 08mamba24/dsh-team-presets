@@ -1,12 +1,12 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { fail, sameControls } from './config.js';
-import { TEAM_ROLES, TEAM_ROLE_TOOLS } from './team-config.js';
+import { TEAM_ROLE_TOOLS, teamMembers } from './team-config.js';
 import { validRoleToolList } from './role-tools.js';
 
 const usageKeys = ['inputTokens', 'outputTokens', 'cacheReadTokens', 'cacheWriteTokens', 'totalTokens'];
 const copy = value => value === undefined ? undefined : structuredClone(value);
 
-function snapshotRoleTools(options) {
+function snapshotRoleTools(options, TEAM_ROLES) {
   const exact = (value, keys) => value !== null && typeof value === 'object' && !Array.isArray(value)
     && Reflect.ownKeys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
   if (options !== undefined && (!exact(options, ['roleTools']) || !exact(options.roleTools, TEAM_ROLES))) {
@@ -21,11 +21,12 @@ function snapshotRoleTools(options) {
   })));
 }
 
-/** Bounded normal tool steps for two lifecycle-correlated children; root inference stays quarantined. */
+/** Bounded normal tool steps for lifecycle-correlated children; root inference stays quarantined. */
 export function createTeamGate(config, options) {
+  const TEAM_ROLES = teamMembers(config);
   // Omission preserves the accepted M2 tool set; a launcher supplies exact role capabilities.
   // Installation lifetime is still owned by the caller, not by these tool-mask options.
-  const roleTools = snapshotRoleTools(options);
+  const roleTools = snapshotRoleTools(options, TEAM_ROLES);
   const causal = new AsyncLocalStorage(), blocked = new Set(), byChild = new Map();
   const states = Object.fromEntries(TEAM_ROLES.map(role => [role,
     { admissions: 0, streams: [], denials: [], seenResults: new Set(), inFlight: false }]));

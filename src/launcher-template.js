@@ -4,7 +4,7 @@ import { selectableRoleTool } from './role-tools.js';
 
 const SCHEMA = 'dsh-team-template/1';
 const TOP = ['template_schema', 'template_meta', 'version', 'name', 'max_members', 'members', 'seed_tasks'];
-const MEMBER = ['name', 'description', 'prompt', 'persona_prompt', 'agent_preset', 'provider', 'model', 'reasoning_effort', 'native_tool_allowlist'];
+const MEMBER = ['name', 'description', 'prompt', 'persona_prompt', 'agent_preset', 'provider', 'model', 'reasoning_effort', 'native_tool_allowlist', 'role'];
 const TASK = ['key', 'subject', 'description', 'owner', 'blocked_by'];
 const NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const own = (value, key) => Object.hasOwn(value, key);
@@ -65,6 +65,12 @@ function member(raw, names, presets) {
     return effort;
   });
   optional(value, raw, 'persona_prompt', 'personaPrompt', persona => text(persona, 8000, 'INVALID_MEMBER_PERSONA'));
+  // A role names a duty template id; this parser checks shape only, resolution
+  // belongs to the configurator that knows the built-in and custom catalog.
+  optional(value, raw, 'role', 'role', role => {
+    if (typeof role !== 'string' || !/^[a-z][a-z0-9-]{0,31}$/.test(role)) fail('INVALID_MEMBER_ROLE');
+    return role;
+  });
   optional(value, raw, 'agent_preset', 'agentPreset', preset => {
     text(preset, 200, 'INVALID_MEMBER_PRESET');
     if (preset.trim() !== preset) fail('INVALID_MEMBER_PRESET');
@@ -145,7 +151,7 @@ export function parseLauncherTemplate(raw) {
 const TOP_MAP = { templateSchema: 'template_schema', templateMeta: 'template_meta', version: 'version',
   name: 'name', maxMembers: 'max_members', members: 'members', seedTasks: 'seed_tasks' };
 const MEMBER_MAP = { name: 'name', description: 'description', prompt: 'prompt', personaPrompt: 'persona_prompt',
-  agentPreset: 'agent_preset', provider: 'provider', model: 'model', reasoningEffort: 'reasoning_effort', nativeToolAllowlist: 'native_tool_allowlist' };
+  agentPreset: 'agent_preset', provider: 'provider', model: 'model', reasoningEffort: 'reasoning_effort', nativeToolAllowlist: 'native_tool_allowlist', role: 'role' };
 const TASK_MAP = { key: 'key', subject: 'subject', description: 'description', owner: 'owner', blockedBy: 'blocked_by' };
 function rename(value, map) {
   fields(value, Object.keys(map), 'INVALID_NORMALIZED_TEMPLATE');

@@ -11,6 +11,10 @@ import { launcherTemplateFingerprint } from './launcher-template.js';
 import { readReplacementRecord, eligibilityOf } from './member-replacement.js';
 import { observeLauncherMembers } from './launcher-native.js';
 import { installRootAddressing } from './team-addressing.js';
+import { rosterOf } from './member-roster.js';
+
+const MEMBER_COMMANDS = ['replace ', 'recover ', 'cancel ', 'add ', 'remove '];
+const memberCommand = raw => MEMBER_COMMANDS.some(prefix => raw.startsWith(prefix));
 
 const digest = value => createHash('sha256').update(value).digest('hex');
 const codeOf = error => /^[A-Z][A-Z0-9_]{0,95}$/.test(error?.code) ? error.code : 'CURRENT_SESSION_SETUP_FAILED';
@@ -47,7 +51,7 @@ function options(raw) {
   }
   if (raw.mode !== 'current-session') fail('INVALID_CURRENT_SESSION_CONFIG');
   const timeoutMs = raw.timeoutMs ?? 120000;
-  const streams = raw.maxStreams ?? { implementer: 1, reviewer: 1 };
+  const streams = raw.maxStreams ?? {};
   // Reuse the startup bounds parser; these placeholders are never a runtime binding.
   const bounds = parseLauncherConfig({ mode: 'launcher', ownedSessionId: 'session-00000000-0000-4000-8000-000000000000',
     workspace: parse(process.cwd()).root, runTag: 'current-config', timeoutMs, templateSha256: '0'.repeat(64),
@@ -208,7 +212,7 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
       const raw = request.rawInput?.trim();
       if (outstanding) fail('OUTSTANDING_LAUNCHER_OPERATION');
       if (busy) fail('BUSY');
-      if (!(raw && (['plan', 'launch', 'restore'].includes(raw) || raw.startsWith('replace ') || raw.startsWith('recover ') || raw.startsWith('cancel ')))
+      if (!(raw && (['plan', 'launch', 'restore'].includes(raw) || memberCommand(raw)))
         || !Array.isArray(request.attachments) || request.attachments.length) fail('USAGE_PLAN_LAUNCH_RESTORE_ONLY');
       request.signal.throwIfAborted(); assertRoot(ctx, request.agent);
       if (restoreFailures.has(request.agent.id)) fail(restoreFailures.get(request.agent.id));
@@ -218,7 +222,7 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
         if (closing) fail('UNLOADING');
         request.signal.throwIfAborted();
         const result = await handler(request), receipt = JSON.parse(result.text);
-        if (!raw.startsWith('replace ') && !raw.startsWith('recover ') && !raw.startsWith('cancel ')
+        if (!memberCommand(raw)
           && (receipt.reconciliationRequired || receipt.code?.endsWith('_DRAINING_GUARD_RETAINED'))) outstanding = true;
         return result;
       } finally { busy = false; }
@@ -228,7 +232,7 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
   }
 
   const unregister = ctx.commands.register({ name: 'dsh-team', description: 'Build or maintain this session team',
-    input: { hint: 'plan | launch | restore | replace | recover', attachments: false }, handler: invoke });
+    input: { hint: 'plan | launch | restore | replace | recover | add | remove', attachments: false }, handler: invoke });
   ctx.effect(function* () {
     yield () => { closing = true; return unregister(); };
   });
@@ -247,20 +251,26 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
           return { ok: true, action: 'adopt', revision: readReplacementRow(ctx.settings, agent.id).revision };
         } finally { busy = false; }
       }
+      const row = readReplacementRow(ctx.settings, agent.id), record = readReplacementRecord(row.value);
+      // The team is the bound base template plus explicit membership; unbound roots preview the defaults.
+      const roster = rosterOf(record, (record.baseBinding !== undefined ? savedBinding(record).template
+        : defaultTemplate(agent)).members);
       if (action === 'inspect') {
-        const row = readReplacementRow(ctx.settings, agent.id);
-        const record = readReplacementRecord(row.value);
         const observation = await observeLauncherMembers(ctx, agent, signal);
-        const roles = ['implementer', 'reviewer'].map(role => {
+        const roles = roster.members.map(({ name: role, origin, phase, childId }) => {
           const active = record.operations.findLast(op => op.role === role && op.phase === 'active'
             && eligibilityOf(record, op.newChildId).kind === 'full');
           const member = observation.members.find(item => active ? item.id === active.newChildId : item.name === role);
-          return { role, currentChildId: member?.id ?? null };
+          return { role, origin, ...(origin === 'added' ? { additionPhase: phase } : {}),
+            currentChildId: member?.id ?? (origin === 'added' && phase !== 'aborted' ? childId : null) };
         });
         const tasks = ctx.agentTeams.isEnabled(agent) ? await ctx.agentTeams.listTasks(agent) : [];
-        return { ok: true, revision: row.revision, record, roles, observation, tasks,
+        return { ok: true, revision: row.revision, record, roles, removed: roster.removed, observation, tasks,
           restorationFailure: restoreFailures.get(agent.id) ?? null };
       }
+      if (action === 'replace' && !roster.members.some(member => member.name === request.role)) fail('REPLACEMENT_ROLE_NOT_IN_TEAM');
+      if (action === 'add') return JSON.parse((await invoke({ agent, signal, rawInput: `add ${JSON.stringify(request.member)}`, attachments: [] })).text);
+      if (action === 'remove') return JSON.parse((await invoke({ agent, signal, rawInput: `remove ${request.name}`, attachments: [] })).text);
       const rawInput = ['recover', 'cancel'].includes(action) ? `${action} ${operationId}`
         : `replace ${request.role} ${JSON.stringify({ ...request, expectedOldChildId })}`;
       return JSON.parse((await invoke({ agent, signal, rawInput, attachments: [] })).text);

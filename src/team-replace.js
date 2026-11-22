@@ -5,6 +5,7 @@ import { parseReplacementRequest, REPLACEMENT_CHILD_ID } from './member-replacem
 
 const codeOf = error => /^[A-Z][A-Z0-9_]{0,95}$/.test(error?.code) ? error.code : 'TEAM_REPLACEMENT_FAILED';
 const ID = REPLACEMENT_CHILD_ID;
+const MEMBER_NAME = /^[a-z][a-z0-9-]{0,31}$/;
 
 /** Root-only Agent entry. The native tool pipeline still owns permissions. */
 export async function applyTeamReplacement(ctx, launcher, { defineTool }) {
@@ -14,12 +15,15 @@ export async function applyTeamReplacement(ctx, launcher, { defineTool }) {
   ctx.effect(() => () => { closing = true; });
   ctx.tools.register(defineTool({
     name: 'dsh_team_replace',
-    description: 'Inspect this root team, replace one idle implementer/reviewer with explicit model/effort/persona/prompt/tools, recover/cancel an existing operation, or authenticate an original legacy template with adopt. Preserves task IDs and history. Replacement may call the candidate model and continue its work; native authorization, sandbox and approvals remain in force. Inspect first and bind expectedOldChildId. Recover the existing operation after an uncertain result.',
+    description: 'Manage members of this root team by stable member name. inspect lists the roster; replace swaps one idle member for explicit model/effort/persona/prompt/tools; add creates one new member (complete template member object) in the launched team; remove retires one quiet member with no unfinished tasks; recover/cancel an existing replacement; adopt authenticates an original legacy template. Preserves other members, task IDs, dependencies and history. Replace and add call the member model; native authorization, sandbox and approvals remain in force. Inspect first and bind expectedOldChildId for replace.',
     parameters: {
-      action: { type: 'string', required: true, enum: ['inspect', 'replace', 'recover', 'cancel', 'adopt'] },
+      action: { type: 'string', required: true, enum: ['inspect', 'replace', 'recover', 'cancel', 'adopt', 'add', 'remove'] },
+      member: { type: 'object', additionalProperties: true,
+        description: 'For add: one complete template member (name, description, prompt, persona_prompt, provider, model, reasoning_effort, native_tool_allowlist; optional role). Its Preset id is assigned per root.' },
+      name: { type: 'string', description: 'For remove: stable member name returned by inspect.' },
       template: { type: 'object', additionalProperties: true,
         description: 'For adopt: exact original legacy team template, authenticated against its retained native launch fingerprint.' },
-      role: { type: 'string', enum: ['implementer', 'reviewer'] },
+      role: { type: 'string', description: 'For replace: stable member name returned by inspect.' },
       expectedOldChildId: { type: 'string', description: 'For replace: exact current member id returned by inspect.' },
       operationId: { type: 'string', description: 'For recover: existing operation id returned by inspect or replacement.' },
       provider: { type: 'string' }, model: { type: 'string' }, reasoningEffort: { type: 'string' },
@@ -37,8 +41,14 @@ export async function applyTeamReplacement(ctx, launcher, { defineTool }) {
         let request;
         if (action === 'replace') {
           if (operationId !== undefined || !ID.test(expectedOldChildId ?? '')
-            || !['implementer', 'reviewer'].includes(input.role)) fail('REPLACEMENT_REQUEST_INVALID');
+            || typeof input.role !== 'string' || !MEMBER_NAME.test(input.role) || input.role === 'lead') fail('REPLACEMENT_REQUEST_INVALID');
           request = { action, expectedOldChildId, request: parseReplacementRequest(input) };
+        } else if (action === 'add') {
+          if (Object.keys(args).length !== 2 || !args.member || typeof args.member !== 'object' || Array.isArray(args.member)) fail('MEMBER_REQUEST_INVALID');
+          request = { action, request: { member: args.member } };
+        } else if (action === 'remove') {
+          if (Object.keys(args).length !== 2 || typeof args.name !== 'string' || !MEMBER_NAME.test(args.name) || args.name === 'lead') fail('MEMBER_REQUEST_INVALID');
+          request = { action, request: { name: args.name } };
         } else if (action === 'adopt') {
           if (Object.keys(args).length !== 2 || !args.template) fail('REPLACEMENT_REQUEST_INVALID');
           request = { action, originalTemplate: args.template };
@@ -57,7 +67,7 @@ export async function applyTeamReplacement(ctx, launcher, { defineTool }) {
   const path = new URL('../skills/dsh-team-replace/SKILL.md', import.meta.url);
   const content = (await readFile(path, 'utf8')).replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
   ctx.skills.register({ name: 'dsh-team-replace', source: 'runtime',
-    description: '在原团队中替换空闲实现/复核成员，交接任务并核验接管；对不确定结果恢复同一操作。',
+    description: '管理已有团队成员：按稳定成员名替换、显式增员或安全移除，保留任务与历史；对不确定的替换恢复同一操作。',
     invocation: { modelInvocable: true, userInvocable: true }, path: fileURLToPath(path),
     resourceBase: { kind: 'directory', path: fileURLToPath(new URL('.', path)) }, content });
 }

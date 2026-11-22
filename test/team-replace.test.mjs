@@ -44,7 +44,7 @@ test('child, stale cancellation and unloading cannot initiate replacement', asyn
 
 test('missing old identity, unsupported role and ambiguous recovery input are refused before mutation', async t => {
   const f = await fixture(t);
-  for (const args of [{ ...input(), expectedOldChildId: undefined }, { ...input(), role: 'third-role' },
+  for (const args of [{ ...input(), expectedOldChildId: undefined }, { ...input(), role: 'Third_Role' }, { ...input(), role: 'lead' },
     { ...input(), extra: true }, { action: 'inspect', role: 'implementer' },
     { action: 'recover', operationId: 'replace-not-a-uuid' }, { action: 'recover', operationId: 'replace-' + 'a'.repeat(36), prompt: 'retry' }]) {
     assert.equal((await f.invoke(args)).ok, false);
@@ -59,4 +59,20 @@ test('native legacy UUID children are exact observed identities and adoption has
   assert.equal((await f.invoke({ action: 'adopt', template: { evidence: 'original' } })).ok, true);
   assert.deepEqual(f.requests[1].originalTemplate, { evidence: 'original' });
   assert.equal((await f.invoke({ action: 'adopt', template: {}, role: 'implementer' })).ok, false);
+});
+
+test('add and remove have exact separate input contracts and pass the stable member name', async t => {
+  const f = await fixture(t);
+  const member = { name: 'researcher', description: 'Research', prompt: 'Start.', persona_prompt: 'You research.',
+    provider: 'p', model: 'm', reasoning_effort: 'max', native_tool_allowlist: ['team_task_get'] };
+  assert.equal((await f.invoke({ action: 'add', member })).ok, true);
+  assert.deepEqual(f.requests.at(-1), { agent: f.requests.at(-1).agent, signal: f.requests.at(-1).signal, action: 'add', request: { member } });
+  assert.equal((await f.invoke({ action: 'remove', name: 'researcher' })).ok, true);
+  assert.deepEqual(f.requests.at(-1).request, { name: 'researcher' });
+  const before = f.requests.length;
+  for (const args of [{ action: 'add' }, { action: 'add', member: [] }, { action: 'add', member, role: 'x' },
+    { action: 'remove', name: 'lead' }, { action: 'remove', name: 'Bad Name' }, { action: 'remove', name: 'a', member }]) {
+    assert.equal((await f.invoke(args)).ok, false);
+  }
+  assert.equal(f.requests.length, before);
 });

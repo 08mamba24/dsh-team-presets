@@ -2,6 +2,7 @@ import { nativeTeamFromHost } from './src/team-host.js';
 import { applyCurrentLauncher } from './src/launcher-current.js';
 import { nativeConfigurationFromHost } from './src/configure-host.js';
 import { applyTeamConfigurator } from './src/team-configure.js';
+import * as roleTemplates from './src/role-templates.js';
 import { ROOT_SESSION_ID } from './src/replacement-store.js';
 import { applyTeamReplacement } from './src/team-replace.js';
 import { installRootAddressing } from './src/team-addressing.js';
@@ -13,8 +14,14 @@ export const Config = Schema.object({
   template: Schema.any().volatile(),
   replacementRecords: Schema.dict(Schema.any(), Schema.string().pattern(ROOT_SESSION_ID)).default({}).volatile(),
   timeoutMs: Schema.number().default(120000),
-  maxStreams: Schema.object({ implementer: Schema.number().default(1), reviewer: Schema.number().default(1) })
-    .default({ implementer: 1, reviewer: 1 }),
+  // Per stable member name; omitted members get one ordinary startup stream.
+  maxStreams: Schema.dict(Schema.number()).default({}),
+  // Operator-provided duty-template seeds; the saved settings row stays
+  // authoritative once the configurator persists its own customRoleTemplates.
+  // Volatile like template/replacementRecords: a Ref-shaped hot-update field,
+  // so activation reads .get() and later catalog saves never remount the
+  // running current-team entry (real-Host RED: native-multi-integrated-r1.log).
+  customRoleTemplates: Schema.array(Schema.any()).default([]).volatile(),
 });
 
 export const name = 'native-current-team';
@@ -27,6 +34,7 @@ export async function apply(ctx, raw) {
     timeoutMs: raw.timeoutMs, maxStreams: raw.maxStreams }, nativeSubagent, controlEntry,
   { readTemplate, readRecords: () => raw.replacementRecords.get(),
     prepareRoot: agent => installRootAddressing(ctx, agent) });
-  await applyTeamConfigurator(ctx, launcher, nativeConfiguration);
+  await applyTeamConfigurator(ctx, launcher, nativeConfiguration,
+    { roleTemplates, defaultCustomTemplates: raw.customRoleTemplates?.get() });
   await applyTeamReplacement(ctx, launcher, nativeConfiguration);
 }
