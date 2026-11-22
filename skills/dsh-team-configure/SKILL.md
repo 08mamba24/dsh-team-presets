@@ -30,6 +30,6 @@ description: 在 DSH Agent 会话中查看可用模型、工具与角色模板�
 
 ## 替换空闲成员（0.5.0-rc.7+）
 
-用户要求修改名册中已有成员的模型、effort、提示词或工具，或给当前团队增员／移除成员时，调用 `dsh-team-replace` skill 与 `dsh_team_replace` 工具：替换先 inspect，绑定精确 expectedOldChildId 后 replace；增员用 `action: add` 提交完整成员配置（路由字段必须显式给出；其中 `role` 只记录职责来源，不解析模板补字段）；移除用 `action: remove` 与 inspect 返回的稳定成员名，拦截的是未完成责任（含尚未接管的种子责任）。effort 未指定时为 max。progressFacts 写明已有文件、已验测试、未确认副作用和下一步。保留任务 ID、依赖、进度与历史。
+用户要求修改名册中已有成员的模型、effort、提示词或工具，或给当前团队增员／移除成员时，调用 `dsh-team-replace` skill 与 `dsh_team_replace` 工具：替换先 inspect，在 `inspect.roles` 中选目标成员行 `row`，令 `role=row.role`、`expectedOldChildId=row.currentChildId` 后 replace；找不到目标行或 `currentChildId` 为 `null` 时停止并核实。增员用 `action: add` 提交完整成员配置（路由字段必须显式给出；其中 `role` 只记录职责来源，不解析模板补字段）；移除用 `action: remove` 与 inspect 返回的稳定成员名，拦截的是未完成责任（含尚未接管的种子责任）。effort 未指定时为 max。progressFacts 写明已有文件、已验测试、未确认副作用和下一步。保留任务 ID、依赖、进度与历史。
 
 已有未完成操作时，使用原 operationId recover；不要重复 launch 或 spawn。候选先受强制 Standby 限制，Lead 完成原生 owner/CAS 改派后才激活，再以候选真实任务写回证明接管。首次 owner 写入意图前可明确 cancel，待候选停止和 owner 安全后解冻；之后只能恢复对账。完整说明以替换 skill 为准。

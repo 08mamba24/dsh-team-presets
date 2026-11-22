@@ -6,7 +6,7 @@ description: Replace, add or remove an idle team member and recover the same han
 用户明确要求给 inspect 名册中的任一已有成员换模型、effort、提示词或工具，或要求在当前团队增加／安全移除成员时，使用 `dsh_team_replace`。
 
 1. 调用 `action: inspect`，读取当前成员的精确 ID、进行中的替换操作和原任务。若已有未完成操作，使用其 `operationId` 调用 `action: recover`；不要再创建候选。
-2. 将用户指定的 provider、model、reasoningEffort、personaPrompt、prompt、完整 tools 清单及实况 progressFacts 传入 `action: replace`，同时填入 inspect 返回的 `expectedOldChildId` 和该成员当前登记的逻辑角色名。effort 未指定时默认 max；不自动换模型或降档。工具名从 `dsh_team_configure action: tools` 获取，模型与授权从原生目录核对。
+2. 在 `inspect.roles` 中选择用户指定的成员行 `row`，将 `role` 设为 `row.role`、`expectedOldChildId` 设为 `row.currentChildId`。找不到目标行或 `currentChildId` 为 `null` 时，停止并核实现状，不发起替换。将这两个字段与用户指定的 provider、model、reasoningEffort、personaPrompt、prompt、完整 tools 清单及实况 progressFacts 一起传入 `action: replace`。effort 未指定时默认 max；不自动换模型或降档。工具名从 `dsh_team_configure action: tools` 获取，模型与授权从原生目录核对。
 3. progressFacts 应包括已有文件、已运行的测试、未确认的后台副作用和下一步。运行中、排队中、后台作业或无法确认静止的成员会被拒绝；不要通过清空队列、杀进程或重建团队来绕过。
 4. 候选先受强制 Standby 限制，只读取交接任务并向 Lead 发送绑定 operation/handoff/config 的就绪 ACK。就绪后由 Lead 逐任务 CAS 改派，全部确认才激活。已完成任务和原 Session 历史保留。
 5. `activating` 表示候选获准工作、接管仍待证明；`active` 表示已核验接管证据，或明确没有待接管任务。只有返回经原生运行记录核验的任务写回证据，才报告实际接管。就绪 ACK 本身不证明接管。

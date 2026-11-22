@@ -91,7 +91,7 @@ and these exact tools. Keep the task IDs, dependencies and completed progress.
 Handoff facts: changed files, verified tests, unresolved effects and next action.
 ```
 
-The Agent calls `dsh_team_replace` with `action: inspect`, then `action: replace` bound to the exact observed `expectedOldChildId`. Supply provider, model, effort, personaPrompt, prompt, the complete tools list and progressFacts. Omitted effort defaults to `max`; actual native model policy and adapter resolution must accept the route. This changes only the current team's selected logical role. Use `dsh-team-configure` to change defaults for future teams.
+The Agent calls `dsh_team_replace` with `action: inspect` and selects the target member's row from `inspect.roles`. For `action: replace`, set `role=row.role` and `expectedOldChildId=row.currentChildId`; if the row is absent or `currentChildId` is `null`, stop and verify the current state. Supply provider, model, effort, personaPrompt, prompt, the complete tools list and progressFacts. Omitted effort defaults to `max`; actual native model policy and adapter resolution must accept the route. This changes only the current team's selected logical role. Use `dsh-team-configure` to change defaults for future teams.
 
 The old member and its descendants must be quiet: no turn, tool, queued input or managed background job. A task may remain `in_progress`. A naturally unloaded member can be checked from the native catalog, its closed turn and durable inbox. Blocked tasks are refused before freezing; their dependencies remain intact.
 

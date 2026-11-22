@@ -101,7 +101,7 @@ provider/model，effort 用 max，采用以下角色提示词、工作提示词�
 交接实况：已改文件、已验证测试、未确认副作用、下一步。
 ```
 
-Agent 先调用 `dsh_team_replace action: inspect`，再将精确的 `expectedOldChildId` 与 provider、model、reasoningEffort、personaPrompt、prompt、完整 tools 和 progressFacts 传入 `action: replace`。effort 未指定时默认 `max`，实际路由仍须通过会话 policy 与原生 adapter。替换只改变当前团队的选定角色；后续新团队的默认值由 `dsh-team-configure` 修改。
+Agent 先调用 `dsh_team_replace action: inspect`，在 `inspect.roles` 中选出目标成员行 `row`。调用 `action: replace` 时，令 `role=row.role`、`expectedOldChildId=row.currentChildId`，并传入 provider、model、reasoningEffort、personaPrompt、prompt、完整 tools 和 progressFacts；找不到目标行或 `currentChildId` 为 `null` 时停止并核实现状。effort 未指定时默认 `max`，实际路由仍须通过会话 policy 与原生 adapter。替换只改变当前团队的选定角色；后续新团队的默认值由 `dsh-team-configure` 修改。
 
 旧成员及其后代必须停稳：没有在途 turn、工具、排队输入或受管后台作业。业务任务可以保持 `in_progress`。已自然卸载的成员依据原生目录、已结束 turn 和持久 inbox 确认静止。带未完成前置依赖的任务会在冻结前被拒绝，依赖不变。
 
