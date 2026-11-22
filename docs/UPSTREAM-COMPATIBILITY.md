@@ -45,11 +45,18 @@ Every available archive is inspected for the public native API exports used by
 the plugin. An unknown archive is `needs-review`: the monitor does not change
 `REVIEWED_HOSTS`, broaden `engines.dsh`, or run business work around admission.
 With an already reviewed archive, the native CLI installs the exact TGZ, and six
-native suites cover role admission, settings persistence, logical addressing,
+native suites from the monitor checkout exercise the CLI-installed TGZ. Both
+the harness and receipt digests are recorded. This lets a harness defect be
+corrected without changing an immutable release artifact. The suites cover
+role admission, settings persistence, logical addressing,
 official Web profile replacement, and actual rc.6 teams with changed and
 unchanged defaults. The CLI then removes the plugin. Cleanup failure prevents a
 verified receipt. Known-runtime Windows lifecycle regression remains in the
 existing Windows acceptance workflow.
+
+The validation generation includes the monitor and harness source digests.
+Changing the judge invalidates deduplication and rechecks both platforms, even
+when the upstream installer and published plugin bytes have not changed.
 
 Each changed observation also runs both original reviewed rc.5 distributions as
 regression controls. These installers have frozen SHA256 values and still must

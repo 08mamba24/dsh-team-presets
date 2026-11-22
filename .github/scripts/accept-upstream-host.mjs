@@ -85,11 +85,12 @@ async function readProof(path) {
   try { return JSON.parse(await readFile(path, 'utf8')); }
   catch { return undefined; }
 }
-async function requireProof(outcome, receipt, sourceHead, path, stage, suite) {
+async function requireProof(outcome, receipt, sourceHead, path, stage, suite, harness) {
   const status = classifyProbe(outcome, receipt, sourceHead);
   if (status !== 'passed') throw Object.assign(new Error(`${suite}: ${status}; ${receipt?.errors?.[0]?.message ?? 'no complete successful source-bound receipt'}`),
     { compatibilityFailure: status === 'incompatible', ...(status === 'incompatible' ? { failureProof: {
-      stage, suite, sourceHead, receiptSha256: await hashFile(path), assertions: failureAssertions(receipt) } } : {}) });
+      stage, suite, sourceHead, receiptSha256: await hashFile(path), harnessSha256: await hashFile(harness),
+      assertions: failureAssertions(receipt) } } : {}) });
 }
 
 async function main() {
@@ -98,7 +99,7 @@ async function main() {
   const output = resolve(process.env.COMPAT_RESULT_DIR ?? 'compat-result');
   await mkdir(output, { recursive: true });
   const result = { fingerprint: c.fingerprint, version: c.version, target: c.target, commit: c.commit,
-    plugin: c.plugin, status: 'infrastructure-error', stage: 'prepare', checkedAt: new Date().toISOString(),
+    plugin: c.plugin, validation: c.validation, status: 'infrastructure-error', stage: 'prepare', checkedAt: new Date().toISOString(),
     isolatedDataRemoved: false, suites: [] };
   // Windows TEMP may use an 8.3 alias. One canonical path prevents duplicate
   // native module/Service identities across CLI, Loader and child fixtures.
@@ -171,23 +172,24 @@ async function main() {
     result.admission = hostVersionForArchive(result.archiveSha256) === c.version ? 'reviewed' : 'unreviewed';
     stage = 'contract';
     const contractReceipt = join(output, 'runtime-contract.json');
+    const inspector = join(dirname(fileURLToPath(import.meta.url)), 'inspect-upstream-runtime.mjs');
     const sourceHead = 'tgz-sha256:' + result.pluginSha256;
-    const inspected = await run(exe, ['--expose-internals', join(dirname(fileURLToPath(import.meta.url)), 'inspect-upstream-runtime.mjs'),
+    const inspected = await run(exe, ['--expose-internals', inspector,
       runtime, contractReceipt, '', sourceHead], { env, cwd: lab, log: join(output, 'contract.log'), allowFailure: true });
     result.contract = await readProof(contractReceipt);
-    await requireProof(inspected, result.contract, sourceHead, contractReceipt, 'contract', 'contract');
+    await requireProof(inspected, result.contract, sourceHead, contractReceipt, 'contract', 'contract', inspector);
     if (result.admission !== 'reviewed') {
       result.status = 'needs-review'; result.reason = 'Unknown app.asar: public API surface inspected; product allowlist and business execution were not changed.';
       result.stage = 'admission'; return;
     }
-    // Genuine native CLI installation, followed by the installed package's full
-    // scripted-provider acceptance. No hand-written empty Preset is substituted.
+    // Genuine native CLI installation; the monitor's harness independently
+    // exercises those installed bytes. No empty Preset is substituted.
     stage = 'install';
     const cli = join(runtime, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js');
     const cliRun = async (label, args) => run(exe, ['--expose-internals', cli, 'plugin', '--profile', 'desktop', ...args],
       { env, cwd: join(lab, 'workspace'), log: join(output, label + '.log') });
     stage = 'profile';
-    await run(exe, ['--expose-internals', join(dirname(fileURLToPath(import.meta.url)), 'inspect-upstream-runtime.mjs'),
+    await run(exe, ['--expose-internals', inspector,
       runtime, join(output, 'profile-initialization.json'), join(lab, 'harness', 'profiles', 'desktop'), sourceHead],
       { env, cwd: lab, log: join(output, 'profile-initialization.log') });
     stage = 'install';
@@ -214,13 +216,14 @@ async function main() {
       ['legacy-unchanged', 'accept-native-replacement.mjs', join(lab, 'legacy', 'package'), 'unchanged'] ];
     for (const [name, script, ...extra] of suites) {
       const receipt = join(output, name + '.json');
-      const executed = await run(exe, ['--expose-internals', join(installed, 'scripts', script), runtime, installed, receipt,
+      const harness = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'scripts', script);
+      const executed = await run(exe, ['--expose-internals', harness, runtime, installed, receipt,
         'tgz-sha256:' + result.pluginSha256, ...extra], { env, cwd: join(lab, 'workspace'), log: join(output, name + '.log'), allowFailure: true });
       const evidence = await readProof(receipt);
-      await requireProof(executed, evidence, sourceHead, receipt, 'native', name);
+      await requireProof(executed, evidence, sourceHead, receipt, 'native', name, harness);
       assert.ok(evidence.checks.length > 0 && evidence.checks.every(check => check.passed === true));
       result.suites.push({ name, passed: true, checks: evidence.checks.length,
-        sourceHead: evidence.sourceHead, receiptSha256: await hashFile(receipt) });
+        sourceHead: evidence.sourceHead, receiptSha256: await hashFile(receipt), harnessSha256: await hashFile(harness) });
     }
     stage = 'uninstall';
     await cliRun('uninstall', ['remove', 'dsh-subagent-live-rc2-local']);

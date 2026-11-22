@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
-import { resolve, join } from 'node:path';
+import { resolve, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { CONTRACT_EXPORTS, SUITE_NAMES, isFailureAssertion, classifyProbe, failureAssertions } from './upstream-contract.mjs';
 
@@ -86,7 +86,17 @@ export function sourceDelta(before, after) {
 
 export function fingerprint(c) {
   return digest({ version: c.version, commit: c.commit, target: c.target, artifact: c.artifact,
-    plugin: c.plugin, source: c.source });
+    plugin: c.plugin, source: c.source, validation: c.validation });
+}
+
+async function validationDigest() {
+  const root = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
+  const files = ['.github/scripts/upstream-compat.mjs', '.github/scripts/upstream-contract.mjs',
+    '.github/scripts/accept-upstream-host.mjs', '.github/scripts/inspect-upstream-runtime.mjs',
+    'scripts/accept-native-admission.mjs', 'scripts/native-admission-check.mjs',
+    'scripts/accept-native-replacement-store.mjs', 'scripts/probe-native-team-addressing.mjs',
+    'scripts/accept-native-replacement.mjs'];
+  return digest(await Promise.all(files.map(async path => [path, digest(await readFile(join(root, path), 'utf8'))])));
 }
 
 export function shouldProbe(last, fp, now = Date.now(), force = false) {
@@ -99,7 +109,7 @@ export function normalizeResult(c, raw) {
     status: 'infrastructure-error', reason, checkedAt: new Date().toISOString() });
   const statuses = ['verified', 'needs-review', 'incompatible', 'infrastructure-error'];
   if (!raw || raw.fingerprint !== c.fingerprint || raw.target !== c.target || raw.version !== c.version
-    || raw.commit !== c.commit || !samePlugin(raw.plugin, c.plugin)
+    || raw.commit !== c.commit || raw.validation !== c.validation || !samePlugin(raw.plugin, c.plugin)
     || !statuses.includes(raw.status)) return invalid('Missing or mismatched platform receipt');
   if (raw.status === 'infrastructure-error') return raw;
   if (raw.status === 'needs-review' && !c.artifact) {
@@ -132,6 +142,7 @@ export function normalizeResult(c, raw) {
     const valid = proof && proof.stage === raw.stage && (proof.stage === 'contract' && proof.suite === 'contract'
       || proof.stage === 'native' && SUITE_NAMES.includes(proof.suite))
       && proof.sourceHead === sourceHead && DIGEST.test(proof.receiptSha256 ?? '')
+      && DIGEST.test(proof.harnessSha256 ?? '')
       && Array.isArray(proof.assertions) && proof.assertions.length > 0 && proof.assertions.every(isFailureAssertion)
       && classifyProbe({ code: 1 }, { passed: false, sourceHead, errors: proof.assertions }, sourceHead) === 'incompatible'
       && (proof.stage !== 'contract' || raw.contract?.passed === false
@@ -149,7 +160,7 @@ export function normalizeResult(c, raw) {
     if (raw.admission !== 'reviewed' || !installValid
       || !contractValid || !Array.isArray(raw.suites) || !exactSet(raw.suites.map(s => s?.name), SUITE_NAMES)
       || raw.suites.some(s => s.passed !== true || !Number.isInteger(s.checks) || s.checks < 1
-        || s.sourceHead !== sourceHead || !DIGEST.test(s.receiptSha256 ?? ''))) {
+        || s.sourceHead !== sourceHead || !DIGEST.test(s.receiptSha256 ?? '') || !DIGEST.test(s.harnessSha256 ?? ''))) {
       return invalid('Incomplete native contract, installation or exact suite proof');
     }
   } else return invalid('No executed proof for this status/stage');
@@ -171,7 +182,7 @@ function verifiedFor(result, expected, target, control = false) {
   const fp = (control ? expected?.controls : expected?.observations)?.[target];
   if (result?.status !== 'verified' || !DIGEST.test(fp ?? '') || expected.plugin?.kind !== 'release') return false;
   const c = { ...result, target, version: control ? BASELINE.version : expected.version,
-    commit: control ? BASELINE.commit : expected.commit, plugin: expected.plugin, fingerprint: fp,
+    commit: control ? BASELINE.commit : expected.commit, plugin: expected.plugin, validation: expected.validation, fingerprint: fp,
     ...(control ? { artifact: REVIEWED_INSTALLERS[target] } : {}) };
   return fingerprint(c) === fp && normalizeResult(c, result).status === 'verified';
 }
@@ -314,6 +325,7 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, headReader
   if (tag && (!tag.startsWith('dsh-v') || !VERSION.test(tag.slice(5)))) fail('Invalid upstream tag');
   const selected = tag ? releases.filter(r => r.tag_name === tag) : releases;
   if (!selected.length) fail('No matching published Harness release');
+  const validation = await validationDigest();
   const cases = [], states = {};
   for (const release of selected) {
     const version = release.tag_name.slice(5);
@@ -324,7 +336,7 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, headReader
     const source = { ...sourceDelta(baseTree, tree), reviewed: REVIEWED_SOURCE_COMMITS[version] === resolved.sha };
     const prior = issues.map(stateFrom).find(s => s?.version === version);
     states[version] = prior ?? { version, observations: {} };
-    states[version].expected = { version, commit: resolved.sha, plugin,
+    states[version].expected = { version, commit: resolved.sha, plugin, validation,
       observations: {}, controls: prior?.expected?.controls ?? {} };
     for (const target of TARGETS) {
       const feed = feeds[target];
@@ -339,7 +351,7 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, headReader
           artifact = { ...original, ...await headReader(original.url) };
         } catch (error) { historicalError = error.message; }
       }
-      const c = { version, tag: release.tag_name, commit: resolved.sha, target, artifact, plugin, source,
+      const c = { version, tag: release.tag_name, commit: resolved.sha, target, artifact, plugin, source, validation,
         pendingReason: historicalError ?? feed.error ?? (!artifact ? `Official ${target} feed has not published this version` : null) };
       c.fingerprint = fingerprint(c);
       states[version].expected.observations[target] = c.fingerprint;
@@ -351,7 +363,7 @@ export async function makePlan({ api = ghApi, feedReader = fetchFeed, headReader
   if (cases.length) for (const target of TARGETS) {
     const control = { version: BASELINE.version, tag: 'dsh-v' + BASELINE.version,
       commit: BASELINE.commit, target, control: true, artifact: REVIEWED_INSTALLERS[target],
-      plugin, source: { ...sourceDelta(baseTree, baseTree), reviewed: true }, runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' };
+      plugin, validation, source: { ...sourceDelta(baseTree, baseTree), reviewed: true }, runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' };
     control.fingerprint = fingerprint(control); cases.push(control);
     for (const state of Object.values(states)) state.expected.controls[target] = control.fingerprint;
   }
@@ -396,7 +408,7 @@ async function main() {
     for (const c of plan.cases) {
       const matches = raw.filter(r => r.fingerprint === c.fingerprint);
       const result = normalizeResult(c, matches.length === 1 ? matches[0] : undefined);
-      Object.assign(result, { commit: c.commit, source: c.source, plugin: c.plugin, artifact: c.artifact, runUrl });
+      Object.assign(result, { commit: c.commit, source: c.source, plugin: c.plugin, artifact: c.artifact, validation: c.validation, runUrl });
       if (c.control) { controls[c.target] = result; continue; }
       plan.states[c.version].observations[c.target] = result; touched.add(c.version);
     }

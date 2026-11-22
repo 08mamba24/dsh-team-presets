@@ -5,6 +5,7 @@ import { parseFeed, selectReleases, sourceDelta, fingerprint, shouldProbe, norma
   publishVersion, makePlan, BASELINE, REVIEWED_INSTALLERS, renderIssue } from '../.github/scripts/upstream-compat.mjs';
 import { isolatedEnvironment } from '../.github/scripts/accept-upstream-host.mjs';
 import { CONTRACT_EXPORTS, SUITE_NAMES, classifyProbe } from '../.github/scripts/upstream-contract.mjs';
+import { nativeAdmissionCheck } from '../scripts/native-admission-check.mjs';
 
 const sha = 'a'.repeat(40), hash = 'b'.repeat(64);
 const feed = `version: 0.2.2-rc.5\npath: >-\n  https://download.deepseek.com/dsh-desk/bin/mac-arm64/stable/deepseek-harness-0.2.2-rc.5-mac-arm64.zip\nsha512: >-\n  ${Buffer.alloc(64, 7).toString('base64')}\n`;
@@ -28,7 +29,7 @@ function verified(c) {
     install: { passed: true, name: 'dsh-subagent-live-rc2-local', version: '0.5.0-rc.7', bundleActivated: true },
     contract: { passed: true, sourceHead, errors: [], packages: Object.entries(CONTRACT_EXPORTS)
       .map(([name, exports]) => ({ name: '@deepseek-ai/' + name, version: name === 'cordis' ? '4.0.0' : c.version, exports })) },
-    suites: SUITE_NAMES.map(name => ({ name, passed: true, checks: 5, sourceHead, receiptSha256: hash })) };
+    suites: SUITE_NAMES.map(name => ({ name, passed: true, checks: 5, sourceHead, receiptSha256: hash, harnessSha256: hash })) };
 }
 function report(status = 'verified') {
   const observations = {}, controls = {}, expected = { version: observation.version, commit: sha,
@@ -74,6 +75,7 @@ test('tag moves, repackages and a new plugin build each invalidate deduplication
   for (const next of [{ ...observation, commit: 'c'.repeat(40) },
     { ...observation, artifact: { ...observation.artifact, sha512: 'new bytes' } },
     { ...observation, artifact: { ...observation.artifact, etag: 'new HTTP object' } },
+    { ...observation, validation: 'c'.repeat(64) },
     { ...observation, plugin: { ...observation.plugin, sha256: 'd'.repeat(64) } }]) {
     assert.notEqual(fingerprint(next), original);
   }
@@ -181,7 +183,7 @@ test('pending admission and incompatibility require the corresponding source-bou
   const c = caseFor(), raw = verified(c);
   for (const status of ['incompatible', 'needs-review']) assert.equal(normalizeResult(c, { ...c, status }).status, 'infrastructure-error');
   const failed = { ...raw, status: 'incompatible', stage: 'native', failureProof: {
-    stage: 'native', suite: 'replacement', sourceHead: raw.contract.sourceHead, receiptSha256: hash,
+    stage: 'native', suite: 'replacement', sourceHead: raw.contract.sourceHead, receiptSha256: hash, harnessSha256: hash,
     assertions: [{ name: 'native replacement', code: 'ERR_ASSERTION', message: 'Native behavior changed' }] } };
   assert.equal(normalizeResult(c, failed).status, 'incompatible');
   for (const proof of [undefined, { ...failed.failureProof, receiptSha256: undefined },
@@ -206,6 +208,20 @@ test('pending admission and incompatibility require the corresponding source-bou
   unavailable.fingerprint = fingerprint(unavailable);
   assert.equal(normalizeResult(unavailable, { ...unavailable, status: 'needs-review', stage: 'artifact',
     reason: unavailable.pendingReason, isolatedDataRemoved: true }).status, 'needs-review');
+});
+
+test('the admission suite emits explicit business failures while setup exceptions remain infrastructure', () => {
+  const sourceHead = 'tgz-sha256:' + hash;
+  // Shape of the physical admission.json: predicate evidence is spread into
+  // each named check. A frozen member executing a write is a business failure.
+  const failed = nativeAdmissionCheck('real-preset-frozen-old-blocks-direct-tool-and-ui-input', false,
+    { stats: { prepare: 1, stream: 1, approval: 0, bodies: { write: 1 }, agentErrors: [] }, historyCount: 4 });
+  assert.equal(classifyProbe({ code: 1 }, { sourceHead, passed: false, checks: [failed] }, sourceHead), 'incompatible');
+  assert.equal(classifyProbe({ code: 1 }, { sourceHead, passed: false, checks: [failed],
+    setupError: { code: 'EPERM', message: 'setup write failed' } }, sourceHead), 'infrastructure-error');
+  const success = nativeAdmissionCheck('normal-role', true, { stats: { prepare: 1 } });
+  assert.equal(success.error, undefined);
+  assert.equal(classifyProbe({ code: 0 }, { sourceHead, passed: true, checks: [success] }, sourceHead), 'passed');
 });
 
 test('Host environment inherits neither GitHub credentials, model keys nor operator startup options', () => {
@@ -241,6 +257,7 @@ test('planning consumes public prereleases and official feeds, without writing o
   assert.deepEqual(plan.cases.filter(c => !c.control).map(c => c.target), ['mac-arm64', 'win-x64']);
   assert.deepEqual(plan.cases.filter(c => c.control).map(c => c.target), ['mac-arm64', 'win-x64']);
   assert.equal(plan.plugin.tag, 'v0.5.0-rc.7');
+  assert.ok(plan.cases.every(c => /^[a-f0-9]{64}$/.test(c.validation)));
   assert.equal(plan.cases[0].source.changed.length, 0);
   assert.equal(plan.cases[0].admission, undefined);
 });

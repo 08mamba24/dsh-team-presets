@@ -40,6 +40,7 @@ export const failureAssertions = receipt => record(receipt) ? inspectReceipt(rec
 export function classifyProbe(outcome, receipt, expectedSource) {
   if (!outcome || outcome.timedOut || outcome.signal || !Number.isInteger(outcome.code)
     || receipt?.sourceHead !== expectedSource || typeof receipt.passed !== 'boolean'
+    || receipt.setupError !== undefined
     || receipt.isolatedDataRemoved === false || receipt.isolatedProfileRemoved === false) return 'infrastructure-error';
   const inspected = inspectReceipt(receipt);
   if (!inspected) return 'infrastructure-error';

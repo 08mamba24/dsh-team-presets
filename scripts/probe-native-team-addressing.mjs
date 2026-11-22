@@ -601,6 +601,9 @@ try {
   assert.equal(fixture.deliveries.at(-1).targetId, firstCurrent);
   await reinstalledOwner.dispose();
   check('one live root and Preset generation can unload and reinstall the addressing plugin');
+} catch (error) {
+  checks.push({ name: 'native logical addressing failure', passed: false,
+    error: { code: error.code ?? null, message: error.message, stack: error.stack } });
 } finally {
   await fixture.dispose();
 }

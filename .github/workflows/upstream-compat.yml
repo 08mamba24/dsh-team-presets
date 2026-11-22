@@ -17,9 +17,9 @@ on:
         default: false
   push:
     branches: [main, feature/windows-upstream-compat]
-    paths: ['.github/scripts/**', '.github/workflows/upstream-compat.yml', 'test/upstream-compat.test.mjs']
+    paths: ['.github/scripts/**', '.github/workflows/upstream-compat.yml', 'test/upstream-compat.test.mjs', 'scripts/accept-native-*.mjs', 'scripts/probe-native-team-addressing.mjs', 'scripts/native-admission-check.mjs']
   pull_request:
-    paths: ['.github/scripts/**', '.github/workflows/upstream-compat.yml', 'test/upstream-compat.test.mjs']
+    paths: ['.github/scripts/**', '.github/workflows/upstream-compat.yml', 'test/upstream-compat.test.mjs', 'scripts/accept-native-*.mjs', 'scripts/probe-native-team-addressing.mjs', 'scripts/native-admission-check.mjs']
 
 permissions:
   contents: read
