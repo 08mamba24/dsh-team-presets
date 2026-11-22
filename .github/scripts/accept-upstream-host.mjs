@@ -231,14 +231,19 @@ async function main() {
           const outcome = await run(exe, ['--expose-internals', harness, runtime, installed, faultReceipt, sourceHead, fault],
             { env, cwd: join(lab, 'workspace'), log: join(output, label + '.log'), allowFailure: true });
           const proof = await readProof(faultReceipt);
-          assert.equal(classifyProbe(outcome, proof, sourceHead), expected, label);
+          assert.equal(outcome.code, 1); assert.equal(outcome.signal, null); assert.equal(outcome.timedOut, false);
+          assert.equal(proof?.sourceHead, sourceHead); assert.equal(proof.passed, false);
+          if (fault === '--setup-failure') assert.equal(proof.setupError?.code, 'ERR_ASSERTION');
+          if (fault === '--cleanup-failure') assert.equal(proof.cleanupError?.code, 'ERR_ASSERTION');
+          const actual = classifyProbe(outcome, proof, sourceHead);
+          assert.equal(actual, expected, label);
           let failureProof;
           try { await requireProof(outcome, proof, sourceHead, faultReceipt, 'native', 'addressing', harness); }
           catch (error) {
             assert.equal(error.compatibilityFailure, expected === 'incompatible'); failureProof = error.failureProof;
           }
           if (expected === 'incompatible') assert.ok(failureProof?.assertions.length > 0);
-          result.classificationChecks.push({ name: label, passed: true, expected, actual: expected, sourceHead,
+          result.classificationChecks.push({ name: label, passed: true, expected, actual, sourceHead,
             receiptSha256: await hashFile(faultReceipt), ...(failureProof ? { failureProof } : {}) });
         }
       }
