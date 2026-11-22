@@ -1,0 +1,316 @@
+import { createHash } from 'node:crypto';
+import { spawn } from 'node:child_process';
+import { appendFile, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { resolve, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+export const UPSTREAM = 'deepseek-ai/deepseek-harness';
+export const BASELINE = { version: '0.2.2-rc.5', commit: '9c2670d3bce5275e0d1610272958121af87787bb' };
+export const TARGETS = ['mac-arm64', 'win-x64'];
+const MARKER = /<!-- dsh-upstream-compat:v1 ([A-Za-z0-9+/=]+) -->/;
+const VERSION = /^\d+\.\d+\.\d+(?:-[A-Za-z0-9]+(?:\.[A-Za-z0-9]+)*)?$/;
+const SHA = /^[a-f0-9]{40}$/;
+const DIGEST = /^[a-f0-9]{64}$/;
+const nativePath = /\/(?:subagent|tool-subagent|tool-subagent-control|agent-team|tool-agent-team|agent|agent-loop|agent-preset|agent-preset-registry|scope|tools|tool-executor-native|settings|config-editor|app-boot|official-bundles)\/(?:src\/.*\.[cm]?[jt]s|package\.json)$/;
+const fail = message => { throw new Error(message); };
+const checkedVersion = v => typeof v === 'string' && v.length < 80 && VERSION.test(v) ? v : fail('Invalid Harness version');
+const digest = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
+const repoName = value => /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(value) ? value : fail('Invalid repository');
+
+function compareVersions(a, b) {
+  const [aa, ap] = a.split('-'), [bb, bp] = b.split('-');
+  const an = aa.split('.').map(Number), bn = bb.split('.').map(Number);
+  for (let i = 0; i < 3; i++) if (an[i] !== bn[i]) return an[i] - bn[i];
+  if (!ap || !bp) return ap === bp ? 0 : ap ? -1 : 1;
+  const ax = ap.split('.'), bx = bp.split('.');
+  for (let i = 0; i < Math.max(ax.length, bx.length); i++) {
+    if (ax[i] === bx[i]) continue;
+    if (ax[i] === undefined || bx[i] === undefined) return ax[i] === undefined ? -1 : 1;
+    const aNumber = /^\d+$/.test(ax[i]), bNumber = /^\d+$/.test(bx[i]);
+    if (aNumber && bNumber) return Number(ax[i]) - Number(bx[i]);
+    if (aNumber !== bNumber) return aNumber ? -1 : 1;
+    return ax[i] < bx[i] ? -1 : 1;
+  }
+  return 0;
+}
+
+export function selectReleases(releases, minimum = BASELINE.version) {
+  return releases.filter(r => !r.draft && typeof r.tag_name === 'string' && r.tag_name.startsWith('dsh-v')
+    && VERSION.test(r.tag_name.slice(5)) && compareVersions(r.tag_name.slice(5), minimum) >= 0)
+    .sort((a, b) => compareVersions(a.tag_name.slice(5), b.tag_name.slice(5)));
+}
+
+// This deliberately accepts only the three scalar fields used in the official
+// electron-updater feed, including its folded scalars. It does not execute YAML.
+export function parseFeed(text, target) {
+  if (!TARGETS.includes(target) || typeof text !== 'string' || text.length > 65536) fail('Invalid update feed');
+  const scalar = key => {
+    const matches = [...text.matchAll(new RegExp(`^${key}:[ \\t]*(?:>-?\\r?\\n[ \\t]+)?([^\\r\\n]+)$`, 'gm'))];
+    if (matches.length !== 1) fail(`Missing or duplicate feed ${key}`);
+    return matches[0][1].trim();
+  };
+  const version = checkedVersion(scalar('version')), url = scalar('path'), sha512 = scalar('sha512');
+  const parsed = new URL(url), extension = target === 'mac-arm64' ? 'zip' : 'exe';
+  if (parsed.origin !== 'https://download.deepseek.com' || parsed.search || parsed.hash
+    || parsed.username || parsed.password
+    || ![ `/dsh-desk/bin/${target}/deepseek-harness-${version}-${target}.${extension}`,
+      `/dsh-desk/bin/${target}/stable/deepseek-harness-${version}-${target}.${extension}` ].includes(parsed.pathname)
+    || Buffer.from(sha512, 'base64').length !== 64 || Buffer.from(sha512, 'base64').toString('base64') !== sha512) {
+    fail('Unverifiable official update artifact');
+  }
+  return { version, url, sha512 };
+}
+
+export function sourceDelta(before, after) {
+  if (before.truncated || after.truncated || !Array.isArray(before.tree) || !Array.isArray(after.tree)) fail('Incomplete upstream source tree');
+  const files = tree => new Map(tree.filter(e => e.type === 'blob' && nativePath.test(e.path)).map(e => [e.path, e.sha]));
+  const a = files(before.tree), b = files(after.tree);
+  if (!a.size || !b.size) fail('Native source paths unavailable');
+  return { baselineCommit: BASELINE.commit,
+    changed: [...new Set([...a.keys(), ...b.keys()])].filter(path => a.get(path) !== b.get(path)).sort(),
+    beforeFiles: a.size, afterFiles: b.size };
+}
+
+export function fingerprint(c) {
+  return digest({ version: c.version, commit: c.commit, target: c.target, artifact: c.artifact,
+    plugin: c.plugin, source: c.source });
+}
+
+export function shouldProbe(last, fp, now = Date.now(), force = false) {
+  return force || !last || last.fingerprint !== fp
+    || last.status === 'infrastructure-error' && now - Date.parse(last.checkedAt) >= 6 * 3600_000;
+}
+
+export function normalizeResult(c, raw) {
+  const invalid = reason => ({ fingerprint: c.fingerprint, version: c.version, target: c.target,
+    status: 'infrastructure-error', reason, checkedAt: new Date().toISOString() });
+  const statuses = ['verified', 'needs-review', 'incompatible', 'infrastructure-error'];
+  if (!raw || raw.fingerprint !== c.fingerprint || raw.target !== c.target || raw.version !== c.version
+    || !statuses.includes(raw.status)) return invalid('Missing or mismatched platform receipt');
+  if (raw.status === 'verified' && (raw.admission !== 'reviewed' || !DIGEST.test(raw.archiveSha256)
+    || raw.install?.passed !== true || raw.isolatedDataRemoved !== true || !Array.isArray(raw.suites)
+    || raw.suites.length !== 6 || raw.suites.some(s => s.passed !== true || !Number.isInteger(s.checks) || s.checks < 1))) {
+    return invalid('Receipt does not prove installation, six native suites and cleanup');
+  }
+  if (raw.status === 'verified' && (!c.source || c.source.changed?.length !== 0)) {
+    return { ...raw, status: 'needs-review', reason: 'Native source differs or could not be compared; independent review is required' };
+  }
+  return raw;
+}
+
+function stateFrom(issue) {
+  if (issue.pull_request || issue.user?.login !== 'github-actions[bot]') return undefined;
+  const match = issue.body?.match(MARKER);
+  if (!match) return undefined;
+  try {
+    const state = JSON.parse(Buffer.from(match[1], 'base64').toString('utf8'));
+    if (VERSION.test(state.version) && state.observations && typeof state.observations === 'object') return state;
+  } catch { /* An invalid marker is not ownership or deduplication evidence. */ }
+}
+
+export function renderIssue(state) {
+  const lines = [`Harness **${checkedVersion(state.version)}** compatibility with DSH Team.`, '',
+    '| Platform | Result | Runtime / package evidence |', '| --- | --- | --- |'];
+  for (const target of TARGETS) {
+    const r = state.observations[target];
+    lines.push(`| ${target} | ${r?.status ?? 'not-tested'} | ${r?.runUrl ? `[Actions](${r.runUrl})` : 'No run receipt'} |`);
+  }
+  lines.push('', 'Results are specific to the recorded plugin build and official installer bytes. Unknown archive admission is **needs-review**, not a demonstrated API conflict. GUI and paid-provider behavior are not tested.', '');
+  for (const target of TARGETS) {
+    const r = state.observations[target];
+    if (!r) continue;
+    lines.push(`### ${target}`, '', `- Upstream commit: \`${r.commit ?? 'unavailable'}\``,
+      `- Installer SHA256: \`${r.installerSha256 ?? 'unavailable'}\``,
+      `- app.asar SHA256: \`${r.archiveSha256 ?? 'unavailable'}\``,
+      `- Plugin: \`${r.plugin?.tag ?? r.plugin?.commit ?? 'unavailable'}\` / \`${r.pluginSha256 ?? r.plugin?.sha256 ?? 'unavailable'}\``,
+      `- Stage: \`${r.stage ?? 'complete'}\`; checked ${r.checkedAt ?? 'unknown'}`,
+      `- ${String(r.reason ?? 'All required isolated checks passed.').replace(/[\r\n]/g, ' ').slice(0, 500)}`, '');
+    const changed = r.source?.changed;
+    if (changed?.length) lines.push(`Native source changes against reviewed baseline: ${changed.length} files.`,
+      '<details><summary>First 60 changed paths</summary>', '', ...changed.slice(0, 60).map(p => `- \`${p.replace(/[`\r\n]/g, '')}\``), '', '</details>', '');
+  }
+  lines.push('### Maintenance loop', '',
+    '- [ ] Inspect native source/API changes and installer identity; fix affected bindings on a candidate branch.',
+    '- [ ] Run both platform canaries with `tag` and an exact 40-character `plugin_ref` in the manual workflow; keep the existing reviewed runtime as regression coverage.',
+    '- [ ] Obtain non-author review before merging changes to `REVIEWED_HOSTS` / `engines.dsh`; this monitor never adds an archive to the product allowlist.',
+    '- [ ] After merge, publish a new plugin TGZ and checksum, then update the existing community catalog tarball entry and verify its public readback.',
+    '- [ ] Run the monitor against the published plugin again. The same version Issue closes only after both platform receipts verify the exact build.', '',
+    'See [upstream maintenance instructions](../blob/main/docs/UPSTREAM-COMPATIBILITY.md). Human discussion belongs in comments; the monitor owns this report body.', '',
+    `<!-- dsh-upstream-compat:v1 ${Buffer.from(JSON.stringify(state)).toString('base64')} -->`);
+  return lines.join('\n');
+}
+
+export async function publishVersion(api, repo, state, issues) {
+  const matches = issues.filter(i => stateFrom(i)?.version === state.version);
+  if (matches.length > 1) fail('Duplicate managed version Issues; reconcile before writing');
+  const body = renderIssue(state), title = `[upstream-compat] Harness ${checkedVersion(state.version)}`;
+  if (!matches.length && issues.some(i => i.title === title)) fail('Existing version Issue has no verifiable managed state');
+  const closed = TARGETS.every(t => state.observations[t]?.status === 'verified');
+  let issue = matches[0];
+  if (!issue) issue = await api(`repos/${repo}/issues`, { method: 'POST', body: { title, body } });
+  const wanted = closed ? 'closed' : 'open';
+  if (issue.body !== body || issue.state !== wanted) {
+    issue = await api(`repos/${repo}/issues/${issue.number}`, { method: 'PATCH', body: { body, state: wanted } });
+  }
+  return issue;
+}
+
+export async function ghApi(path, options = {}) {
+  const args = ['api', path];
+  if (options.method) args.push('--method', options.method, '--input', '-');
+  return new Promise((done, reject) => {
+    const child = spawn(process.env.GH_BIN ?? 'gh', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+    let stdout = '', stderr = '';
+    const timer = setTimeout(() => child.kill(), 60000);
+    child.stdout.on('data', d => { stdout += d; if (stdout.length > 16 * 1024 * 1024) child.kill(); });
+    child.stderr.on('data', d => { stderr = (stderr + d).slice(-2048); });
+    child.once('error', error => { clearTimeout(timer); reject(error); });
+    child.once('close', code => {
+      clearTimeout(timer);
+      if (code !== 0) return reject(new Error(`GitHub API ${path.split('?')[0]} failed (${code}, ${stderr.match(/HTTP \d{3}/)?.[0] ?? 'no HTTP status'})`));
+      try { done(JSON.parse(stdout)); } catch { reject(new Error('Invalid GitHub API JSON')); }
+    });
+    child.stdin.end(options.body ? JSON.stringify(options.body) : undefined);
+  });
+}
+
+async function pages(api, path) {
+  const all = [];
+  for (let page = 1; page <= 20; page++) {
+    const batch = await api(`${path}${path.includes('?') ? '&' : '?'}per_page=100&page=${page}`);
+    if (!Array.isArray(batch)) fail('Invalid GitHub collection');
+    all.push(...batch);
+    if (batch.length < 100) return all;
+  }
+  fail('GitHub collection exceeds bounded scan; no incomplete deduplication');
+}
+
+async function fetchFeed(target) {
+  const suffix = target === 'mac-arm64' ? 'stable-mac.yml' : 'stable.yml';
+  const url = `https://download.deepseek.com/dsh-desk/feeds/${target}/${suffix}`;
+  const response = await fetch(url, { redirect: 'error', signal: AbortSignal.timeout(20000) });
+  if (!response.ok) fail(`Official ${target} feed HTTP ${response.status}`);
+  const artifact = parseFeed(await response.text(), target);
+  const head = await fetch(artifact.url, { method: 'HEAD', redirect: 'error', signal: AbortSignal.timeout(20000) });
+  if (!head.ok) fail(`Official ${target} artifact HTTP ${head.status}`);
+  return { ...artifact, etag: head.headers.get('etag'), size: head.headers.get('content-length'),
+    lastModified: head.headers.get('last-modified') };
+}
+
+export async function makePlan({ api = ghApi, feedReader = fetchFeed, repo, tag, force = false, pluginRef,
+  now = Date.now() }) {
+  repoName(repo);
+  const [allReleases, issues, baseTree] = await Promise.all([
+    pages(api, `repos/${UPSTREAM}/releases`), pages(api, `repos/${repo}/issues?state=all`),
+    api(`repos/${UPSTREAM}/git/trees/${BASELINE.commit}?recursive=1`),
+  ]);
+  let plugin;
+  if (pluginRef) {
+    if (!SHA.test(pluginRef)) fail('plugin_ref must be an exact commit in this repository');
+    const verified = await api(`repos/${repo}/commits/${pluginRef}`);
+    if (verified.sha !== pluginRef) fail('Candidate commit could not be resolved');
+    plugin = { kind: 'source', commit: pluginRef, repo };
+  } else {
+    const releases = await pages(api, `repos/${repo}/releases`);
+    const candidates = releases.filter(r => !r.draft && /^v\d/.test(r.tag_name)
+      && VERSION.test(r.tag_name.slice(1))).sort((a, b) => compareVersions(b.tag_name.slice(1), a.tag_name.slice(1)));
+    const latest = candidates.find(r => r.assets?.some(a => a.name.endsWith('.tgz')));
+    const asset = latest?.assets.find(a => a.name.endsWith('.tgz'));
+    if (!asset?.digest?.match(/^sha256:[a-f0-9]{64}$/)
+      || !asset.browser_download_url.startsWith(`https://github.com/${repo}/releases/download/`)) fail('No verifiable published plugin TGZ');
+    const commit = await api(`repos/${repo}/commits/${encodeURIComponent(latest.tag_name)}`);
+    plugin = { kind: 'release', tag: latest.tag_name, commit: commit.sha, repo,
+      url: asset.browser_download_url, sha256: asset.digest.slice(7) };
+  }
+  const feeds = Object.fromEntries(await Promise.all(TARGETS.map(async target => {
+    try { return [target, await feedReader(target)]; }
+    catch (error) { return [target, { error: error.message }]; }
+  })));
+  const releases = selectReleases(allReleases);
+  if (tag && (!tag.startsWith('dsh-v') || !VERSION.test(tag.slice(5)))) fail('Invalid upstream tag');
+  const selected = tag ? releases.filter(r => r.tag_name === tag) : releases;
+  if (!selected.length) fail('No matching published Harness release');
+  const cases = [], states = {};
+  for (const release of selected) {
+    const version = release.tag_name.slice(5);
+    const resolved = await api(`repos/${UPSTREAM}/commits/${encodeURIComponent(release.tag_name)}`);
+    if (!SHA.test(resolved.sha)) fail('Upstream tag did not resolve to a commit');
+    const tree = resolved.sha === BASELINE.commit ? baseTree
+      : await api(`repos/${UPSTREAM}/git/trees/${resolved.sha}?recursive=1`);
+    const source = sourceDelta(baseTree, tree);
+    const prior = issues.map(stateFrom).find(s => s?.version === version);
+    states[version] = prior ?? { version, observations: {} };
+    for (const target of TARGETS) {
+      const feed = feeds[target];
+      const artifact = feed.version === version ? feed : null;
+      // Current feeds cannot attest historical installers. Keep the previous
+      // verified fact, rather than replacing it with a guessed download URL.
+      if (!artifact && !feed.error && compareVersions(feed.version, version) > 0 && prior?.observations[target] && !force) continue;
+      const c = { version, tag: release.tag_name, commit: resolved.sha, target, artifact, plugin, source,
+        pendingReason: feed.error ?? (!artifact ? `Official ${target} feed has not published this version` : null) };
+      c.fingerprint = fingerprint(c);
+      if (shouldProbe(prior?.observations[target], c.fingerprint, now, force)) {
+        cases.push({ ...c, runner: target === 'mac-arm64' ? 'macos-15' : 'windows-2022' });
+      }
+    }
+  }
+  return { schemaVersion: 1, status: 'planned', repo, createdAt: new Date(now).toISOString(), plugin, states, cases };
+}
+
+async function main() {
+  const command = process.argv[2], directory = resolve(process.env.COMPAT_OUTPUT_DIR ?? 'compat-output');
+  const repo = repoName(process.env.GITHUB_REPOSITORY ?? '08mamba24/dsh-team-presets');
+  await mkdir(directory, { recursive: true });
+  if (command === 'plan') {
+    let plan;
+    try { plan = await makePlan({ repo, tag: process.env.COMPAT_TAG || undefined,
+      pluginRef: process.env.COMPAT_PLUGIN_REF || undefined, force: process.env.COMPAT_FORCE === 'true' }); }
+    catch (error) { plan = { status: 'infrastructure-error', repo, error: error.message, cases: [] }; process.exitCode = 1; }
+    await writeFile(join(directory, 'plan.json'), JSON.stringify(plan, null, 2) + '\n');
+    if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT,
+      `matrix=${JSON.stringify({ include: plan.cases })}\ncount=${plan.cases.length}\n`);
+    console.log(JSON.stringify({ status: plan.status, cases: plan.cases.map(c => ({ version: c.version, target: c.target })), error: plan.error }));
+  } else if (command === 'publish') {
+    const plan = JSON.parse(await readFile(join(directory, 'plan.json'), 'utf8'));
+    if (plan.repo !== repo) fail('Plan repository mismatch');
+    const issues = await pages(ghApi, `repos/${repo}/issues?state=all`);
+    const runUrl = `https://github.com/${repo}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+    if (plan.status !== 'planned') {
+      const title = '[upstream-compat] Monitor health';
+      let issue = issues.find(i => i.title === title && i.user?.login === 'github-actions[bot]');
+      const body = `Upstream observation could not complete. No compatibility claim was made.\n\n${plan.error}\n\n[Failed run](${runUrl})`;
+      if (process.env.COMPAT_PUBLISH === 'true') {
+        await ghApi(`repos/${repo}/issues${issue ? '/' + issue.number : ''}`,
+          { method: issue ? 'PATCH' : 'POST', body: { title, body, ...(issue ? { state: 'open' } : {}) } });
+      }
+      fail('Upstream observation unavailable');
+    }
+    const files = await readdir(directory, { recursive: true });
+    const raw = [];
+    for (const name of files.filter(n => n.endsWith('result.json'))) raw.push(JSON.parse(await readFile(join(directory, name), 'utf8')));
+    const touched = new Set();
+    for (const c of plan.cases) {
+      const matches = raw.filter(r => r.fingerprint === c.fingerprint);
+      const result = normalizeResult(c, matches.length === 1 ? matches[0] : undefined);
+      Object.assign(result, { commit: c.commit, source: c.source, plugin: c.plugin, runUrl });
+      plan.states[c.version].observations[c.target] = result; touched.add(c.version);
+    }
+    const published = [];
+    for (const version of touched) {
+      const state = plan.states[version];
+      if (process.env.COMPAT_PUBLISH === 'true') {
+        const issue = await publishVersion(ghApi, repo, state, issues);
+        published.push({ version, issue: issue.html_url, state: issue.state });
+      } else await writeFile(join(directory, `preview-${version}.md`), renderIssue(state));
+    }
+    const health = issues.find(i => i.title === '[upstream-compat] Monitor health' && i.user?.login === 'github-actions[bot]' && i.state === 'open');
+    if (health && process.env.COMPAT_PUBLISH === 'true') await ghApi(`repos/${repo}/issues/${health.number}`, { method: 'PATCH', body: { state: 'closed' } });
+    await writeFile(join(directory, 'summary.json'), JSON.stringify({ published, states: plan.states }, null, 2) + '\n');
+    if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY,
+      `## Upstream compatibility\n\n${published.map(p => `- [${p.version}](${p.issue}): ${p.state}`).join('\n') || 'No new observations; unchanged inputs were deduplicated.'}\n`);
+    console.log(JSON.stringify({ planned: plan.cases.length, published }));
+    if ([...touched].some(v => Object.values(plan.states[v].observations).some(r => r.status === 'infrastructure-error' || r.status === 'incompatible'))) process.exitCode = 1;
+  } else fail('Usage: upstream-compat.mjs plan|publish');
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();

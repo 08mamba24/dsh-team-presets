@@ -2,7 +2,7 @@
 
 The official release feed is [deepseek-ai/deepseek-harness releases](https://github.com/deepseek-ai/deepseek-harness/releases). Harness tags use the `dsh-v` prefix, for example [dsh-v0.2.2-rc.5](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.5). A similarly named tag without that prefix can return 404.
 
-## 0.5.0-rc.4 support matrix
+## Reviewed Host matrix
 
 | Harness / OS | Archive SHA256 | Evidence boundary |
 | --- | --- | --- |
@@ -21,4 +21,6 @@ On 2026-11-19 the inspected rc.5 App's 85 TypeScript source files across the 11 
 2. For a new archive or RC, inspect the bundled native source and official tag differences, then verify the affected loader and native API contracts. Update the explicit host matrix and package declaration together. Keep unknown archives and mixed native versions rejected.
 3. Repack from the final source, verify its actual manifest and payload, obtain independent review of the delta, and re-read the current profile before choosing the complete package or a migration. Supply only that reviewed artifact's frozen path and SHA. Perform the accepted live test separately.
 
-This is an on-demand check. It does not subscribe an account, run in the background, install a package, change a profile, start Harness, or call a model. Existing sessions and role Presets must be preserved when preparing a migration. A package reviewed for a previous App cannot be handed out as the current installation target without a fresh check.
+This command is an on-demand read-only check. Existing sessions and role Presets must be preserved when preparing a migration. A package reviewed for a previous App cannot be handed out as the current installation target without a fresh check.
+
+The separate [upstream maintenance workflow](UPSTREAM-COMPATIBILITY.md) observes official releases and update feeds every 30 minutes, runs isolated platform canaries when inputs change, and maintains one compatibility Issue per upstream version. Unknown archives remain pending review; automated observation never broadens product admission.
