@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { types } from 'node:util';
 import { fail } from './config.js';
 import { selectableRoleTool, validRoleToolList, COLLABORATION_TOOLS } from './role-tools.js';
+import { parseMembership } from './member-roster.js';
 
 /** Root-owned durable replacement record. Native task ownership stays authoritative;
  * this record fences execution and retains the evidence needed to resume safely. */
@@ -231,11 +232,14 @@ function validateBaseBinding(value) {
 /** Validate a stored record value; undefined is an uninitialized root partition. */
 export function readReplacementRecord(value, at = Date.now()) {
   if (value === undefined || value === null) return deepFreeze({ version: REPLACEMENT_RECORD_VERSION, operations: [] });
-  const keys = Object.hasOwn(value ?? {}, 'baseBinding')
-    ? ['version', 'baseBinding', 'operations'] : ['version', 'operations'];
+  // membership is present only after an explicit add/remove, so rc.7 records keep their exact shape.
+  const keys = ['version', ...Object.hasOwn(value ?? {}, 'baseBinding') ? ['baseBinding'] : [], 'operations',
+    ...Object.hasOwn(value ?? {}, 'membership') ? ['membership'] : []];
   if (!plainObject(value) || types.isProxy(value) || !exactKeys(value, keys)
-    || value.version !== REPLACEMENT_RECORD_VERSION || !Array.isArray(value.operations)) fail('REPLACEMENT_RECORD_INVALID');
+    || value.version !== REPLACEMENT_RECORD_VERSION || !Array.isArray(value.operations)
+    || (value.membership !== undefined && value.baseBinding === undefined)) fail('REPLACEMENT_RECORD_INVALID');
   const baseBinding = value.baseBinding === undefined ? undefined : validateBaseBinding(value.baseBinding);
+  const membership = value.membership === undefined ? undefined : parseMembership(value.membership);
   const operations = value.operations.map(raw => parseOperation(raw, at));
   const seen = new Set(), owners = new Map(), live = new Set();
   for (const operation of operations) {
@@ -248,12 +252,21 @@ export function readReplacementRecord(value, at = Date.now()) {
     else if (operation.phase !== 'aborted') live.add(operation.role);
   }
   return deepFreeze({ version: REPLACEMENT_RECORD_VERSION,
-    ...(baseBinding === undefined ? {} : { baseBinding }), operations });
+    ...(baseBinding === undefined ? {} : { baseBinding }), operations,
+    ...(membership === undefined ? {} : { membership }) });
 }
 
 function withOperations(record, operations) {
   return readReplacementRecord({ version: REPLACEMENT_RECORD_VERSION,
-    ...(record.baseBinding === undefined ? {} : { baseBinding: record.baseBinding }), operations });
+    ...(record.baseBinding === undefined ? {} : { baseBinding: record.baseBinding }), operations,
+    ...(record.membership === undefined ? {} : { membership: record.membership }) });
+}
+
+/** Replace the explicit membership entries; operations and the base binding are retained. */
+export function withMembership(record, membership) {
+  if (record.baseBinding === undefined) fail('REPLACEMENT_BASE_BINDING_UNAVAILABLE');
+  return readReplacementRecord({ version: REPLACEMENT_RECORD_VERSION, baseBinding: record.baseBinding,
+    operations: record.operations, ...(membership.length ? { membership } : {}) });
 }
 
 /** Bind the root's original current-team template once. It is immutable configuration,
@@ -424,6 +437,14 @@ export function recordTaskOutcome(record, operationId, outcome, at = Date.now())
 /** Current execution eligibility of one child session, derived only from the durable record. */
 export function eligibilityOf(record, childId) {
   if (typeof childId !== 'string' || !ID.test(childId)) fail('REPLACEMENT_CHILD_INVALID');
+  if (record.membership?.some(entry => entry.kind === 'remove' && entry.childId === childId)) {
+    return { kind: 'none', operationId: null, reason: 'TEAM_MEMBER_REMOVED' };
+  }
+  const addition = record.membership?.find(entry => entry.kind === 'add' && entry.childId === childId);
+  if (addition && ['failed', 'aborted'].includes(addition.phase)) {
+    return { kind: 'none', operationId: null, reason: 'TEAM_MEMBER_ADDITION_FAILED' };
+  }
+  if (addition?.phase === 'spawning') return { kind: 'starting', operationId: null, reason: 'TEAM_MEMBER_STARTING' };
   let result = { kind: 'full', operationId: null };
   for (const operation of record.operations) {
     if (operation.oldChildId === childId && OLD_FROZEN.has(operation.phase)) {
@@ -451,7 +472,7 @@ export function candidateEligibility(record, operationId, childId) {
 }
 
 export function admissionAllowlist(eligibility, configuredTools) {
-  if (eligibility.kind === 'none') return Object.freeze([]);
+  if (eligibility.kind === 'none' || eligibility.kind === 'starting') return Object.freeze([]);
   if (eligibility.kind === 'standby') return STANDBY_TOOLS;
   const allowed = new Set(configuredTools);
   for (const name of COLLABORATION_TOOLS) allowed.add(name);

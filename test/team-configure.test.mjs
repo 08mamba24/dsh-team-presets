@@ -16,7 +16,7 @@ async function fixture(t, options = {}) {
     'read', 'write', 'edit', 'glob', 'grep', 'bash', 'skill', 'mcp_example_lookup', 'spawn_agent', 'run_code',
     'plugin_manager', 'workflow', 'ralph', 'subagent_fork']
     .map(name => [name, { name, description: `Registered ${name}` }]));
-  let revision = 3, template = structuredClone(base), approvals = 0;
+  let revision = 3, template = structuredClone(base), approvals = 0, customs = null;
   const controller = new AbortController();
   const root = { id: 'root', session: { id: 'root', header: {} } };
   const ctx = {
@@ -26,12 +26,13 @@ async function fixture(t, options = {}) {
     },
     skills: { register(skill) { return owner.effect(() => { skills.set(skill.name, skill); return () => skills.delete(skill.name); }); } },
     settings: {
-      describe() { return [{ ns: 'dsh-native-current-team', revision, value: { template: structuredClone(template) } }]; },
+      describe() { return [{ ns: 'dsh-native-current-team', revision,
+        value: { template: structuredClone(template), ...(customs === null ? {} : { customRoleTemplates: structuredClone(customs) }) } }]; },
       async update(ns, patch, expected) {
         assert.equal(ns, 'dsh-native-current-team');
         if (expected !== revision) throw Object.assign(new Error('stale'), { code: 'SETTINGS_CONFLICT' });
-        assert.deepEqual(Object.keys(patch), ['template']);
-        template = structuredClone(patch.template); revision++;
+        assert.deepEqual(Object.keys(patch), ['template', 'customRoleTemplates']);
+        template = structuredClone(patch.template); customs = structuredClone(patch.customRoleTemplates); revision++;
         writes.push(structuredClone(patch));
         if (options.writeUnconfirmed) throw new Error('readback unavailable');
       },
@@ -60,7 +61,7 @@ async function fixture(t, options = {}) {
     { agent, signal: controller.signal, callId: 'config-call' }));
   t.after(() => owner.dispose());
   return { invoke, tools, skills, metadata, writes, root, dispose: owner.dispose, removeTool: name => registered.delete(name),
-    get template() { return template; }, get approvals() { return approvals; } };
+    get template() { return template; }, get customs() { return customs; }, get approvals() { return approvals; } };
 }
 
 test('registered management and recursive tools are absent from the catalog and cannot be saved for a role', async t => {

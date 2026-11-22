@@ -147,10 +147,11 @@ export async function prepareLauncher(options, packageRoot = PACKAGE_ROOT) {
     let rawTemplate;
     try { rawTemplate = JSON.parse(templateBytes.toString('utf8')); }
     catch { fail('INVALID_LAUNCHER_TEMPLATE_JSON'); }
-    parseLauncherTemplate(rawTemplate);
+    const parsedTemplate = parseLauncherTemplate(rawTemplate);
     const config = parseLauncherConfig({ mode: 'launcher', ownedSessionId: options.sessionId, workspace,
       runTag: options.runTag ?? `team-${randomUUID()}`, timeoutMs: options.timeoutMs ?? 120000,
-      templateSha256: digest(templateBytes), startup: { maxTokens: 1024, maxStreams: { implementer: 1, reviewer: 1 } } });
+      templateSha256: digest(templateBytes), startup: { maxTokens: 1024,
+        maxStreams: Object.fromEntries(parsedTemplate.members.map(member => [member.name, 1])) } });
     const templatePath = join(workspace, TEMPLATE), markerPath = join(workspace, MARKER);
     await absent(templatePath, 'WORKSPACE_TEMPLATE_EXISTS');
     await absent(markerPath, 'WORKSPACE_MARKER_EXISTS');

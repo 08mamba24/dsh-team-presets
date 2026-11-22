@@ -5,6 +5,7 @@ import { registerLauncherPresets, observeLauncherMembers } from './launcher-nati
 import { assertRoleToolsAvailable } from './role-tools.js';
 import { createReplacementStore, REPLACEMENT_OWNER } from './replacement-store.js';
 import { readReplacementRecord, eligibilityOf, replacementCandidateOf } from './member-replacement.js';
+import { additionMemberOf } from './member-roster.js';
 
 const queued = agent => [...agent.inbox.nextStep, ...agent.inbox.nextTurn];
 const textOf = message => Array.isArray(message?.content) && message.content.length > 0
@@ -52,7 +53,7 @@ export function nativeTaskWrites(events, childId, operation) {
       // from the candidate's own Session, then the live Board owner is checked
       // before persisting proof. A display name alone grants no authority.
       const ownName = task?.owner === operation.instanceName
-        || (['implementer', 'reviewer'].includes(operation.role) && task?.owner === operation.role);
+        || task?.owner === operation.role;
       if (task?.id !== call.args.task_id || !ownName
         || task.revision !== call.args.expected_revision + 1) continue;
       writes.push({ childId, operationId: operation.id, handoffDigest: operation.handoffDigest,
@@ -204,6 +205,23 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
         standbyOperationId: operation.id }] }, controlEntry).then(disposers => { entry.disposers = disposers; });
     return entry.ready;
   }
+  /** An explicit team addition owns one exact Preset for this binding's lifetime. */
+  async function registerMember(entry) {
+    const member = additionMemberOf(entry);
+    candidateIds.add(entry.childId);
+    const definition = JSON.stringify({ memberEntry: entry.id, member });
+    const previous = presets.get(member.agent_preset);
+    if (previous) {
+      if (previous.definition !== definition) fail('MEMBER_CONFIG_CHANGED');
+      return previous.ready;
+    }
+    const record = { definition };
+    presets.set(member.agent_preset, record);
+    record.ready = registerLauncherPresets(ctx, { ownedSessionId: config.ownedSessionId, replacementOwner: REPLACEMENT_OWNER },
+      { members: [{ name: member.name, agentPreset: member.agent_preset, personaPrompt: member.persona_prompt,
+        nativeToolAllowlist: member.native_tool_allowlist }] }, controlEntry).then(disposers => { record.disposers = disposers; });
+    return record.ready;
+  }
   async function dispose() {
     if (closing) return;
     closing = true; lifetime.abort(Object.assign(new Error('UNLOADING'), { code: 'UNLOADING' }));
@@ -222,7 +240,7 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
     }
   }
   return {
-    dispose,
+    dispose, registerMember, signal: lifetime.signal,
     async restorePresets(record) {
       for (const operation of record.operations) if (operation.candidateConfig !== undefined) await register(operation);
     },

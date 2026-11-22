@@ -86,7 +86,7 @@ test('invalid routes, capabilities, roles and effort are refused without any wor
     [x => { x.members[0].native_tool_allowlist.push('spawn_agent'); }, 'UNSUPPORTED_MEMBER_TOOL'],
     [x => { x.members[0].reasoning_effort = ''; }, 'INVALID_MEMBER_EFFORT'],
     [x => { delete x.members[0].persona_prompt; }, 'LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE'],
-    [x => { x.members.pop(); x.seed_tasks = []; }, 'LAUNCHER_EXACT_ROLES_REQUIRED'],
+    [x => { x.max_members = 8; while (x.members.length < 9) x.members.push({ ...x.members[0], name: `extra-${x.members.length}`, agent_preset: `dsh-team-extra-${x.members.length}` }); }, 'INVALID_TEMPLATE_MEMBERS'],
   ];
   for (const [change, expected] of cases) {
     const template = structuredClone(example); change(template); const h = await fixture(t, template);

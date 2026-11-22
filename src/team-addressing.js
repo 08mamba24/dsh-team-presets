@@ -2,6 +2,7 @@ import { readReplacementRecord, replacementCandidateOf } from './member-replacem
 import { readReplacementRow } from './replacement-store.js';
 import { nativeRoleControlFromHost } from './team-host.js';
 
+// rc.7 compatibility label only: logical names are now every replaced or removed member.
 export const LOGICAL_TEAM_ROLES = Object.freeze(['implementer', 'reviewer']);
 
 class TeamAddressingError extends Error {
@@ -68,9 +69,22 @@ function roleState(record, role) {
   };
 }
 
+/** Managed logical members: any name with replacement history or an explicit removal.
+ * Every other name passes through to the native catalog unchanged. */
 function statesOf(value) {
   const record = readReplacementRecord(value);
-  return LOGICAL_TEAM_ROLES.map(role => roleState(record, role));
+  const states = [...new Set(record.operations.map(operation => operation.role))].map(role => roleState(record, role));
+  for (const removal of (record.membership ?? []).filter(entry => entry.kind === 'remove')) {
+    let state = states.find(item => item.role === removal.name);
+    if (!state) {
+      state = { role: removal.name, physicalNames: new Set(), retiredIds: new Set() };
+      states.push(state);
+    }
+    state.physicalNames.add(removal.name);
+    for (const id of [state.currentId, removal.childId]) if (typeof id === 'string') state.retiredIds.add(id);
+    state.mode = 'removed';
+  }
+  return states;
 }
 
 function recordAccess(nativeSubagents, { readRecord, fixedRootId, assertCurrent } = {}) {
@@ -120,6 +134,7 @@ export function resolveLogicalTeamTarget(value, target) {
   for (const state of states) {
     if (!hasPathPrefix(target, state.role)) continue;
     if (state.mode === 'native') return target;
+    if (state.mode === 'removed') fail('TEAM_MEMBER_REMOVED');
     if (state.mode !== 'addressable') fail('TEAM_ROLE_ADDRESS_UNAVAILABLE');
     const suffix = suffixAfter(target, state.role);
     if (suffix === '') return state.currentId;

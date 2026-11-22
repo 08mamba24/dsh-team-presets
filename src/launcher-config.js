@@ -7,7 +7,7 @@ import { LiveError, fail } from './config.js';
 import { parseLauncherTemplate } from './launcher-template.js';
 
 const FIELDS = ['mode', 'ownedSessionId', 'workspace', 'runTag', 'timeoutMs', 'templateSha256', 'startup'];
-const ROLES = ['implementer', 'reviewer'];
+const MEMBER_NAME = /^[a-z][a-z0-9-]{0,31}$/;
 const own = (value, key) => Object.hasOwn(value, key);
 
 function record(value) {
@@ -26,6 +26,21 @@ function canonicalPath(path) {
     && !path.split('/').includes('..');
 }
 
+/** Per-member startup stream bounds keyed by stable member name; an omitted member defaults to one. */
+function streamBounds(value) {
+  if (!record(value) || Reflect.ownKeys(value).length > 8) return false;
+  return Reflect.ownKeys(value).every(key => {
+    const property = Object.getOwnPropertyDescriptor(value, key);
+    return typeof key === 'string' && MEMBER_NAME.test(key) && key !== 'lead' && property.enumerable
+      && own(property, 'value') && Number.isInteger(property.value) && property.value >= 1 && property.value <= 12;
+  });
+}
+
+/** Startup stream bound for one member; native policy still owns route admission. */
+export function memberStreams(config, name) {
+  return Object.hasOwn(config.startup.maxStreams, name) ? config.startup.maxStreams[name] : 1;
+}
+
 /** Preflight configuration only; neither template data nor these bounds grant native authorization. */
 export function parseLauncherConfig(raw) {
   if (exact(raw, [])) return null;
@@ -37,9 +52,7 @@ export function parseLauncherConfig(raw) {
     || !Number.isInteger(raw.timeoutMs) || raw.timeoutMs < 1 || raw.timeoutMs > 120000
     || typeof raw.templateSha256 !== 'string' || !/^[a-f0-9]{64}$/.test(raw.templateSha256)
     || !exact(raw.startup, ['maxTokens', 'maxStreams']) || raw.startup.maxTokens !== 1024
-    || !exact(raw.startup.maxStreams, ROLES)
-    || ROLES.some(role => !Number.isInteger(raw.startup.maxStreams[role])
-      || raw.startup.maxStreams[role] < 1 || raw.startup.maxStreams[role] > 12)) fail('INVALID_LAUNCHER_CONFIG');
+    || !streamBounds(raw.startup.maxStreams)) fail('INVALID_LAUNCHER_CONFIG');
   return Object.freeze({ ...raw, startup: Object.freeze({ maxTokens: 1024,
     maxStreams: Object.freeze({ ...raw.startup.maxStreams }) }) });
 }
@@ -99,7 +112,7 @@ async function ownedBytes(config, basename, maxSize, code) {
   }
 }
 
-/** Load the exact two-role template; policy and resolver checks still belong to native launch admission. */
+/** Load the exact bound template; policy and resolver checks still belong to native launch admission. */
 export async function readLauncherTemplate(rawConfig) {
   const config = configured(rawConfig);
   const bytes = await ownedBytes(config, '.dsh-team-template.json', 65536, 'INVALID_LAUNCHER_TEMPLATE_FILE');
@@ -110,12 +123,10 @@ export async function readLauncherTemplate(rawConfig) {
   return validateLauncherTemplate(raw);
 }
 
-/** Both launcher entries require complete roles; native policy and metadata own route admission. */
+/** Launcher entries require every member (1-8, stable unique names) to be fully configured;
+ * native policy and metadata own route admission. */
 export function validateLauncherTemplate(raw) {
   const template = parseLauncherTemplate(raw);
-  if (template.members.length !== 2 || ROLES.some(role => !template.members.some(member => member.name === role))) {
-    fail('LAUNCHER_EXACT_ROLES_REQUIRED');
-  }
   for (const member of template.members) {
     if (!own(member, 'personaPrompt') || !own(member, 'agentPreset') || !own(member, 'nativeToolAllowlist')
       || !own(member, 'reasoningEffort')) fail('LAUNCHER_ROLE_CONFIGURATION_INCOMPLETE');

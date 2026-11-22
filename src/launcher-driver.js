@@ -2,10 +2,11 @@ import { randomUUID } from 'node:crypto';
 import { LiveError, fail } from './config.js';
 import * as replacementOrchestrator from './launcher-replace.js';
 import { createReplacementRuntime } from './replacement-native.js';
+import { createRosterRuntime } from './member-roster-native.js';
 import { readReplacementRecord } from './member-replacement.js';
 import { createReplacementStore } from './replacement-store.js';
 import { assertRoleToolsAvailable } from './role-tools.js';
-import { parseLauncherConfig, readLauncherTemplate, assertLauncherOwned, validateLauncherTemplate } from './launcher-config.js';
+import { parseLauncherConfig, readLauncherTemplate, assertLauncherOwned, validateLauncherTemplate, memberStreams } from './launcher-config.js';
 import { launcherTemplateFingerprint } from './launcher-template.js';
 import { planLauncherMembers } from './launcher-plan.js';
 import { observeLauncherMembers, registerLauncherPresets, makeLauncherSpawnCall, parseLauncherSpawnBatch } from './launcher-native.js';
@@ -15,7 +16,6 @@ import { captureRoleToolAuthority } from './role-tools.js';
 import { snapshotLauncherBoard, sameLauncherBoard, launcherBoardWithMode,
   launcherBoardAfterCreate, launcherBoardAfterUpdate } from './launcher-board.js';
 
-const ROLES = ['implementer', 'reviewer'];
 const SPAWN = 'dsh_team_launcher_spawn';
 const json = value => JSON.stringify(value);
 const deferred = () => { let resolve; const promise = new Promise(r => { resolve = r; }); return { promise, resolve }; };
@@ -32,7 +32,7 @@ const errorCode = error => typeof error?.code === 'string' && /^[A-Z][A-Z0-9_]{0
 function bindings(config, template) {
   return { ownedSessionId: config.ownedSessionId, roles: Object.fromEntries(template.members.map(member => [member.name,
     { route: { provider: member.provider, model: member.model, reasoningEffort: member.reasoningEffort, maxTokens: 1024 },
-      maxStreams: config.startup.maxStreams[member.name] }])) };
+      maxStreams: memberStreams(config, member.name) }])) };
 }
 function startupPrompt(member, op, template) {
   const tasks = template.seedTasks.map(seed => ({ key: seed.key, id: op.tasks.get(seed.key).id,
@@ -41,7 +41,7 @@ function startupPrompt(member, op, template) {
     + '\nThese are native task contexts for this role and later continuations; follow the template startup instruction above. '
     + 'Task owner names are assignment instructions. If you act on a task, use native current revisions and respect prerequisites. '
     + 'Read only the listed task ids. Only claim, edit description, or complete tasks assigned to your role or unassigned tasks. '
-    + 'Messages may go only to the other already-created template member; never the Lead. '
+    + 'Messages may go only to another already-created template member by its member name; never the Lead. '
     + 'Stop on any tool, delivery, persistence or CAS failure; do not retry or delegate.';
   return member.prompt + context;
 }
@@ -65,7 +65,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     || ['isEnabled', 'setEnabled', 'createTask', 'getTask', 'listTasks'].some(key => typeof ctx.agentTeams?.[key] !== 'function')) {
     fail('HOST_CONTRACT_UNAVAILABLE');
   }
-  let closing = false, active, restoreAuthority, template, fingerprint, replacementActive, replacementRuntime;
+  let closing = false, active, restoreAuthority, template, fingerprint, replacementActive, replacementRuntime, rosterRuntime;
   let presetDisposers = [];
   const loadTemplate = () => currentBinding
     ? validateLauncherTemplate(currentBinding.template) : readLauncherTemplate(config);
@@ -173,7 +173,12 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       ...(currentBinding?.replacementOwner ? { replacementOwner: currentBinding.replacementOwner } : {}) }, template, controlEntry);
     if (currentBinding?.replacementOwner) {
       replacementRuntime = createReplacementRuntime(ctx, config, controlEntry);
-      await replacementRuntime.restorePresets(currentBinding.replacementRecord ?? readReplacementRecord(undefined));
+      const retained = currentBinding.replacementRecord ?? readReplacementRecord(undefined);
+      await replacementRuntime.restorePresets(retained);
+      rosterRuntime = createRosterRuntime(ctx, config, { baseMembers: template.members,
+        store: createReplacementStore(ctx.settings, config.ownedSessionId),
+        registerMember: replacementRuntime.registerMember, lifetimeSignal: replacementRuntime.signal });
+      await rosterRuntime.restore(retained);
     }
     if (closing) fail('UNLOADING');
   } finally { setup.resolve(); }
@@ -241,8 +246,9 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
         const reservation = op.writeReservations.get(args.task_id);
         if (reserved ? reservation !== exec.callId : reservation !== undefined) return deny('TEAM_TASK_WRITE_PENDING');
       } else if (exec.name === 'send_message') {
-        const peer = ROLES.find(role => role !== record.role), target = op.children[peer];
-        if (!exact(args, ['agent', 'message']) || args.agent !== peer || !target?.id
+        const target = typeof args?.agent === 'string' && args.agent !== record.role
+          && Object.hasOwn(op.members, args.agent) ? op.children[args.agent] : undefined;
+        if (!exact(args, ['agent', 'message']) || !target?.id
           || typeof args.message !== 'string' || !args.message.trim() || args.message.length > 8000) return deny('TEAM_MESSAGE_OUT_OF_SCOPE');
         if (target.ended || target.additionalRuns.size || !liveChildMatches(op, target, 'running')) {
           return deny('TEAM_PEER_NOT_RUNNING');
@@ -468,7 +474,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     } finally { op.dispatchRole = undefined; }
   }
   function childReceipt(op) {
-    return ROLES.filter(role => op.children[role]).map(name => {
+    return Object.keys(op.members).filter(role => op.children[role]).map(name => {
       const child = op.children[name], member = op.members[name];
       return { name, id: child.id ?? null, runId: child.runId ?? null, callId: child.callId,
         agentPreset: member.agentPreset, route: op.controls.roles[name].route,
@@ -525,14 +531,16 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
           op.teamEnabled = true;
           assertCurrent(op, op.signal); board(op);
           await createSeedTasks(op);
-          await createChild(op, 'reviewer', toolSet); assertCurrent(op, op.signal);
-          await createChild(op, 'implementer', toolSet);
+          // Reverse declaration order: a member that hands work to a later one finds it already running.
+          for (const role of [...template.members].reverse().map(member => member.name)) {
+            await createChild(op, role, toolSet); assertCurrent(op, op.signal);
+          }
           await Promise.all(Object.values(op.children).map(child => child.end.promise));
           await drainChildren(op);
           assertCurrent(op, op.signal);
           if (op.failure) fail(op.failure);
           op.endedBoard = board(op);
-          for (const role of ROLES) {
+          for (const role of Object.keys(op.members)) {
             const evidence = op.gate.evidence(role), child = op.children[role];
             if (!child.ended || child.endInfo.stopReason !== 'completed' || child.calls.some(call => child.results.get(call.callId) !== true)
               || evidence.admissions < 1 || evidence.admissions > op.controls.roles[role].maxStreams || !evidence.usage
@@ -578,6 +586,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       const createdIds = new Set([...op.tasks.values()].map(task => task.id));
       result = { ok: true, mode: 'launch', templateFingerprint: fingerprint, members: childReceipt(op),
         tasks: op.endedBoard.filter(task => createdIds.has(task.id)),
+        seedAssignments: template.seedTasks.map(seed => ({ key: seed.key, taskId: op.tasks.get(seed.key).id, owner: seed.owner ?? null })),
         gate: op.gate.evidence(), team: { priorMode: op.priorMode, currentMode: ctx.agentTeams.isEnabled(agent) },
         cancelledParentNoticeIds: op.cancelledParentNoticeIds, restorable: true,
         scopedDelegationToolDisposed: op.scopedDelegationToolDisposed };
@@ -669,6 +678,14 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
     return { ok: true, mode: 'restore', teamModeRestored: true, priorMode: authority.priorMode,
       retainedTaskIds: authority.board.map(task => task.id), retainedChildIds: authority.children.map(child => child.id) };
   }
+  // Membership refusals carry bounded diagnostics (task ids, entry state); never prompt text.
+  async function memberResult(run) {
+    try { return await run(); }
+    catch (error) {
+      return { ok: false, code: errorCode(error), ...(Array.isArray(error?.taskIds) ? { taskIds: error.taskIds } : {}),
+        ...(error?.memberEntryId ? { memberEntryId: error.memberEntryId, memberStateConfirmed: error.memberStateConfirmed === true } : {}) };
+    }
+  }
   /** Both Agent tools and commands use this serialized native replacement path. */
   async function replacementCommand(agent, rawInput, callerSignal) {
     if (active || replacementActive) fail('BUSY');
@@ -680,7 +697,15 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       await assertOwned(agent); signal.throwIfAborted();
       if (closing) fail('UNLOADING');
       let result;
-      if (rawInput.startsWith('recover ') || rawInput.startsWith('cancel ')) {
+      if (rawInput.startsWith('add ')) {
+        let member;
+        try { member = JSON.parse(rawInput.slice('add '.length)); } catch { fail('MEMBER_REQUEST_INVALID'); }
+        result = await memberResult(() => rosterRuntime.addMember(agent, signal, member));
+      } else if (rawInput.startsWith('remove ')) {
+        const name = rawInput.slice('remove '.length).trim();
+        if (!/^[a-z][a-z0-9-]{0,31}$/.test(name) || name === 'lead') fail('MEMBER_REQUEST_INVALID');
+        result = await memberResult(() => rosterRuntime.removeMember(agent, signal, name));
+      } else if (rawInput.startsWith('recover ') || rawInput.startsWith('cancel ')) {
         const [action, operationId] = rawInput.split(/\s+/);
         if (!/^replace-[0-9a-f-]{36}$/.test(operationId)) fail('REPLACEMENT_REQUEST_INVALID');
         result = await (action === 'cancel' ? replacementOrchestrator.cancelReplacement : replacementOrchestrator.reconcileReplacement)(
@@ -709,7 +734,9 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       if (closing) fail('UNLOADING');
       const command = rawInput?.trim();
       if (replacementActive) fail('BUSY');
-      if (command?.startsWith?.('replace ') || command?.startsWith?.('recover ') || command?.startsWith?.('cancel ')) return await replacementCommand(agent, command, signal);
+      if (['replace ', 'recover ', 'cancel ', 'add ', 'remove '].some(prefix => command?.startsWith?.(prefix))) {
+        return await replacementCommand(agent, command, signal);
+      }
       if (!['plan', 'launch', 'restore'].includes(command) || !Array.isArray(attachments) || attachments.length) fail('USAGE_PLAN_LAUNCH_RESTORE_ONLY');
       if (active) fail('BUSY');
       await assertOwned(agent);

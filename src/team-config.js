@@ -47,21 +47,28 @@ export function parseTeamConfig(raw) {
   return Object.freeze({ ...raw, roles: Object.freeze(roles) });
 }
 
-/** Both routes must already belong to the exact native Session policy. */
+/** Members are the controls' own keys: the legacy pair parser and the launcher's template binding. */
+export function teamMembers(config) {
+  const names = Object.keys(config?.roles ?? {});
+  if (names.length < 1 || names.length > 8) fail('INVALID_TEAM_CONFIG');
+  return names;
+}
+
+/** Every member route must already belong to the exact native Session policy. */
 export function authorizeTeam(config, policy) {
-  if (!Array.isArray(policy) || TEAM_ROLES.some(role => !policy.some(route =>
+  if (!Array.isArray(policy) || teamMembers(config).some(role => !policy.some(route =>
     route?.provider === config.roles[role].route.provider && route.model === config.roles[role].route.model))) {
     fail('SESSION_ROUTE_NOT_AUTHORIZED');
   }
   return true;
 }
 
-/** Validate the complete pair before either child activation; metadata is not inference. */
+/** Validate every member route before any child activation; metadata is not inference. */
 export async function preflightTeam(config, policy, llm, signal) {
   signal.throwIfAborted();
   authorizeTeam(config, policy);
   const result = {};
-  for (const role of TEAM_ROLES) {
+  for (const role of teamMembers(config)) {
     const route = config.roles[role].route;
     const resolved = await llm.resolveCallConfig({ ...route }, signal);
     signal.throwIfAborted();

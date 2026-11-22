@@ -36,12 +36,18 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       { key: 'review', subject: 'Review implementation', description: 'Wait for the peer, independently check 5, then complete.', owner: 'reviewer', blocked_by: ['implement'] },
     ],
   };
+  for (const extra of options.extraMembers ?? []) template.members.push({ description: `Owned ${extra.name} startup`,
+    prompt: `Startup ${extra.name}: use your supplied native task context.`,
+    persona_prompt: `PRIVATE_PERSONA_${extra.name}_EXACT_SENTINEL: you are ${extra.name}.`,
+    agent_preset: `dsh-team-launcher-${extra.name}`, provider: 'deepseek-account', model: 'deepseek-flash',
+    reasoning_effort: 'low', native_tool_allowlist: ['team_task_get'], ...extra });
   for (const member of template.members) Object.assign(member, options.memberConfig?.[member.name]);
   const bytes = JSON.stringify(template);
   const config = { mode: 'launcher', ownedSessionId: options.sessionId ?? 'session-11111111-1111-4111-8111-111111111111', workspace,
     runTag: 'launcher-owned-test', timeoutMs: options.hang ? 25 : 3000,
     templateSha256: createHash('sha256').update(bytes).digest('hex'),
-    startup: { maxTokens: 1024, maxStreams: { implementer: 8, reviewer: 7 } } };
+    startup: { maxTokens: 1024, maxStreams: { implementer: 8, reviewer: 7,
+      ...Object.fromEntries((options.extraMembers ?? []).map(extra => [extra.name, 3])) } } };
   await writeFile(join(workspace, '.dsh-team-template.json'), bytes, { mode: 0o600 });
   await writeFile(join(workspace, '.dsh-team-launcher.json'), JSON.stringify({ purpose: 'dsh-native-team-launcher',
     ownedSessionId: config.ownedSessionId, runTag: config.runTag, templateSha256: config.templateSha256 }), { mode: 0o600 });
@@ -200,7 +206,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
         value = { timedOut: options.sendPeerEndsAtResolve === true || options.askPeerEnds === true };
       }
       else if (name === 'send_message') {
-        assert.equal(args.agent, 'reviewer');
+        assert.notEqual(args.agent, child.role);
         const recipient = [...children.values()].find(record => record.role === args.agent);
         if (!recipient) throw nativeError('TEAM_MEMBER_NOT_FOUND');
         if (options.sendPeerEndsAtResolve) {
@@ -250,6 +256,10 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       return;
     }
     if (options.pendingStartup) { await providerStep(child); child.finish('completed'); return; }
+    if (!ROLES.includes(child.role)) {
+      for (const call of options.extraWork?.[child.role] ?? []) await step(call.name, call.arguments);
+      await providerStep(child); child.finish('completed'); return;
+    }
     if (options.workCalls) {
       for (const call of options.workCalls(child.role, workspace)) await step(call.name, call.arguments);
       await providerStep(child); child.finish('completed'); return;

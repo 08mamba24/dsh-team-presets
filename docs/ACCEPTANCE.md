@@ -1,5 +1,15 @@
 # Acceptance and release scope
 
+## 0.6.0-rc.1 multi-member candidate
+
+This candidate separates member identity from duty templates: six built-in templates and persisted custom templates can configure 1–8 independent members. A saved default does not rewrite an existing bound team. Runtime add is explicit; failed additions remain fenced, and removal requires resolving unfinished native or unclaimed seed-task responsibility. Role-less rc.7 fingerprints and the original two-member binding remain readable.
+
+`scripts/accept-native-multi-role.mjs` uses the official Web bundle through `initProfile` and `runProfile`, real model-selection-policy events, AgentPresets, native tool execution, Settings and JSONL. Its 17 checks cover Agent configuration from the unchanged installed factory defaults to four members, a separate one-member launch, explicit seed responsibility changes, a custom template, native approval refusal and confirmation, live catalog saves without entry remount, different models and exact tool sets for same-template members, mid-run add and failure, arbitrary-name and added-member replacement, safe removal of original UUID members, and cold restoration. The migration phase starts an actual published rc.7 package, retains its Settings/JSONL and adds a member only after upgrade. Providers and approval answers are local fixtures; no account or remote inference is used.
+
+The Windows installed-package workflow runs this script in addition to the existing admission, persistence, addressing, replacement and rc.6 migration controls. Consume the exact candidate PR's [Windows Actions](https://github.com/08mamba24/dsh-team-presets/actions/workflows/windows.yml) and its `native-multi-role.json`: `passed=true`, `errors=[]`, verified lab removal, and `sourceHead` matching the installed TGZ digest are required. The candidate packet also binds the local source commit, exported public commit, complete plugin tree and TGZ SHA256. Development receipts marked `integration-wip`, old release results and a green offline suite do not constitute acceptance of that package. Final receipt and review links belong to that exact candidate's PR record; a draft is not a release.
+
+No new GUI, paid-provider or physical rc.2 multi-member acceptance is claimed. The sections below describe their own historical releases and retain their original limits.
+
 ## 0.5.0-rc.7 member replacement
 
 This candidate adds the root-only `dsh_team_replace` tool and bundled `dsh-team-replace` skill for replacing an idle implementer or reviewer. The native profile entry owns a persistent per-root record with the original binding, candidate configuration, handoff digest, authenticated readiness, task-transfer outcomes and task-write proof. All roots share the entry revision; writes use native ConfigEditor CAS and readback. Volatile map updates persist without remounting the entry. Preserve the complete `replacementRecords` map during manual configuration edits.
