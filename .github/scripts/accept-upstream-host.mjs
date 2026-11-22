@@ -26,7 +26,7 @@ export function isolatedEnvironment(lab, resources, platform = process.platform,
     TMPDIR: temporary, TEMP: temporary, TMP: temporary,
     DSH_HOME: join(lab, 'harness'), DSH_AGENTS_HOME: join(lab, 'agents'), DSH_TELEMETRY_DISABLED: '1',
     ELECTRON_RUN_AS_NODE: '1', npm_config_userconfig: join(lab, 'npmrc'),
-    npm_config_globalconfig: join(lab, 'npmrc'), npm_config_store_dir: join(lab, 'pnpm-store'),
+    npm_config_globalconfig: join(lab, 'global-npmrc'), npm_config_store_dir: join(lab, 'pnpm-store'),
     npm_config_enable_global_virtual_store: 'false',
   };
 }
@@ -116,6 +116,7 @@ async function main() {
     const install = join(lab, 'install'), payload = join(lab, 'payload');
     for (const dir of ['home', 'tmp', 'harness', 'agents', 'workspace', 'install', 'payload', 'plugin', 'legacy']) await mkdir(join(lab, dir));
     await writeFile(join(lab, 'npmrc'), '', { flag: 'wx' });
+    await writeFile(join(lab, 'global-npmrc'), '', { flag: 'wx' });
     let resources = process.platform === 'darwin' ? '/Applications/DeepSeek Harness.app/Contents/Resources' : join(install, 'resources');
     let env = isolatedEnvironment(lab, resources);
     stage = 'download';

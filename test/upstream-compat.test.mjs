@@ -273,6 +273,8 @@ test('Host environment inherits neither GitHub credentials, model keys nor opera
   assert.equal(env.HOME, join(lab, 'home'));
   for (const key of ['GH_TOKEN', 'GITHUB_TOKEN', 'OPENAI_API_KEY', 'NODE_OPTIONS']) assert.equal(env[key], undefined);
   assert.ok(!env.PATH.includes('/operator'));
+  assert.notEqual(env.npm_config_userconfig, env.npm_config_globalconfig,
+    'npm refuses to load the same config file for both user and global scopes');
 });
 
 test('planning consumes public prereleases and official feeds, without writing or automatically trusting an archive', async () => {
