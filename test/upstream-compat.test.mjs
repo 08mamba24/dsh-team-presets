@@ -184,6 +184,11 @@ test('timeouts, signals and cleanup errors stay infrastructure failures; source-
     [outcome, { ...receipt, cleanupError: { code: 'ERR_ASSERTION', message: 'fixture teardown' } }],
     [outcome, { ...receipt, errors: [{ code: 'ERR_ASSERTION', message: 'wrapper', provenance: ['corrupt'] }] }],
     [outcome, { ...receipt, errors: [{ code: 'ERR_ASSERTION', message: 'wrapper', provenanceIncomplete: true }] }],
+    [outcome, { ...receipt, errors: [{ code: 'ERR_ASSERTION', message: 'wrapper', actual: { code: 'EPERM' } }] }],
+    [outcome, { ...receipt, errors: [{ code: 'ERR_ASSERTION', message: 'wrapper', cause: { code: 'EPERM' } }] }],
+    [outcome, { ...receipt, errors: [{ code: 'ERR_ASSERTION', message: 'wrapper', provenance: [
+      { code: 'ERR_ASSERTION', message: 'partial nested provenance', provenanceIncomplete: true },
+    ] }] }],
     [outcome, { sourceHead, passed: false, checks: [{ passed: false }] }],
     [outcome, { sourceHead, passed: false, checks: [{ name: 'business', passed: false }] }]]) {
     assert.equal(classifyProbe(o, r, sourceHead), 'infrastructure-error');

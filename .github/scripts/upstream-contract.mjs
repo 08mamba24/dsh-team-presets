@@ -19,8 +19,9 @@ export const CLASSIFICATION_PROBES = [
 const record = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 const text = value => typeof value === 'string' && value.trim().length > 0;
 const basicError = value => record(value) && text(value.message)
-  && (value.code === undefined || text(value.code)) && (value.name === undefined || text(value.name));
-const errorRecord = value => basicError(value) && !value.provenanceIncomplete
+  && (value.code === undefined || text(value.code)) && (value.name === undefined || text(value.name))
+  && !value.provenanceIncomplete && value.actual === undefined && value.cause === undefined && value.errors === undefined;
+const errorRecord = value => basicError(value)
   && (value.provenance === undefined || Array.isArray(value.provenance)
     && value.provenance.every(nested => basicError(nested) && nested.provenance === undefined));
 export const isFailureAssertion = value => errorRecord(value) && (text(value.code) || text(value.name));
