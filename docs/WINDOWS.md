@@ -4,7 +4,7 @@
 
 ## 安装候选
 
-1. 打开本仓库 [Windows plugin acceptance](https://github.com/08mamba24/dsh-team-presets/actions/workflows/windows.yml)，选择本候选精确提交的成功运行。下载 `windows-plugin-<commit>` artifact，解压得到 `dsh-subagent-live-rc2-local-0.6.0-rc.1.tgz`。Actions artifact 下载需要登录 GitHub。草稿 PR 和本地打包不代表已发布；Releases 中的 `v0.5.0-rc.7` 保留为旧版及迁移基线。
+1. 从 [0.6.0-rc.1 发行页](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.6.0-rc.1)下载 `dsh-subagent-live-rc2-local-0.6.0-rc.1.tgz` 与同名 `.sha256` 文件。该包与[合入后 Windows 验收](https://github.com/08mamba24/dsh-team-presets/actions/runs/45040445737)实际安装的 TGZ 完全一致。旧 `v0.5.0-rc.7` 发行资产保留为迁移基线。
 2. 在 Harness 官方插件管理器安装完整 TGZ。默认组件使用当前会话；无需填写 Session ID 或运行 prepare。若已有旧个人绑定包，保留原组件及 Preset，先核对迁移方案，避免已有成员失去预设。
 3. 在 Agent 会话说“使用 dsh-team-configure，帮我配置团队模型、effort 和工具集”，按 [模型与提示词](MODELS-AND-PROMPTS.md) 选择实际模型并保存。skill 随插件全局注册到该 profile，不需要每个项目单独安装。
 4. 在原生子智能体模型选择中授权所需路由，保存后使用新根会话。执行 `/dsh-team plan` 核对创建／冲突计划，再执行 `/dsh-team launch`。plan 不调用模型；launch 会调用模型，并由原生 policy/adapter 再次校验。

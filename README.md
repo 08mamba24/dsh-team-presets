@@ -2,7 +2,7 @@
 
 Create a team of 1-8 named members in the current DeepSeek Harness root session — the bundled example ships an implementer and a reviewer — each with its own model route, persistent role prompt, and work tool list, optionally seeded from built-in or custom role templates.
 
-**Current source: 0.6.0-rc.1** (candidate for independent review; not released — the last published package remains 0.5.0-rc.7). Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort, prompts and tool list in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
+**Current prerelease: [0.6.0-rc.1](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.6.0-rc.1)** (independently reviewed and verified on macOS and Windows). Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort, prompts and tool list in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
 
 [中文安装与使用说明](README.zh-CN.md)
 
@@ -12,7 +12,7 @@ Windows x64 support targets the reviewed Harness 0.2.2-rc.5 archive and the curr
 
 ## Install and launch
 
-Build from this package directory:
+Download the complete TGZ and its SHA256 file from the [0.6.0-rc.1 release](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.6.0-rc.1). To build from this package directory instead:
 
 ```sh
 npm pack
@@ -20,7 +20,7 @@ npm pack
 
 Install `dsh-subagent-live-rc2-local-0.6.0-rc.1.tgz` through the native plugin manager. Building does not update the installed copy. Installation registers the current-session command, configuration tool and skill for roots in that profile; no per-project skill copy, Session ID or offline binding step is needed. Existing bound installations need a migration that preserves their original component and role Presets; do not replace one blindly with the generic package. The old rc.2-only 0.5.0-rc.1 sidecar is not an installation target for Harness rc.5.
 
-The [historical v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) retains its frozen, live-tested low-effort bytes. It does not contain the max-default change. This candidate is supplied through its reviewed source and exact CI package artifacts.
+The [historical v0.5.0-rc.2 prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) retains its frozen, live-tested low-effort bytes. It does not contain the max-default change. The current prerelease includes the exact reviewed TGZ, its SHA256 file and a public acceptance summary.
 
 ## Configure the team in a conversation
 

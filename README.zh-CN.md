@@ -2,13 +2,15 @@
 
 在 DeepSeek Harness 的目标会话中，一次创建 1～8 个具名成员（内置示例为 implementer 与 reviewer 两名），每个成员独立配置模型路由、持久角色提示词与工作工具集，并可从内置或自定义角色模板起步。
 
-**当前源码：0.6.0-rc.1**（供独立审查的候选，未 release；已发布版本仍为 0.5.0-rc.7）。安装后提供 profile 全局的 `dsh-team-configure` skill，可以在 Agent 会话中配置成员（1～8 个）的 provider、模型、effort、提示词与工具集，无需手工编辑 YAML。默认 effort 为 `max`，由实际配置的原生 adapter 验证。本次更新未进行付费模型运行；历史 rc.2 的 macOS low 实机结果不代表本版本的任意模型已验。[验收范围与已知限制](docs/ACCEPTANCE.md)。
+**当前预发行：[0.6.0-rc.1](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.6.0-rc.1)**（已通过独立审查及 macOS、Windows 隔离验收）。安装后提供 profile 全局的 `dsh-team-configure` skill，可以在 Agent 会话中配置成员（1～8 个）的 provider、模型、effort、提示词与工具集，无需手工编辑 YAML。默认 effort 为 `max`，由实际配置的原生 adapter 验证。本次更新未进行付费模型运行；历史 rc.2 的 macOS low 实机结果不代表本版本的任意模型已验。[验收范围与已知限制](docs/ACCEPTANCE.md)。
 
 **多角色候选能力。** 默认团队支持 1～8 个独立成员：沿用名单中的名字表示修改，新名字表示增员（必须显式给出 provider/model/effort），也可移除成员；全部经同一 inspect→preview→apply 的 revision＋fingerprint 门禁与原生审批保存。六内置角色模板（architect、implementer、reviewer、tester、researcher、designer）携带职责提示词与工具建议；自定义模板与默认模板同表持久化，整表替换走同一次 CAS。未来默认的种子任务经 `seedTasks` 同规则整表替换：要移除仍是种子任务 owner 的成员，须在同一次保存中显式改派或清除该责任（省略 `owner` 即清除，`seedTasks: []` 表示无种子）；未显式调整则保存被拒，不静默删除任何种子。已建团队真实任务不受 seedTasks 影响，仍走原生 task 工具与替换流程。模板 ID 不是成员身份：同一模板可有多个相互独立的成员，各自持有模型、提示词与工具集。模板不含 provider/model，不授予任何权限。已保存成员与显式工具列表保持 exact；仅"全新成员取自内置模板且未提供工具列表"时把模板建议与当前根真实目录取交集，preview 显示最终列表。无 role 字段的旧模板指纹逐字节不变，rc.7 团队继续可读。原生 scripted-provider 验收覆盖真实出厂配置、单成员／四成员启动、显式成员调整和 rc.7 迁移。按[验收记录](docs/ACCEPTANCE.md)核对候选 TGZ 摘要与精确平台回执；草稿 PR 不代表发行。
 
 Windows x64 适配面向已检查的 Harness 0.2.2-rc.5 和当前会话 `/dsh-team` 入口，见 [Windows 安装与 CI 验收](docs/WINDOWS.md)。旧的本地文件绑定入口仍只支持 macOS。
 
 ## 下载与安装
+
+从 [0.6.0-rc.1 发行页](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.6.0-rc.1)下载完整 TGZ、SHA256 校验文件和验收摘要。下面的 `npm pack` 用于自行从源码打包。
 
 在本源码包目录执行以下命令打包：
 
@@ -18,7 +20,7 @@ npm pack
 
 在 Harness 官方插件管理器中安装生成的 `dsh-subagent-live-rc2-local-0.6.0-rc.1.tgz`。打包不会更新已安装副本。安装会同时注册当前会话入口、配置工具和 skill；该 profile 的根会话均可发现 skill，不必另拷到每个项目。无需填写 Session ID 或运行离线绑定准备命令。已有旧版个人绑定包时，先核对保留原组件和 Preset 的迁移方案，避免旧成员失去预设。此前仅面向 rc.2 的 0.5.0-rc.1 sidecar 不是 Harness rc.5 的安装源。
 
-[历史 v0.5.0-rc.2 预发行](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) 保持原先实机验收时的 low 配置，不包含本次 max 更新。本候选通过受审源码与精确 CI 包产物提供。包名中的 `rc2-local` 是历史名称。
+[历史 v0.5.0-rc.2 预发行](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.5.0-rc.2) 保持原先实机验收时的 low 配置，不包含本次 max 更新。当前预发行已提供与受审源码及平台验收一致的完整 TGZ。包名中的 `rc2-local` 是历史名称。
 
 ## 在会话中配置团队
 
