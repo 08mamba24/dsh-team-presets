@@ -230,7 +230,8 @@ async function accept(paths) {
     const credential = secret === undefined ? undefined : `dsh-desktop-session=${secret}`;
     const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(30_000),
       ...(credential ? { headers: { cookie: credential } } : {}) });
-    assert.equal(response.status, 200, 'native Host authentication must accept the owned startup credential');
+    assert.equal(response.status, credential ? 200 : 303,
+      'alpha.2 accepts its Desktop cookie; rc.5 exchanges the bootstrap token with a cookie redirect');
     const cookie = credential ?? response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
     assert.ok(cookie, 'Host bootstrap did not issue an authentication cookie');
     const base = url.origin;
