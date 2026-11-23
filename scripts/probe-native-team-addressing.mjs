@@ -1,5 +1,6 @@
 /** Physical native ToolsService/control/scope probe for stable team role addressing. */
 import assert from 'node:assert/strict';
+import { nativeAgentRows } from './native-host-contract.mjs';
 import { describeNativeError } from './native-error.mjs';
 import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -14,9 +15,10 @@ const sourceHead = process.argv[5] ?? 'working-tree';
 const require = createRequire(join(runtime, 'package.json'));
 const load = name => import(pathToFileURL(require.resolve(`@deepseek-ai/${name}`)).href);
 const [{ Context }, toolsModule, { NativeToolExecutor }, scopeApi, { AgentRegistry },
-  { SessionProjectionRegistry }, controlModule, taskModule] = await Promise.all([
+  { SessionProjectionRegistry }, controlModule, taskModule, { SubagentRuntime }, { Session }] = await Promise.all([
   load('cordis'), load('dsh-tools'), load('dsh-tool-executor-native'), load('dsh-scope'), load('dsh-agent'),
   load('dsh-session-projection'), load('dsh-tool-subagent-control'), load('dsh-tool-agent-team'),
+  load('dsh-subagent'), load('dsh-session'),
 ]);
 const fromPlugin = path => import(pathToFileURL(join(plugin, path)).href);
 const [{ installRootAddressing, isReusableLogicalTeamTaskDelegate, mountLogicalNativeControl,
@@ -24,6 +26,9 @@ const [{ installRootAddressing, isReusableLogicalTeamTaskDelegate, mountLogicalN
   fromPlugin('src/team-addressing.js'), fromPlugin('src/member-replacement.js'), fromPlugin('src/replacement-store.js'),
 ]);
 const { ToolsService } = toolsModule;
+const version = JSON.parse(await readFile(require.resolve('@deepseek-ai/dsh/package.json'), 'utf8')).version;
+const { createHostAdapter } = await fromPlugin('src/host-adapter.js');
+const host = { controlModule, taskModule, scopeApi, adapter: createHostAdapter({ version, Context }) };
 const ROOT = 'session-address-native-root';
 const OLD_IMPLEMENTER = '11111111-1111-4111-8111-111111111111';
 const OLD_REVIEWER = '22222222-2222-4222-8222-222222222222';
@@ -46,6 +51,16 @@ function markTraceableService(ctx, name, service) {
 }
 
 const originalService = value => value?.[CORDIS_ORIGINAL] ?? value;
+
+async function installCapacityRuntime(ctx, scopes) {
+  if (version !== '0.2.3-alpha.2') return undefined;
+  ctx.provide('workingDirectory', { get: () => process.cwd() });
+  // Capacity comes from the Host's real manager/pool. The catalog/delivery fixture
+  // remains controlled, but never invents running/limit for the new native tool.
+  const scope = ctx.isolate('subagents').plugin(SubagentRuntime, { maxActiveSubagents: 7 });
+  await scope; scopes.push(scope);
+  return scope.ctx.subagents;
+}
 
 async function installFromInjectedOwner(ctx, root, name, host) {
   const owner = ctx.plugin({ name, inject: ROOT_ADDRESS_INJECT, async apply(inner) {
@@ -139,8 +154,9 @@ async function runGeneration(initialRecord, label,
     section() { return () => {}; }, getContextOrder() { return 1; }, getSectionOrder() { return 1; } });
   await ctx.plugin(SessionProjectionRegistry);
   await ctx.plugin(AgentRegistry);
+  const capacityRuntime = await installCapacityRuntime(ctx, scopes);
   scopes.push(await installToolsHost(ctx, `address-tools-${label}`));
-  const root = { id: ROOT, status: 'idle', session: { id: ROOT, header: {} } };
+  const root = { id: ROOT, status: 'idle', session: new Session(ROOT, []) };
   const agents = new Map([[ROOT, root]]);
   let storedTask = { id: 'task-address-1', revision: 1, subject: 'Address the current role',
     description: 'Keep logical task ownership stable.', status: 'in_progress', ownerId: firstId,
@@ -148,6 +164,7 @@ async function runGeneration(initialRecord, label,
   const taskCalls = [];
   let teamEnabled = true;
   const nativeSubagents = markTraceableService(ctx, 'subagents', {
+    ...(capacityRuntime ? { capacityOf: agent => capacityRuntime.capacityOf(agent) } : {}),
     rootOf(agent) { if (agents.get(agent?.id) !== agent) throw new Error('UNAUTHORIZED'); return root; },
     namesOf(agent) {
       if (agent === root) return { self: 'lead' };
@@ -238,7 +255,7 @@ async function runGeneration(initialRecord, label,
   };
   try {
     scopes.push(await installFromInjectedOwner(ctx, root, `address-owner-${label}`,
-      { controlModule, taskModule, scopeApi }));
+      host));
   } catch (error) {
     await dispose();
     throw error;
@@ -279,8 +296,8 @@ async function runGeneration(initialRecord, label,
 async function runSharedPresetLifecycle() {
   const ctx = new Context(), scopes = [], registrations = [], deliveries = [];
   const roots = [
-    { id: 'session-address-shared-root-a', status: 'idle', session: { id: 'session-address-shared-root-a', header: {} } },
-    { id: 'session-address-shared-root-b', status: 'idle', session: { id: 'session-address-shared-root-b', header: {} } },
+    { id: 'session-address-shared-root-a', status: 'idle', session: new Session('session-address-shared-root-a', []) },
+    { id: 'session-address-shared-root-b', status: 'idle', session: new Session('session-address-shared-root-b', []) },
   ];
   const oldIds = ['33333333-3333-4333-8333-333333333333', '44444444-4444-4444-8444-444444444444'];
   const records = {}, catalogs = new Map(), rootByAgentId = new Map();
@@ -307,8 +324,10 @@ async function runSharedPresetLifecycle() {
     section() { return () => {}; }, getContextOrder() { return 1; }, getSectionOrder() { return 1; } });
   await ctx.plugin(SessionProjectionRegistry);
   await ctx.plugin(AgentRegistry);
+  const capacityRuntime = await installCapacityRuntime(ctx, scopes);
   scopes.push(await installToolsHost(ctx, 'shared-address-tools'));
   const nativeSubagents = markTraceableService(ctx, 'subagents', {
+    ...(capacityRuntime ? { capacityOf: agent => capacityRuntime.capacityOf(agent) } : {}),
     rootOf(agent) {
       const root = rootByAgentId.get(agent?.id);
       if (root === undefined) throw Object.assign(new Error('UNAUTHORIZED'), { code: 'UNAUTHORIZED' });
@@ -381,7 +400,7 @@ async function runSharedPresetLifecycle() {
   const owners = [];
   async function install(root) {
     const owner = await installFromInjectedOwner(ctx, root, `shared-address-owner-${owners.length}`,
-      { controlModule, taskModule, scopeApi });
+      host);
     owners.push(owner);
     return owner;
   }
@@ -417,8 +436,13 @@ try {
   assert.equal(fixture.deliveries.at(-1).targetId, firstId);
   const listedFirst = await fixture.call(fixture.root, 'list_agents', {});
   assert.equal(listedFirst.isError, false, JSON.stringify(listedFirst));
-  assert.ok(listedFirst.value.some(entry => entry.name === 'implementer'));
-  assert.ok(!listedFirst.value.some(entry => /implementer-r[23]/.test(entry.name)));
+  assert.ok(nativeAgentRows(listedFirst.value).some(entry => entry.name === 'implementer'));
+  assert.ok(!nativeAgentRows(listedFirst.value).some(entry => /implementer-r[23]/.test(entry.name)));
+  if (version === '0.2.3-alpha.2') {
+    const capacity = fixture.nativeSubagents.capacityOf(fixture.root);
+    assert.deepEqual({ running: listedFirst.value.running, limit: listedFirst.value.limit }, capacity);
+    assert.notEqual(capacity.running, nativeAgentRows(listedFirst.value).length);
+  }
   check('first replacement keeps raw catalog unchanged while native send and list use the stable logical role');
 
   for (const [name, definition] of fixture.presetControlDefinitions) {
@@ -479,7 +503,7 @@ try {
   const business = await fixture.call(candidate, 'send_message', { agent: 'implementer', message: 'forbidden' });
   assert.equal(business.isError, true);
   const listedStandby = await fixture.call(fixture.root, 'list_agents', {});
-  assert.ok(!listedStandby.value.some(entry => entry.name === 'implementer'));
+  assert.ok(!nativeAgentRows(listedStandby.value).some(entry => entry.name === 'implementer'));
   const frozenTask = fixture.task();
   const standbyReassign = await fixture.call(fixture.root, 'team_task_update', {
     task_id: frozenTask.id, expected_revision: frozenTask.revision, action: 'reassign', owner: 'implementer',
@@ -583,7 +607,7 @@ try {
   const reloaded = await fixture.call(fixture.root, 'send_message', { agent: 'implementer', message: 'after reload' });
   assert.equal(reloaded.isError, false, JSON.stringify(reloaded));
   assert.equal(fixture.deliveries.at(-1).targetId, secondId);
-  const names = (await fixture.call(fixture.root, 'list_agents', {})).value.map(entry => entry.name);
+  const names = nativeAgentRows((await fixture.call(fixture.root, 'list_agents', {})).value).map(entry => entry.name);
   assert.ok(names.includes('implementer')); assert.ok(!names.some(name => /implementer-r[23]/.test(name)));
   check('fresh native scope reload reads the durable second-generation mapping without respawn or catalog mutation');
 } finally {
@@ -640,7 +664,7 @@ for (const name of ['src/team-addressing.js', 'role-control.js', 'src/launcher-n
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }
 const result = { sourceHead, runtime, passed: checks.length === 14 && checks.every(item => item.passed), hashes, checks, setupError, cleanupError,
-  boundary: 'Physical rc.5 Cordis, dsh-scope, ToolsService, NativeToolExecutor and an official-Standard-equivalent Preset scope mounting unmodified dsh-tool-subagent-control (interrupt false), plus unmodified dsh-tool-agent-team definitions. Isolated in-memory Settings/AgentRegistry, catalog and task-board service; no user profile, Host daemon, model, network, manager mutation or persistent Session.' };
+  boundary: 'Physical pinned Host Cordis, dsh-scope, ToolsService, NativeToolExecutor and an official-Standard-equivalent Preset scope mounting unmodified dsh-tool-subagent-control (interrupt false), plus unmodified dsh-tool-agent-team definitions. Isolated in-memory Settings/AgentRegistry, catalog and task-board service; no user profile, Host daemon, model, network, manager mutation or persistent Session.' };
 await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
 process.stdout.write(JSON.stringify(result) + '\n');
 if (!result.passed) process.exitCode = 1;

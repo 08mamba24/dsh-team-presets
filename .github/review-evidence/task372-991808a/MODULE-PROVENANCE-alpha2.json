@@ -1,0 +1,20 @@
+[
+  {
+    "name": "@deepseek-ai/dsh-tool-subagent",
+    "metadataPath": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent/package.json",
+    "entryPath": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent/lib/index.js",
+    "canonicalMetadataPath": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent/package.json",
+    "canonicalEntryPath": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent/lib/index.js",
+    "packageName": "@deepseek-ai/dsh-tool-subagent",
+    "version": "0.2.3-alpha.2"
+  },
+  {
+    "name": "@deepseek-ai/cordis",
+    "metadataPath": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/package.json",
+    "entryPath": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js",
+    "canonicalMetadataPath": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/package.json",
+    "canonicalEntryPath": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js",
+    "packageName": "@deepseek-ai/cordis",
+    "version": "4.2.0-alpha.1"
+  }
+]

@@ -11,7 +11,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -29,6 +29,7 @@ const { values } = parseArgs({ options: {
   'previous-tgz': { type: 'string' },
   'legacy-plugin': { type: 'string' },
   'multi-role-legacy-plugin': { type: 'string' },
+  'legacy-host-executable': { type: 'string' },
   'lab-dir': { type: 'string' }, 'receipt-dir': { type: 'string' },
   'electron-stage': { type: 'boolean', default: false }, help: { type: 'boolean', default: false },
 }, allowPositionals: false });
@@ -65,6 +66,7 @@ function pathsFor(options) {
     previousTgz: options['previous-tgz'] ? resolve(options['previous-tgz']) : undefined,
     legacyPlugin: options['legacy-plugin'] ? resolve(options['legacy-plugin']) : undefined,
     multiRoleLegacyPlugin: options['multi-role-legacy-plugin'] ? resolve(options['multi-role-legacy-plugin']) : undefined,
+    legacyHostExecutable: options['legacy-host-executable'] ? resolve(options['legacy-host-executable']) : undefined,
     receipts: resolve(options['receipt-dir']), profile: join(harness, 'profiles', 'desktop'),
     agents: join(lab, 'agents'), workspace: join(lab, 'workspace'), temporary: join(lab, 'tmp'),
     cli: join(runtime, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'cli.js'),
@@ -137,9 +139,9 @@ async function accept(paths) {
   const children = new Set();
   let logSequence = 0;
 
-  function childProcess(label, args, ipc = false) {
-    const child = spawn(paths.executable, ['--expose-internals', ...args], {
-      cwd: paths.profile, env: environment, windowsHide: true,
+  function childProcess(label, args, ipc = false, hostPaths = paths) {
+    const child = spawn(hostPaths.executable, ['--expose-internals', ...args], {
+      cwd: paths.profile, env: isolatedEnvironment(hostPaths), windowsHide: true,
       stdio: ipc ? ['ignore', 'pipe', 'pipe', 'ipc'] : ['ignore', 'pipe', 'pipe'],
     });
     const log = `${String(++logSequence).padStart(2, '0')}-${label}.log`;
@@ -172,8 +174,8 @@ async function accept(paths) {
     await bounded(handle.exit, SHUTDOWN_TIMEOUT, 'owned process exit');
   }
 
-  async function runCli(label, args) {
-    const handle = childProcess(label, [paths.cli, 'plugin', '--profile', 'desktop', ...args]);
+  async function runCli(label, args, hostPaths = paths) {
+    const handle = childProcess(label, [hostPaths.cli, 'plugin', '--profile', 'desktop', ...args], false, hostPaths);
     try {
       const result = await bounded(handle.exit, TIMEOUT, label);
       assert.equal(result.code, 0, `${label} failed; see ${handle.log}`);
@@ -203,10 +205,18 @@ async function accept(paths) {
     }
   }
 
-  async function startHost(label) {
-    const handle = childProcess(label, [paths.host, paths.runtime, paths.profile, paths.primary, paths.pnpm, paths.nodeBin], true);
+  async function startHost(label, hostPaths = paths) {
+    // alpha.2's official Desktop parent supplies an in-memory per-Host credential
+    // over IPC. Reproduce that protocol in this owned lab, without user secrets.
+    const secret = hostPaths === paths && report.host.version === '0.2.3-alpha.2' ? randomBytes(32).toString('base64url') : undefined;
+    let sentCredential = false;
+    const handle = childProcess(label, [hostPaths.host, hostPaths.runtime, paths.profile, hostPaths.primary, hostPaths.pnpm, hostPaths.nodeBin], true, hostPaths);
     const ready = new Promise((done, reject) => {
       handle.child.on('message', message => {
+        if (message?.type === 'starting' && secret !== undefined && !sentCredential) {
+          sentCredential = true;
+          handle.child.send({ type: 'desktop-auth', secret });
+        }
         if (message?.type === 'ready') done(message);
         if (message?.type === 'shutdown-complete') handle.shutdownComplete = true;
         if (message?.type === 'fatal') reject(new Error(`Host fatal: ${scrub(message.diagnostic ?? message.message)}`));
@@ -217,8 +227,12 @@ async function accept(paths) {
     const url = new URL(message.url);
     assert.equal(url.protocol, 'http:');
     assert.equal(url.hostname, '127.0.0.1');
-    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(30_000) });
-    const cookie = response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+    const credential = secret === undefined ? undefined : `dsh-desktop-session=${secret}`;
+    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(30_000),
+      ...(credential ? { headers: { cookie: credential } } : {}) });
+    assert.equal(response.status, credential ? 200 : 303,
+      'alpha.2 accepts its Desktop cookie; rc.5 exchanges the bootstrap token with a cookie redirect');
+    const cookie = credential ?? response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
     assert.ok(cookie, 'Host bootstrap did not issue an authentication cookie');
     const base = url.origin;
     handle.rpc = async (endpoint, args) => {
@@ -276,6 +290,13 @@ async function accept(paths) {
     const hostVersion = hostVersionForArchive(archiveSha256, 'win32');
     assert.ok(hostVersion, 'unreviewed Windows app.asar');
     report.host = { version: hostVersion, archiveSha256, electron: process.versions.electron, node: process.versions.node };
+    const legacyPaths = paths.legacyHostExecutable ? pathsFor({ ...values,
+      'install-dir': dirname(paths.legacyHostExecutable) }) : paths;
+    if (hostVersion === '0.2.3-alpha.2') {
+      assert.ok(paths.legacyHostExecutable, 'alpha.2 upgrade requires a separately pinned rc.5 Host');
+      assert.equal(await sha256(join(legacyPaths.resources, 'app.asar'), originalFs.createReadStream),
+        '5ec8acd9e72b93b6680c953c1be44a729fd3a5170e472e8025690a1713d20f69');
+    }
     report.plugin = { name: PACKAGE, tgzSha256: await sha256(paths.tgz) };
     const hostRequire = createRequire(join(paths.runtime, 'package.json'));
     const load = name => import(pathToFileURL(hostRequire.resolve(name)).href);
@@ -284,10 +305,10 @@ async function accept(paths) {
     initProfile(paths.profile, PROFILE_TEMPLATES.web.bundles);
     report.checks.push({ name: 'official-profile-initialization', passed: true });
     if (paths.previousTgz) {
-      await runCli('install-previous-tgz', ['add', `file:${paths.previousTgz}`, '--offline', '--ignore-scripts']);
+      await runCli('install-previous-tgz', ['add', `file:${paths.previousTgz}`, '--offline', '--ignore-scripts'], legacyPaths);
       const oldPackage = JSON.parse(await readFile(join(paths.profile, 'node_modules', PACKAGE, 'package.json'), 'utf8'));
       report.previousVersion = oldPackage.version;
-      const previousHost = await startHost('host-before-upgrade');
+      const previousHost = await startHost('host-before-upgrade', legacyPaths);
       const previousRoot = await previousHost.rpc('session/create', { request: { cwd: paths.workspace } });
       const previousSkills = await previousHost.rpc('skills/list', { request: { sessionId: previousRoot.sessionId } });
       const oldSkills = previousSkills.skills.filter(skill => skill.name === 'dsh-team-configure');
@@ -317,12 +338,15 @@ async function accept(paths) {
     assert.ok(paths.multiRoleLegacyPlugin, 'published rc.7 migration fixture is required');
     const multiRoleLegacy = JSON.parse(await readFile(join(paths.multiRoleLegacyPlugin, 'package.json'), 'utf8'));
     assert.equal(multiRoleLegacy.name, PACKAGE); assert.equal(multiRoleLegacy.version, '0.5.0-rc.7');
-    await runNativeAcceptance(installedRoot, 'accept-native-multi-role.mjs', 'native-multi-role.json', [paths.multiRoleLegacyPlugin]);
+    await runNativeAcceptance(installedRoot, 'accept-native-multi-role.mjs', 'native-multi-role.json',
+      [paths.multiRoleLegacyPlugin, 'changed', ...(paths.legacyHostExecutable ? [paths.legacyHostExecutable] : [])]);
     if (paths.legacyPlugin) {
       const legacy = JSON.parse(await readFile(join(paths.legacyPlugin, 'package.json'), 'utf8'));
       assert.equal(legacy.name, PACKAGE); assert.equal(legacy.version, '0.5.0-rc.6');
-      await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement-legacy.json', [paths.legacyPlugin]);
-      await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement-legacy-unchanged.json', [paths.legacyPlugin, 'unchanged']);
+      await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement-legacy.json',
+        [paths.legacyPlugin, 'changed', ...(paths.legacyHostExecutable ? [paths.legacyHostExecutable] : [])]);
+      await runNativeAcceptance(installedRoot, 'accept-native-replacement.mjs', 'native-replacement-legacy-unchanged.json',
+        [paths.legacyPlugin, 'unchanged', ...(paths.legacyHostExecutable ? [paths.legacyHostExecutable] : [])]);
     }
 
     let host = await startHost('host-installed');

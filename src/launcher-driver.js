@@ -1,3 +1,5 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
+import { assertWorkingDirectory, childWorkingDirectoryMatches } from './owned.js';
 import { randomUUID } from 'node:crypto';
 import { LiveError, fail } from './config.js';
 import * as replacementOrchestrator from './launcher-replace.js';
@@ -100,6 +102,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       || op.agent.session?.id !== config.ownedSessionId || op.agent.session.header?.origin === 'subagent') fail('WRONG_AGENT');
     if (currentBinding) currentBinding.assertOwned(op.agent);
     else if (op.agent.session.header?.cwd !== config.workspace) fail('WRONG_WORKSPACE');
+    assertWorkingDirectory(ctx, config, op.agent);
   };
   function liveChildMatches(op, record, status) {
     try {
@@ -366,9 +369,10 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       const child = record.agent, member = op.members[role], route = op.controls.roles[role].route;
       try {
         op.gate.track(role, info.id);
+        authorizeTeam(op.controls, readAuthorizedRoutes(ctx, op.agent.session));
         if (!child || child.id !== info.id || child.session?.id !== info.id
           || child.session.header?.origin !== 'subagent' || child.session.header.parentSession !== config.ownedSessionId
-          || ctx.workingDirectory.get(child.session) !== config.workspace
+          || !childWorkingDirectoryMatches(ctx, config, op.agent, child)
           || ctx.agentPresets.composedPreset(child.ctx) !== member.agentPreset
           || child.model.current()?.provider !== route.provider || child.model.current()?.model !== route.model
           || child.model.current()?.reasoningEffort !== route.reasoningEffort || child.options?.maxTokens !== 1024
@@ -507,10 +511,10 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
             modelDiscovery: false, allowedAgentPresets: template.members.map(member => member.agentPreset),
             agentOptions: { maxTokens: 1024 }, maxDepth: 1 });
           await mounted; assertCurrent(op, op.signal);
-          await preflightTeam(op.controls, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'), ctx.llm, op.signal);
+          await preflightTeam(op.controls, readAuthorizedRoutes(ctx, agent.session), ctx.llm, op.signal);
           assertCurrent(op, op.signal);
           await assertOwned(agent); assertCurrent(op, op.signal);
-          authorizeTeam(op.controls, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'));
+          authorizeTeam(op.controls, readAuthorizedRoutes(ctx, agent.session));
           toolSet = await agent.ctx.tools.resolve({ agent, modelSelection: agent.model.current(), signal: op.signal });
           assertCurrent(op, op.signal);
           if (!toolSet.view(agent).has(SPAWN)) fail('SCOPED_NATIVE_TOOL_UNAVAILABLE');

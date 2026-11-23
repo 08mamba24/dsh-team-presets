@@ -1,3 +1,4 @@
+import { bindRc5Fixture } from './fixtures/host-contract.mjs';
 import { test as nodeTest } from 'node:test';
 import assert from 'node:assert/strict';
 // This fixture drives the historical file-bound entry and its POSIX marker checks.
@@ -8,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { applyTeam } from '../src/team-driver.js';
 import { TEAM_ROLE_TOOLS } from '../src/team-config.js';
-const CONTROL_ENTRY = 'file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent-control/lib/index.js';
+import { CONTROL_ENTRY } from './fixtures/control-entry.mjs';
 
 // Synthetic native Host, task CAS and event contracts; this does not start Desktop or a provider.
 async function fixture(t, options = {}) {
@@ -17,6 +18,7 @@ async function fixture(t, options = {}) {
   const enableEntered = deferred(), enableReady = deferred();
   const commandController = new AbortController();
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'dsh-live-team-')));
+  let liveWorkspace = workspace;
   t.after(() => rm(workspace, { recursive: true, force: true }));
   const config = { mode: 'team', ownedSessionId: 'session-20000000-0000-4000-8000-000000000001', workspace,
     // A setup deadline of 20ms can fire before either child is published under
@@ -94,6 +96,7 @@ async function fixture(t, options = {}) {
   }
   const native = { apply() {} };
   async function spawn(input) {
+    await options.nativePreflight?.();
     assert.equal(input.agent, root); assert.equal(input.calls.length, 1); assert.equal(input.calls[0].name, 'dsh_live_team_spawn');
     const args = JSON.parse(input.calls[0].arguments), role = Object.keys(config.roles).find(r => config.roles[r].memberName === args.name);
     order.push(`spawn:${role}`);
@@ -239,7 +242,7 @@ async function fixture(t, options = {}) {
     if (!options.lateStart) queueMicrotask(() => work().catch(error => { record.error = error; finish('error'); }));
     return { results: [{ callId: input.calls[0].id, result: { isError: false, value: { kind: 'activation', name: binding.memberName } } }], additionalContexts: [], concluded: false };
   }
-  root.ctx.tools = { async resolve() { return { view: () => new Map(mounted ? [['dsh_live_team_spawn', {}]] : []), dispose() {} }; }, execute: spawn };
+  root.ctx.tools = { async resolve() { options.onToolResolution?.(); return { view: () => new Map(mounted ? [['dsh_live_team_spawn', {}]] : []), dispose() {} }; }, execute: spawn };
   root.ctx.plugin = (_module, spec) => {
     assert.equal(spec.maxDepth, 1); assert.deepEqual(spec.allowedAgentPresets, Object.values(config.roles).map(r => r.presetId));
     mounted = true; const p = Promise.resolve(); p.dispose = async () => {
@@ -248,6 +251,10 @@ async function fixture(t, options = {}) {
     }; return p;
   };
   const ctx = { agents: { get: id => agents.get(id) }, agentTeams: team,
+    workingDirectory: { get: session => {
+      if (session !== root.session && options.childDirectoryError) throw new Error('native directory unavailable');
+      return session !== root.session && options.childDirectory ? '/outside-child-workspace' : liveWorkspace;
+    } },
     // Durable projection reads remain available while Team mode is disabled; they are not board service calls.
     sessionProjections: { stateOf(_session, key) { return key === 'agentTeam'
       ? { ...(teamModeSaved ? { enabled: teamEnabled } : {}), id: root.id, tasks: [...tasks.values()].map(task => structuredClone(task)), nextTaskNumber: createAttempts + 1 }
@@ -258,8 +265,9 @@ async function fixture(t, options = {}) {
     on: (name, fn) => on(hooks, name, fn), commands: { register(def) { commands.set(def.name, def); return () => commands.delete(def.name); } },
     effect(generator) { for (const dispose of generator()) effects.push(dispose); },
   };
-  await applyTeam(ctx, config, native, { name: CONTROL_ENTRY, config: { interrupt: false } });
+  await applyTeam(bindRc5Fixture(ctx), config, native, { name: CONTROL_ENTRY, config: { interrupt: false } });
   return { config, root, hooks, tasks, order,
+    setWorkingDirectory: value => { liveWorkspace = value; },
     invoke: () => commands.get('dsh-team-live').handler({ agent: root, rawInput: 'run-pair', attachments: [], signal: commandController.signal }),
     dispose: async () => { for (const fn of effects.slice().reverse()) await fn(); },
     release: () => { for (const record of childRecords.values()) record.finish('aborted'); releaseMessage(); },
@@ -278,6 +286,39 @@ async function fixture(t, options = {}) {
     stats: () => ({ mounted, disposals, interrupts, unregisters, mutations, createAttempts, teamEnabled, attackBodies, unrelatedPasses, providerCalls, policyCalls, pausedBodyCalls,
       childErrors: [...childRecords.values()].flatMap(c => c.error ? [c.error.message] : []) }),
   };
+}
+
+test('Team pair rejects a changed live parent workspace without changing the board', async t => {
+  const h = await fixture(t); h.setWorkingDirectory('/outside-owned-workspace');
+  const result = await h.invoke();
+  assert.match(result.text, /WRONG_WORKSPACE/);
+  assert.equal(h.stats().mutations, 0); assert.deepEqual(h.childIds(), []);
+  await h.dispose();
+});
+
+test('Team pair rechecks live workspace after tool resolution before its first write', async t => {
+  const h = await fixture(t, { onToolResolution: () => h.setWorkingDirectory('/outside-owned-workspace') });
+  const result = await h.invoke();
+  assert.match(result.text, /WRONG_WORKSPACE/);
+  assert.equal(h.stats().mutations, 0); assert.deepEqual(h.childIds(), []);
+  assert.equal(h.stats().disposals, 1); await h.dispose();
+});
+
+for (const scenario of ['inner-preflight', 'child-directory', 'directory-error', 'route-revocation']) {
+  test(`Team pair blocks ${scenario} at native child publication before model execution`, async t => {
+    const options = { childDirectory: scenario === 'child-directory', childDirectoryError: scenario === 'directory-error' };
+    options.nativePreflight = async () => {
+      await Promise.resolve();
+      if (scenario === 'inner-preflight') h.setWorkingDirectory('/outside-owned-workspace');
+      if (scenario === 'route-revocation') options.unauthorized = true;
+    };
+    const h = await fixture(t, options);
+    const result = await h.invoke();
+    assert.match(result.text, scenario === 'route-revocation' ? /SESSION_ROUTE_NOT_AUTHORIZED/ : /CHILD_CONFIGURATION_CHANGED/);
+    assert.equal(h.stats().providerCalls, 0); assert.ok(h.stats().interrupts >= 1);
+    assert.deepEqual(h.childIds(), ['child-reviewer']); assert.equal(h.stats().mounted, false);
+    await h.dispose();
+  });
 }
 
 test('TEAM_DISABLED cold root enables the native task board before using it', async t => {

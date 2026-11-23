@@ -2,7 +2,7 @@ name: Windows plugin acceptance
 
 on:
   push:
-    branches: [main, 'feature/windows-*']
+    branches: [main, 'feature/windows-*', 'feature/compat-dsh-alpha2']
   pull_request:
   workflow_dispatch:
 
@@ -16,6 +16,10 @@ concurrency:
 jobs:
   windows:
     runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        host: ['0.2.2-rc.5', '0.2.3-alpha.2']
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -26,19 +30,19 @@ jobs:
         run: npm test
       - name: Real Windows Host lifecycle (no account or model calls)
         shell: pwsh
-        run: ./scripts/accept-windows.ps1 -WorkDir "$env:RUNNER_TEMP/dsh-windows-acceptance"
+        run: ./scripts/accept-windows.ps1 -WorkDir "$env:RUNNER_TEMP/dsh-windows-acceptance" -HostVersion '${{ matrix.host }}'
       - name: Preserve bounded acceptance evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: windows-host-${{ github.sha }}
+          name: windows-host-${{ matrix.host }}-${{ github.sha }}
           path: ${{ runner.temp }}/dsh-windows-acceptance/receipts/
           if-no-files-found: warn
           retention-days: 30
       - name: Preserve the tested install candidate
         uses: actions/upload-artifact@v4
         with:
-          name: windows-plugin-${{ github.sha }}
+          name: windows-plugin-${{ matrix.host }}-${{ github.sha }}
           path: ${{ runner.temp }}/dsh-windows-acceptance/*.tgz
           if-no-files-found: error
           retention-days: 30

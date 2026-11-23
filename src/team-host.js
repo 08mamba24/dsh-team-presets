@@ -10,7 +10,7 @@ const TASK_CONTROL = '@deepseek-ai/dsh-tool-agent-team';
 const SCOPE = '@deepseek-ai/dsh-scope';
 
 async function resolvedControlHost() {
-  const { nativeSubagent, version, archive, platform } = await nativeHostFromApp();
+  const { nativeSubagent, adapter, version, archive, platform } = await nativeHostFromApp();
   const path = hostPathApi(platform), host = createRequire(path.join(archive, 'dsh', 'package.json'));
   const metadataPath = host.resolve(`${CONTROL}/package.json`);
   const entryPath = host.resolve(CONTROL);
@@ -24,20 +24,20 @@ async function resolvedControlHost() {
   catch { fail('CONTROL_PACKAGE_METADATA_INVALID'); }
   if (metadata?.name !== CONTROL) fail('WRONG_CONTROL_PACKAGE');
   if (metadata.version !== version) fail('WRONG_CONTROL_HOST_VERSION');
-  return { nativeSubagent, version, archive, platform, path, host, entryPath };
+  return { nativeSubagent, adapter, version, archive, platform, path, host, entryPath };
 }
 
 /** M2-only native control entry; reuse the accepted Host guard before any new resolution. */
 export async function nativeTeamFromHost() {
-  const { nativeSubagent, entryPath, platform } = await resolvedControlHost();
-  return Object.freeze({ nativeSubagent, controlEntry: Object.freeze({
+  const { nativeSubagent, adapter, entryPath, platform } = await resolvedControlHost();
+  return Object.freeze({ nativeSubagent, adapter, controlEntry: Object.freeze({
     name: pathToFileURL(entryPath, { windows: platform === 'win32' }).href, config: Object.freeze({ interrupt: false }),
   }) });
 }
 
 /** Public scope primitive and native control module from the same pinned Host. */
 export async function nativeRoleControlFromHost() {
-  const { version, archive, platform, path, host, entryPath } = await resolvedControlHost();
+  const { adapter, version, archive, platform, path, host, entryPath } = await resolvedControlHost();
   const scopeRoot = path.join(archive, 'dsh', 'node_modules', SCOPE);
   const scopeMetadataPath = host.resolve(`${SCOPE}/package.json`), scopeEntryPath = host.resolve(SCOPE);
   const taskRoot = path.join(archive, 'dsh', 'node_modules', TASK_CONTROL);
@@ -66,5 +66,5 @@ export async function nativeRoleControlFromHost() {
     || typeof scopeApi.scopeOf !== 'function' || typeof scopeApi.scopeParentOf !== 'function') {
     fail('ROLE_CONTROL_HOST_CONTRACT_UNAVAILABLE');
   }
-  return Object.freeze({ controlModule, taskModule, scopeApi });
+  return Object.freeze({ controlModule, taskModule, scopeApi, adapter });
 }

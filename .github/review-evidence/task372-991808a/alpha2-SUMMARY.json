@@ -1,0 +1,85 @@
+{
+  "sourceHead": "991808aa268c3b42a949d3d405d4404fc642ccc0",
+  "pluginSha256": "1b2e35d751899590f337870d5a0b6bd0462004f91fa152e9b3d8f13e433f99e9",
+  "hostLabel": "alpha2",
+  "passed": true,
+  "results": [
+    {
+      "label": "alpha2",
+      "name": "admission",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-admission.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 5,
+      "errors": []
+    },
+    {
+      "label": "alpha2",
+      "name": "store",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-store.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 5,
+      "errors": []
+    },
+    {
+      "label": "alpha2",
+      "name": "addressing",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-addressing.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 14,
+      "errors": []
+    },
+    {
+      "label": "alpha2",
+      "name": "replacement",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-replacement.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 13,
+      "errors": []
+    },
+    {
+      "label": "alpha2",
+      "name": "multi-role",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-multi-role.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 21,
+      "errors": []
+    },
+    {
+      "label": "alpha2",
+      "name": "legacy-changed",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-legacy-changed.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 14,
+      "errors": []
+    },
+    {
+      "label": "alpha2",
+      "name": "legacy-unchanged",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-legacy-unchanged.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 14,
+      "errors": []
+    }
+  ]
+}

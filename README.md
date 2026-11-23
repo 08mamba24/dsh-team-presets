@@ -2,13 +2,15 @@
 
 Create a team of 1-8 named members in the current DeepSeek Harness root session — the bundled example ships an implementer and a reviewer — each with its own model route, persistent role prompt, and work tool list, optionally seeded from built-in or custom role templates.
 
-**Current prerelease: [0.6.0-rc.1](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.6.0-rc.1)** (independently reviewed and verified on macOS and Windows). Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort, prompts and tool list in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
+**Published prerelease: [0.6.0-rc.1](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.6.0-rc.1)** (independently reviewed and verified on macOS and Windows). Installation provides the profile-wide `dsh-team-configure` skill: configure each role's provider, model, effort, prompts and tool list in an Agent conversation without editing YAML. Effort defaults to `max` and is validated by the configured native adapter. This update has no paid model execution; historical rc.2 macOS low-effort evidence does not establish arbitrary-model execution for this version. See [acceptance and limits](docs/ACCEPTANCE.md).
+
+**0.6.0-rc.2 candidate:** [PR #11](https://github.com/08mamba24/dsh-team-presets/pull/11) adds pinned Harness 0.2.3-alpha.2 macOS arm64 and Windows x64 support while retaining rc.5. It is not a release. Build this branch with `npm pack --ignore-scripts` to obtain `dsh-subagent-live-rc2-local-0.6.0-rc.2.tgz`; match its digest to the exact candidate receipts before installation. The published rc.1 package does not support alpha.2.
 
 [中文安装与使用说明](README.zh-CN.md)
 
 **Multi-role candidate.** Default teams now configure 1-8 independent members: edit an existing name, add a new member with explicit provider/model/effort, or remove one, all through the same inspect→preview→apply revision+fingerprint gate and native approval. Six built-in role templates (architect, implementer, reviewer, tester, researcher, designer) carry duty prompts and tool suggestions; custom templates persist with the default template and are replaced as a whole table under the same CAS. Future-default seed tasks follow the same whole-table rule through `seedTasks`: to remove a member who is still a seed owner, reassign or clear that ownership in the same saved change (omitted `owner` clears it, `seedTasks: []` means no seeds); without explicit adjustment the save is refused and no seed is silently deleted. Already-launched teams' real tasks are unaffected and stay on native task tools and replacement. A template ID is not a member identity — several members may share one template while keeping separate models, prompts and tool lists. Templates never contain provider/model and grant no authorization. Saved members and explicit tool lists stay exact; only a brand-new built-in-template member without a provided tool list receives suggestions intersected with the current root catalog, shown in preview. Role-less legacy templates keep their fingerprints byte-for-byte and rc.7 teams remain readable. The native scripted-provider acceptance covers installed factory configuration, one- and four-member launches, explicit membership changes and rc.7 migration. Match each candidate TGZ to its exact platform receipts in [acceptance and limits](docs/ACCEPTANCE.md); a draft PR is not a release.
 
-Windows x64 support targets the reviewed Harness 0.2.2-rc.5 archive and the current-session `/dsh-team` entry. See [Windows installation and CI scope](docs/WINDOWS.md). The historical file-bound entries remain macOS-only.
+Windows x64 support targets the exact Harness rc.5 and alpha.2 archives and the current-session `/dsh-team` entry. See [Windows installation and CI scope](docs/WINDOWS.md). The historical file-bound entries remain macOS-only.
 
 ## Install and launch
 
@@ -35,7 +37,7 @@ Save these team defaults.
 
 The Agent reads actual provider/model IDs, previews the requested changes through the native adapter, then saves through native approval and persistent settings. Supply your real model choices, without pasting profiles or credentials. A request for advice alone stops at preview.
 
-Each member supports its own duties, model, effort, persona, startup input and tool list, and may be seeded from a built-in or custom role template (`action: roles` lists both; `customTemplates` saves custom ones). “Global” means defaults within the installed profile, and does not modify existing teams. Use an unbound root as directed by the result; changes to native model authorization require saving the selection and creating a new root. The skill does not grant authorization or start members. See [models and prompts](docs/MODELS-AND-PROMPTS.md).
+Each member supports its own duties, model, effort, persona, startup input and tool list, and may be seeded from a built-in or custom role template (`action: roles` lists both; `customTemplates` saves custom ones). “Global” means defaults within the installed profile, and does not modify existing teams. Use an unbound root as directed by the result; on rc.5, model-authorization changes require a new root; alpha.2 samples the native live setting on each operation, including revocation. The skill does not grant authorization or start members. See [models and prompts](docs/MODELS-AND-PROMPTS.md).
 
 ## Configure tools by role
 
@@ -52,7 +54,7 @@ Enable native Agent model selection and allow both default routes:
 | implementer | `deepseek-account/deepseek-flash` | `max` |
 | reviewer | `deepseek-account/deepseek-v4-pro` | `max` |
 
-Create a new root session after saving the selection. Existing sessions keep their durable policy; changing a global preference does not retroactively authorize them. The plugin checks that native policy and never grants model permissions. An official-provider Pro entry labelled as routing to Flash is not a substitute for account/Pro. Client route evidence does not establish backend model weights or billing. Keep the selected routes if you intend to continue using them; reverting temporary preferences is a separate settings operation.
+On rc.5, create a new root after saving model selection; existing sessions keep their durable policy. On alpha.2, each launch, add, replacement and configuration check reads the native live setting: saved changes and revocations affect the next operation, and retained Session events cannot authorize a revoked route. Team-template changes still require an unbound root when directed. The plugin never grants model permissions. An official-provider Pro entry labelled as routing to Flash is not a substitute for account/Pro. Client route evidence does not establish backend model weights or billing. Keep the selected routes if you intend to continue using them; reverting temporary preferences is a separate settings operation.
 
 In the target root, run:
 
@@ -128,10 +130,10 @@ The explicit bound `/dsh-team-launcher` export and offline preparation CLI remai
 After each Harness update, run this read-only check from the source package:
 
 ```sh
-npm run check:compat -- --upstream
+npm run check:compat -- --app-executable "/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" --upstream
 ```
 
-It checks the physical App archive, package declaration, and official release feed. Unknown archives/RCs require review. This is an on-demand check, not background monitoring; it installs nothing and makes no model call. See [the host matrix](docs/HOST-COMPATIBILITY.md).
+Supply the executable of the intended App; replace the example path for a relocated installation. Windows paths are shown in [the host matrix](docs/HOST-COMPATIBILITY.md). It checks that physical App archive, package declaration, and official release feed. Unknown archives/RCs require review. This is an on-demand check, not background monitoring; it installs nothing and makes no model call.
 
 Source validation needs Node.js 22+ and npm, with no additional npm runtime dependencies:
 

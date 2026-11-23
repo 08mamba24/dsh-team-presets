@@ -1,3 +1,4 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
 import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -165,7 +166,7 @@ export async function applyTeamConfigurator(ctx, launcher, nativeConfiguration, 
     return { revision: row.revision, template, customs };
   };
   const authorization = (agent, template) => {
-    const policy = ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy');
+    const policy = readAuthorizedRoutes(ctx, agent.session);
     return template.members.map(member => ({ name: member.name, provider: member.provider, model: member.model,
       authorized: Array.isArray(policy) && policy.some(route => route.provider === member.provider && route.model === member.model) }));
   };
@@ -236,7 +237,7 @@ export async function applyTeamConfigurator(ctx, launcher, nativeConfiguration, 
             roleTemplatesAvailable: library !== null, ...(catalog === null ? {} : { templates: catalog }),
             currentModel: current && { provider: current.provider, model: current.model, reasoningEffort: current.reasoningEffort },
             providers: ctx.llm.listProviders().map(provider => ({ id: provider.id, name: provider.name })),
-            authorizedRoutes: ctx.sessionProjections.stateOf(exec.agent.session, 'subagentModelSelectionPolicy') ?? [],
+            authorizedRoutes: readAuthorizedRoutes(ctx, exec.agent.session) ?? [],
             currentSessionAlreadyBound: launcher.hasBinding(exec.agent.id),
             scope: 'profile defaults for roots not yet bound', existingMembersChanged: false });
         }

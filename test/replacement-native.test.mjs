@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { nativeReadiness, nativeTaskWrites, quietReplacementTree, maintainReplacementTree } from '../src/replacement-native.js';
+import { createReplacementRuntime, nativeReadiness, nativeTaskWrites, quietReplacementTree, maintainReplacementTree } from '../src/replacement-native.js';
+import { bindHostContext, createHostAdapter } from '../src/host-adapter.js';
 
 const ROOT = 'session-10000000-0000-4000-8000-000000000001';
 const OLD = 'session-10000000-0000-4000-8000-000000000002';
@@ -9,6 +10,20 @@ const OP = { id: 'replace-10000000-0000-4000-8000-000000000004', newChildId: NEW
   role: 'implementer', instanceName: 'implementer-r1',
   handoffDigest: 'a'.repeat(64), candidateConfig: JSON.stringify({ instanceName: 'implementer-r1' }) };
 const ack = () => JSON.stringify({ ready: true, operation: OP.id, handoff: OP.handoffDigest });
+
+test('replacement metadata resolution cannot retain a route revoked while awaiting the adapter', async () => {
+  let routes = [{ provider: 'p', model: 'm' }];
+  const root = { id: ROOT, session: { id: ROOT, header: {} } };
+  const ctx = { on: () => () => {}, agents: { get: () => root }, settings: {},
+    tools: { definitions: () => [] }, get: () => ({ allowedRoutes: () => routes }),
+    llm: { async resolveCallConfig(route) { routes = []; return { ...route }; } },
+    subagents: { startActivation() {}, getProvider: () => ({ capabilities: { agentOptions: true, agentPreset: true, depthLimit: true } }) } };
+  bindHostContext(ctx, createHostAdapter({ version: '0.2.3-alpha.2', Context: { root: Symbol('root') } }));
+  const runtime = createReplacementRuntime(ctx, { ownedSessionId: ROOT }, {});
+  const host = runtime.host(root, new AbortController().signal);
+  await assert.rejects(host.preflight({ provider: 'p', model: 'm', reasoningEffort: 'max', tools: [] }),
+    { code: 'REPLACEMENT_ROUTE_UNAUTHORIZED' });
+});
 
 test('readiness authenticates the real relay source and parses the payload after its native address prefix', () => {
   const message = { id: 'message-ack', source: { kind: 'agent-message', form: 'relay', senderSessionId: NEW },

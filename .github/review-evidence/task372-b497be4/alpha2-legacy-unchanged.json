@@ -1,0 +1,741 @@
+{
+  "sourceHead": "tgz-sha256:ace01850ae1341bb75135d0f42c6ffb13a73859080a29b05458937448143f60d",
+  "runtime": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh",
+  "hostVersion": "0.2.3-alpha.2",
+  "legacySeed": {
+    "sourceHead": "tgz-sha256:ace01850ae1341bb75135d0f42c6ffb13a73859080a29b05458937448143f60d",
+    "runtime": "/Applications/DeepSeek Harness.app/Contents/Resources/app.asar/dsh",
+    "hostVersion": "0.2.2-rc.5",
+    "seed": {
+      "rootId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "oldId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "template": {
+        "template_schema": "dsh-team-template/1",
+        "template_meta": {
+          "live_verified": false,
+          "notes": "Editable two-role base example. Unconfigured current-session defaults add registered file/search/shell/skill tools from the Host; explicit and saved tool lists are kept exact. Startup prompt is one-time input; persona_prompt persists in the role AgentPreset. Tool visibility grants no native permission, model budget or live acceptance."
+        },
+        "version": 1,
+        "name": "preset-team-example",
+        "max_members": 4,
+        "members": [
+          {
+            "name": "implementer",
+            "description": "实现角色：认领并推进任务，交付可验证的结果",
+            "prompt": "你已加入团队。先根据你的角色确认就绪，等待后续明确任务。启动阶段不主动认领或执行种子任务；仅回复角色名和就绪状态。",
+            "persona_prompt": "你是 implementer。围绕团队任务板与消息协作：认领任务、使用本角色实际可用且原生权限允许的工具推进工作，把结果与验证证据写回任务板并及时同步。结论只基于实际检查，不虚报成功；没查完就说没查完。涉及文件或终端时遵守工作区、沙箱和审批；缺少工具时报告具体缺口，不宣称未配置的能力。",
+            "agent_preset": "dsh-current-952936814cc4689344bf0bbd-implementer",
+            "provider": "isolated-provider",
+            "model": "scripted-model",
+            "reasoning_effort": "max",
+            "native_tool_allowlist": [
+              "team_task_get",
+              "team_task_update",
+              "send_message",
+              "replacement_probe_write"
+            ]
+          },
+          {
+            "name": "reviewer",
+            "description": "复核角色：独立审查结果，给证据绑定的裁定",
+            "prompt": "你已加入团队。先根据你的角色确认就绪，等待后续明确任务。启动阶段不主动认领或执行种子任务；仅回复角色名和就绪状态。",
+            "persona_prompt": "你是 reviewer。使用本角色实际可用且原生权限允许的工具独立复核实现交付，逐项对照任务书、源码、测试及任务记录，将结论绑定可复查的证据。裁定用 P0/P1/P2 分级并给可执行的修复要求；不做人情确认，不把作者自述当独立验证。缺少读取或验证工具时标注证据不足，不臆断；遵守工作区、沙箱和审批。",
+            "agent_preset": "dsh-current-952936814cc4689344bf0bbd-reviewer",
+            "provider": "isolated-provider",
+            "model": "scripted-model",
+            "reasoning_effort": "max",
+            "native_tool_allowlist": [
+              "team_task_get",
+              "team_task_update",
+              "send_message",
+              "replacement_probe_write"
+            ]
+          }
+        ],
+        "seed_tasks": [
+          {
+            "key": "implement-work-item",
+            "subject": "实现当前工作项并自验",
+            "description": "收到明确任务书后，由 implementer 使用已配置的任务板与消息能力推进工作，写回实际结果及证据；需要未配置的文件或shell能力时报告缺口。",
+            "owner": "implementer"
+          },
+          {
+            "key": "review-work-item",
+            "subject": "独立复核 work item 的实现交付",
+            "description": "收到实现交付后，由 reviewer 对照任务书和原生任务记录独立复核，给出有证据的裁定；不把作者自述当作实际验证。",
+            "owner": "reviewer",
+            "blocked_by": [
+              "implement-work-item"
+            ]
+          }
+        ]
+      },
+      "profileDir": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/harness/profiles/replacement-rc6",
+      "patchPath": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/harness/profiles/replacement-rc6/cordis.patch.yml"
+    },
+    "isolatedDataRemoved": false,
+    "passed": true,
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "dsh-subagent-live-rc2-local"
+      ],
+      "standard": "official-unmodified-web",
+      "accountCredentialsInherited": false,
+      "scriptedModel": true
+    },
+    "hashes": {
+      "current-entry.js": "de479f52c121be08528d5ca247f1f65fc613b53531e6e97732b3cfdb6085caa4",
+      "src/team-addressing.js": "c40e6e0c96554d93078822b7b7d20bc4d3e703c7723ad3c73bd2f9b497c4db08",
+      "role-control.js": "9e612b0e0f301fd67ae89445a6164b052cd3168bbb45bcf948f8f1293259695e",
+      "src/launcher-current.js": "ee013d63130f0fbb8b36d4fb9065e4c102654ba7e3e82f52f3f7f40cd9439f9d",
+      "src/launcher-driver.js": "bcbe9db78b1b6835e8a460e5b0656c3a9e7060bd3336055c7141d4f2c73e906b",
+      "src/launcher-replace.js": "772f43f258cc7a3e82375842fc3087941691151555dc6bffbdace1404e01846f",
+      "src/member-replacement.js": "870c30b844922d475fe43e39ef553aae72cdac0f8e727216558c4bcd24025a64",
+      "src/replacement-native.js": "a4e97b737221c2c1c62f5e648699b38671d9d76e8e485534c9b9996669a1f00d",
+      "src/replacement-store.js": "66add1dff2c3083cfd03b41069c5c16afe6e30f2d5a8b7e43111019407e29608",
+      "launcher-role.js": "119f40740db0c227cddbd2b327d9cb295eb4624e8bad90376d4009bc2da83be7",
+      "src/team-replace.js": "5be3dffb05b9bf415aacfcee42358b0c8abf2a06a5fbebe6277a2a5fe5936b7b"
+    },
+    "checks": [
+      {
+        "name": "published rc.6 creates the legacy Settings/JSONL with the exact rc.5 Host before upgrade",
+        "passed": true
+      }
+    ],
+    "errors": [],
+    "expectedErrors": [],
+    "providerCalls": [
+      {
+        "childId": "00763cfa-6bfc-4d24-9d29-7ab3a229ca54",
+        "phase": "original"
+      },
+      {
+        "childId": "4d53a883-a462-44c7-9a21-995891a974fc",
+        "phase": "original"
+      }
+    ],
+    "writes": [],
+    "originalWrites": [],
+    "faults": [],
+    "nativeStarts": [
+      {
+        "id": "00763cfa-6bfc-4d24-9d29-7ab3a229ca54",
+        "childId": "00763cfa-6bfc-4d24-9d29-7ab3a229ca54",
+        "sessionId": "00763cfa-6bfc-4d24-9d29-7ab3a229ca54",
+        "present": true,
+        "origin": "subagent",
+        "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+        "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+        "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+        "preset": "dsh-current-952936814cc4689344bf0bbd-reviewer",
+        "model": {
+          "provider": "isolated-provider",
+          "model": "scripted-model",
+          "reasoningEffort": "max"
+        },
+        "maxTokens": 1024,
+        "idleHook": "function",
+        "eventHook": "function",
+        "toolGuard": "function"
+      },
+      {
+        "id": "4d53a883-a462-44c7-9a21-995891a974fc",
+        "childId": "4d53a883-a462-44c7-9a21-995891a974fc",
+        "sessionId": "4d53a883-a462-44c7-9a21-995891a974fc",
+        "present": true,
+        "origin": "subagent",
+        "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+        "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+        "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+        "preset": "dsh-current-952936814cc4689344bf0bbd-implementer",
+        "model": {
+          "provider": "isolated-provider",
+          "model": "scripted-model",
+          "reasoningEffort": "max"
+        },
+        "maxTokens": 1024,
+        "idleHook": "function",
+        "eventHook": "function",
+        "toolGuard": "function"
+      }
+    ],
+    "archiveSha256": "6f019878f523428f452957dbaad601c6468051df4093eda8af751ec65226f88e",
+    "receiptSha256": "33a7980c686572515fb6da83716affce53d8bdf8922899c55a7959f5618b0197"
+  },
+  "isolatedDataRemoved": true,
+  "passed": true,
+  "profile": {
+    "bundles": [
+      "@deepseek-ai/dsh-base",
+      "@deepseek-ai/dsh-web-app",
+      "dsh-subagent-live-rc2-local"
+    ],
+    "standard": "official-unmodified-web",
+    "accountCredentialsInherited": false,
+    "scriptedModel": true
+  },
+  "hashes": {
+    "current-entry.js": "de479f52c121be08528d5ca247f1f65fc613b53531e6e97732b3cfdb6085caa4",
+    "src/team-addressing.js": "c40e6e0c96554d93078822b7b7d20bc4d3e703c7723ad3c73bd2f9b497c4db08",
+    "role-control.js": "9e612b0e0f301fd67ae89445a6164b052cd3168bbb45bcf948f8f1293259695e",
+    "src/launcher-current.js": "ee013d63130f0fbb8b36d4fb9065e4c102654ba7e3e82f52f3f7f40cd9439f9d",
+    "src/launcher-driver.js": "bcbe9db78b1b6835e8a460e5b0656c3a9e7060bd3336055c7141d4f2c73e906b",
+    "src/launcher-replace.js": "772f43f258cc7a3e82375842fc3087941691151555dc6bffbdace1404e01846f",
+    "src/member-replacement.js": "870c30b844922d475fe43e39ef553aae72cdac0f8e727216558c4bcd24025a64",
+    "src/replacement-native.js": "a4e97b737221c2c1c62f5e648699b38671d9d76e8e485534c9b9996669a1f00d",
+    "src/replacement-store.js": "66add1dff2c3083cfd03b41069c5c16afe6e30f2d5a8b7e43111019407e29608",
+    "launcher-role.js": "119f40740db0c227cddbd2b327d9cb295eb4624e8bad90376d4009bc2da83be7",
+    "src/team-replace.js": "5be3dffb05b9bf415aacfcee42358b0c8abf2a06a5fbebe6277a2a5fe5936b7b"
+  },
+  "checks": [
+    {
+      "name": "an actual rc.6 team automatically bootstraps an unchanged original binding before managed Presets",
+      "passed": true
+    },
+    {
+      "name": "a real native old member has a durable unfinished task and is naturally cold after settlement",
+      "passed": true
+    },
+    {
+      "name": "a completed cold old turn between observation and frozen CAS keeps the plan frozen and creates no candidate or owner transfer",
+      "passed": true
+    },
+    {
+      "name": "a failed accepted activation resumes the same candidate Session and does not spawn a duplicate",
+      "passed": true
+    },
+    {
+      "name": "the native root tool completes Standby, real owner CAS, candidate continuation and a JSONL task-write proof",
+      "passed": true,
+      "result": {
+        "ok": true,
+        "operationId": "replace-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+        "phase": "active",
+        "role": "implementer",
+        "instanceName": "implementer-r2",
+        "oldChildId": "4d53a883-a462-44c7-9a21-995891a974fc",
+        "newChildId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+        "handoffDigest": "171d8078cbee4bfa4968b4299d990f812d8b1e1f6641dd7aabae01be38738cd6",
+        "transferred": [
+          {
+            "taskId": "task-4",
+            "kind": "transferred",
+            "revision": 3,
+            "at": 1795460648637
+          }
+        ],
+        "skipped": [],
+        "takeoverProof": {
+          "kind": "task-write",
+          "success": true,
+          "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+          "operationId": "replace-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+          "handoffDigest": "171d8078cbee4bfa4968b4299d990f812d8b1e1f6641dd7aabae01be38738cd6",
+          "taskId": "task-4",
+          "expectedRevision": 3,
+          "revision": 4,
+          "callId": "call-ed2a4feb-a376-4536-83fc-60b5f610851a",
+          "callSeq": 59,
+          "resultSeq": 60,
+          "action": "edit",
+          "at": 1795460650933
+        },
+        "stopFurtherMutation": false,
+        "noAutomaticRetry": true
+      }
+    },
+    {
+      "name": "business tool bodies run only after activation while task identity, dependency, progress and write scopes survive",
+      "passed": true,
+      "writes": [
+        {
+          "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+          "phase": "activating"
+        },
+        {
+          "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+          "phase": "activating"
+        },
+        {
+          "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+          "phase": "active"
+        }
+      ]
+    },
+    {
+      "name": "a real cold continuation of the retired member reaches no provider or business tool and produces no Agent exception",
+      "passed": true
+    },
+    {
+      "name": "real native root send/list/task-owner addressing follows the first replacement",
+      "passed": true,
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24"
+    },
+    {
+      "name": "a second replacement recovers a real partial multi-task transfer using the same candidate and preserves native dependencies",
+      "passed": true,
+      "faults": [
+        {
+          "code": "ISOLATED_CANDIDATE_MODEL_FAILURE",
+          "operationId": "replace-d85012b9-b0b7-49f4-97aa-7a047ccaab24"
+        },
+        {
+          "code": "ISOLATED_TASK_READ_FAILURE",
+          "taskId": "task-5",
+          "operationId": "replace-99dfbcec-7421-4254-845e-1552da2c47f4"
+        }
+      ]
+    },
+    {
+      "name": "real native root send/list/task-owner addressing follows the second replacement",
+      "passed": true,
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4"
+    },
+    {
+      "name": "explicit native cancellation safely exits an unspawned frozen plan while post-owner cancellation is refused",
+      "passed": true
+    },
+    {
+      "name": "native reassign dependency constraints refuse a blocked owned task before any frozen record or candidate",
+      "passed": true
+    },
+    {
+      "name": "fresh Loader/profile/JSONL reload mounts the original and candidate Presets before continuation, retains the current mapping, blocks old and permits new",
+      "passed": true
+    },
+    {
+      "name": "real native root send/list/task-owner addressing follows the retained replacement after full reload",
+      "passed": true,
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4"
+    }
+  ],
+  "errors": [],
+  "expectedErrors": [
+    {
+      "code": "ISOLATED_CANDIDATE_MODEL_FAILURE",
+      "message": "ISOLATED_CANDIDATE_MODEL_FAILURE",
+      "stack": "Error: ISOLATED_CANDIDATE_MODEL_FAILURE\n    at stream (file:///Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-b497be4/package/scripts/accept-native-replacement.mjs:128:27)\n    at stream.next (<anonymous>)\n    at file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-session-checkpoint-policy/lib/index.js:29:10\n    at async ReactLoopAgent.step (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:801:22)\n    at async ReactLoopAgent.turn (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:692:23)\n    at async ReactLoopAgent.kick (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:587:11)",
+      "name": "Error"
+    }
+  ],
+  "providerCalls": [
+    {
+      "childId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "phase": "original"
+    },
+    {
+      "childId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "phase": "original"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "active"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "active"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "active"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "active"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "active"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "active"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "active"
+    },
+    {
+      "childId": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "phase": "original"
+    }
+  ],
+  "writes": [
+    {
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "phase": "active"
+    }
+  ],
+  "originalWrites": [
+    {
+      "childId": "4d53a883-a462-44c7-9a21-995891a974fc"
+    }
+  ],
+  "faults": [
+    {
+      "code": "ISOLATED_CANDIDATE_MODEL_FAILURE",
+      "operationId": "replace-d85012b9-b0b7-49f4-97aa-7a047ccaab24"
+    },
+    {
+      "code": "ISOLATED_TASK_READ_FAILURE",
+      "taskId": "task-5",
+      "operationId": "replace-99dfbcec-7421-4254-845e-1552da2c47f4"
+    }
+  ],
+  "nativeStarts": [
+    {
+      "id": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "childId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "sessionId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-current-952936814cc4689344bf0bbd-implementer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "sessionId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "sessionId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "sessionId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "childId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "sessionId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-current-952936814cc4689344bf0bbd-implementer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "childId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "sessionId": "session-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-d85012b9-b0b7-49f4-97aa-7a047ccaab24",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "sessionId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "sessionId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "sessionId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "childId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "sessionId": "4d53a883-a462-44c7-9a21-995891a974fc",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-current-952936814cc4689344bf0bbd-implementer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "sessionId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "childId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "sessionId": "session-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "parent": "session-5f3bc94b-62d6-45cf-a540-2daf11522fb6",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-b497be4-alpha2-legacy-unchanged/tmp/dsh-native-replacement-Kma6sz/workspace",
+      "preset": "dsh-replace-99dfbcec-7421-4254-845e-1552da2c47f4",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    }
+  ]
+}

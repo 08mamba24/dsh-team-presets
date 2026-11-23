@@ -1,3 +1,4 @@
+import { bindRc5Fixture } from './fixtures/host-contract.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdir, readFile } from 'node:fs/promises';
@@ -53,6 +54,7 @@ test('live template defaults affect unbound roots while existing plans and Prese
       register(spec) { return ownerOf(spec.plugins[1].config.ownedSessionId).ctx.agentPresets.register(spec); } },
     plugin(module) { return Promise.resolve(module.apply(ctx)); },
   };
+  bindRc5Fixture(ctx);
   const control = await applyCurrentLauncher(ctx, { mode: 'current-session', template: first.template }, { apply() {} }, CONTROL,
     { readTemplate: () => value, prepareRoot: async () => {} });
   const plan = async host => decode(await commands.get('dsh-team').handler({ agent: host.root, rawInput: 'plan', attachments: [], signal: new AbortController().signal }));
@@ -188,6 +190,24 @@ test('an incorrect effective child directory is rejected but an ended idle child
   assert.equal(host.presets.size, 0);
 });
 
+test('current launcher blocks parent-only directory drift at publication before provider execution', async t => {
+  const host = await currentHost(t, { pendingStartup: true, childBeforeToolReturn: true,
+    nativePreflight: async () => { await host.ctx.workingDirectory.set(host.root, '/outside-owned-workspace'); } });
+  const starts = [], ends = [];
+  host.ctx.on('subagent/start', info => starts.push({ ...info,
+    parentCwd: host.ctx.workingDirectory.get(host.root.session),
+    childCwd: host.ctx.workingDirectory.get(host.children.get(info.id).agent.session) }));
+  host.ctx.on('subagent/end', info => ends.push(info));
+  const result = await host.invoke('launch');
+  assert.equal(host.counts().providerCalls, 0);
+  assert.match(result.text, /CHILD_CONFIGURATION_CHANGED/);
+  assert.equal(starts.length, 1); assert.equal(starts[0].childCwd, host.config.workspace);
+  assert.equal(starts[0].parentCwd, '/outside-owned-workspace');
+  assert.equal(ends.length, 1);
+  for (const key of ['id', 'runId', 'parentSessionId']) assert.equal(ends[0][key], starts[0][key]);
+  assert.ok([...host.children.values()].every(child => child.ended && child.agent.status === 'idle'));
+});
+
 test('reload restores retained Presets and prepares live or resumed roots without recreating members', async t => {
   const host = await currentHost(t);
   assert.equal(decode(await host.invoke('launch')).kind, 'success');
@@ -202,6 +222,7 @@ test('reload restores retained Presets and prepares live or resumed roots withou
     plugin(module) { return Promise.resolve(module.apply(ctx)); },
   };
   const prepared = [];
+  bindRc5Fixture(ctx);
   await applyLauncher(ctx, { mode: 'current-session', template: host.template }, { apply() {} }, CONTROL, {
     readRecords: () => ctx.settings.describe().find(row => row.ns === 'dsh-native-current-team').value.replacementRecords,
     prepareRoot: async agent => { prepared.push(agent); },
@@ -234,6 +255,7 @@ test('one command registration plans two registered roots independently', async 
       register(spec) { return ownerOf(spec.plugins[1].config.ownedSessionId).ctx.agentPresets.register(spec); } },
     plugin(module) { return Promise.resolve(module.apply(ctx)); },
   };
+  bindRc5Fixture(ctx);
   await applyLauncher(ctx, { mode: 'current-session', template: first.template }, { apply() {} }, CONTROL,
     { prepareRoot: async () => {} });
   assert.deepEqual([...commands.keys()], ['dsh-team']);

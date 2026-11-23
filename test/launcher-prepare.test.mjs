@@ -50,7 +50,8 @@ test('offline preparation produces an exact bound TGZ and files accepted by exis
   const template = await readLauncherTemplate(config);
   assert.equal(template.members[0].personaPrompt, example.members[0].persona_prompt);
   const agent = { id: sessionId, session: { id: sessionId, header: { cwd: h.workspace } } };
-  assert.equal(await assertLauncherOwned({ agents: { get: id => id === sessionId ? agent : undefined } }, config, agent), true);
+  assert.equal(await assertLauncherOwned({ agents: { get: id => id === sessionId ? agent : undefined },
+    workingDirectory: { get: () => config.workspace } }, config, agent), true);
   const { stdout } = await exec('tar', ['-xOzf', result.packagePath, 'package/cordis.patch.yml']);
   const patch = JSON.parse(stdout);
   assert.equal(Array.isArray(patch), true);

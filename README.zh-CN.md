@@ -6,7 +6,9 @@
 
 **多角色候选能力。** 默认团队支持 1～8 个独立成员：沿用名单中的名字表示修改，新名字表示增员（必须显式给出 provider/model/effort），也可移除成员；全部经同一 inspect→preview→apply 的 revision＋fingerprint 门禁与原生审批保存。六内置角色模板（architect、implementer、reviewer、tester、researcher、designer）携带职责提示词与工具建议；自定义模板与默认模板同表持久化，整表替换走同一次 CAS。未来默认的种子任务经 `seedTasks` 同规则整表替换：要移除仍是种子任务 owner 的成员，须在同一次保存中显式改派或清除该责任（省略 `owner` 即清除，`seedTasks: []` 表示无种子）；未显式调整则保存被拒，不静默删除任何种子。已建团队真实任务不受 seedTasks 影响，仍走原生 task 工具与替换流程。模板 ID 不是成员身份：同一模板可有多个相互独立的成员，各自持有模型、提示词与工具集。模板不含 provider/model，不授予任何权限。已保存成员与显式工具列表保持 exact；仅"全新成员取自内置模板且未提供工具列表"时把模板建议与当前根真实目录取交集，preview 显示最终列表。无 role 字段的旧模板指纹逐字节不变，rc.7 团队继续可读。原生 scripted-provider 验收覆盖真实出厂配置、单成员／四成员启动、显式成员调整和 rc.7 迁移。按[验收记录](docs/ACCEPTANCE.md)核对候选 TGZ 摘要与精确平台回执；草稿 PR 不代表发行。
 
-Windows x64 适配面向已检查的 Harness 0.2.2-rc.5 和当前会话 `/dsh-team` 入口，见 [Windows 安装与 CI 验收](docs/WINDOWS.md)。旧的本地文件绑定入口仍只支持 macOS。
+**0.6.0-rc.2 适配候选：**[PR #11](https://github.com/08mamba24/dsh-team-presets/pull/11) 增加精确 Harness 0.2.3-alpha.2 的 macOS arm64 / Windows x64 支持并保留 rc.5。本分支用 `npm pack --ignore-scripts` 生成 `dsh-subagent-live-rc2-local-0.6.0-rc.2.tgz`，安装前须核对同一摘要的候选验收回执。它尚未发行；已发布 rc.1 不支持 alpha.2。
+
+Windows x64 适配面向精确 Harness rc.5 / alpha.2 归档 和当前会话 `/dsh-team` 入口，见 [Windows 安装与 CI 验收](docs/WINDOWS.md)。旧的本地文件绑定入口仍只支持 macOS。
 
 ## 下载与安装
 
@@ -34,7 +36,7 @@ npm pack
 
 Agent 会读取实际 provider/model ID，预检明确修改的路由与 effort，再通过原生审批和持久设置保存。只需提供本机真实模型选择；不需要贴整份 profile 或凭据。仅询问方案时只预览，不保存。
 
-每个成员可分别改职责、模型、effort、提示词和工具集，并可从内置或已保存的自定义角色模板起步（`action: roles` 只读列出模板，`customTemplates` 整表保存自定义模板）。成员数量 1～8，超过默认 4 的帽需显式提升；同一模板可生成多个模型、提示词与工具互不串扰的独立成员。“全局”指当前安装 profile 的默认模板；已有团队不随默认值变更。保存后按工具提示使用尚未绑定团队的根会话；若模型授权也有变化，须保存原生授权并新建根会话。skill 不自动授权或启动成员。完整说明见[模型与提示词](docs/MODELS-AND-PROMPTS.md)。
+每个成员可分别改职责、模型、effort、提示词和工具集，并可从内置或已保存的自定义角色模板起步（`action: roles` 只读列出模板，`customTemplates` 整表保存自定义模板）。成员数量 1～8，超过默认 4 的帽需显式提升；同一模板可生成多个模型、提示词与工具互不串扰的独立成员。“全局”指当前安装 profile 的默认模板；已有团队不随默认值变更。保存后按工具提示使用尚未绑定团队的根会话；模型授权变化时，rc.5 须保存原生授权并新建根；alpha.2 每次操作实时读取，保存或撤销从下一次操作生效。skill 不自动授权或启动成员。完整说明见[模型与提示词](docs/MODELS-AND-PROMPTS.md)。
 
 ## 按角色配置工具
 
@@ -53,7 +55,7 @@ Agent 会读取实际 provider/model ID，预检明确修改的路由与 effort�
 | implementer | `deepseek-account/deepseek-flash` | `max` |
 | reviewer | `deepseek-account/deepseek-v4-pro` | `max` |
 
-在原生界面的“插件 → 官方 → 子智能体 → 模型选择”开启 Agent 选择模型，并勾选模板所需路由。保存后创建新根会话；已有会话不会因为全局选项改变而自动获得新的持久模型授权。`plan` 只给出成员创建／冲突计划；`launch` 才检查目标会话的真实 policy。规划通过不代表模型已经获授权，本插件不会替会话授予权限。
+在原生界面的“插件 → 官方 → 子智能体 → 模型选择”开启 Agent 选择模型，并勾选模板所需路由。rc.5 保存授权后须创建新根会话，已有会话保持原持久 policy；alpha.2 在每次启动、增员、替换和配置检查时读取原生实时设置，撤销后不能沿用旧 Session 事件授权。团队模板变更仍按工具提示使用未绑定的根。`plan` 只给出成员创建／冲突计划；`launch` 才检查目标会话的真实 policy。规划通过不代表模型已经获授权，本插件不会替会话授予权限。
 
 DeepSeek 官方提供方的 Pro 菜单项可能标注路由到 Flash；它不能替代模板里的 account/Pro 路由。验收证明了客户端配置与实际请求使用的两条路由，不证明服务端权重身份或计费。
 
@@ -142,10 +144,10 @@ Agent 先调用 `dsh_team_replace action: inspect`，在 `inspect.roles` 中选�
 每次 Harness 升级后，在源码包目录执行：
 
 ```sh
-npm run check:compat -- --upstream
+npm run check:compat -- --app-executable "/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" --upstream
 ```
 
-该按需只读命令检查物理 App 指纹、安装声明和官方 release feed；未知 RC 或归档需要重新审查。它不订阅后台监控，也不安装、改 profile 或调用模型。当前支持范围及指纹见 [HOST-COMPATIBILITY.md](docs/HOST-COMPATIBILITY.md)。
+显式传入目标 App 的可执行文件；非默认位置请替换示例路径，Windows 路径见 [HOST-COMPATIBILITY.md](docs/HOST-COMPATIBILITY.md)。该按需只读命令检查所选 App 的物理指纹、安装声明和官方 release feed；未知 RC 或归档需要重新审查。它不订阅后台监控，也不安装、改 profile 或调用模型。
 
 源码检查和打包需要 Node.js 22 或更新版本与 npm；仓库没有额外 npm 运行依赖：
 

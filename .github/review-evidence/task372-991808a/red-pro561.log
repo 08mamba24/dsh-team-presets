@@ -1,0 +1,292 @@
+TAP version 13
+# Subtest: compat CLI requires the intended Host executable instead of reading a daily default
+not ok 1 - compat CLI requires the intended Host executable instead of reading a daily default
+  ---
+  duration_ms: 287.590958
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/compat-cli.test.mjs:12:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    0 !== 1
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 1
+  actual: 0
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/compat-cli.test.mjs:14:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: compat CLI reads the explicitly selected relocated archive
+ok 2 - compat CLI reads the explicitly selected relocated archive
+  ---
+  duration_ms: 58.855125
+  type: 'test'
+  ...
+# Subtest: a same-version runtimeMetadata resolved outside the pinned archive is refused
+not ok 3 - a same-version runtimeMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 17.476542
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:150:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'HOST_MODULE_OUTSIDE_PINNED_ARCHIVE'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:152:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: a same-version cliMetadata resolved outside the pinned archive is refused
+not ok 4 - a same-version cliMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 6.190125
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:150:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'HOST_MODULE_OUTSIDE_PINNED_ARCHIVE'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:152:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a same-version subagentMetadata resolved outside the pinned archive is refused
+not ok 5 - a same-version subagentMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 4.619542
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:150:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'HOST_MODULE_OUTSIDE_PINNED_ARCHIVE'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:152:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a same-version subagentEntry resolved outside the pinned archive is refused
+not ok 6 - a same-version subagentEntry resolved outside the pinned archive is refused
+  ---
+  duration_ms: 3.753792
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:150:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'HOST_MODULE_OUTSIDE_PINNED_ARCHIVE'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:152:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a same-version cordisMetadata resolved outside the pinned archive is refused
+not ok 7 - a same-version cordisMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 5.250083
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:150:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'HOST_MODULE_OUTSIDE_PINNED_ARCHIVE'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:152:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: a same-version cordisEntry resolved outside the pinned archive is refused
+not ok 8 - a same-version cordisEntry resolved outside the pinned archive is refused
+  ---
+  duration_ms: 3.427208
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:150:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'HOST_MODULE_OUTSIDE_PINNED_ARCHIVE'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/host.test.mjs:152:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: capacityOf rejects a captured method after service replacement
+not ok 9 - capacityOf rejects a captured method after service replacement
+  ---
+  duration_ms: 2.42925
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:20:61'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'TEAM_ADDRESS_HOST_CHANGED'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:22:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:296:3)
+  ...
+# Subtest: sendMessage rejects a captured method after service replacement
+not ok 10 - sendMessage rejects a captured method after service replacement
+  ---
+  duration_ms: 0.23775
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:20:61'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'TEAM_ADDRESS_HOST_CHANGED'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:22:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: wait rejects a captured method after service replacement
+not ok 11 - wait rejects a captured method after service replacement
+  ---
+  duration_ms: 0.171042
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:20:61'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'TEAM_ADDRESS_HOST_CHANGED'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:22:3)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: capacityOf rechecks service identity after the native call settles
+not ok 12 - capacityOf rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.271375
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:26:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'TEAM_ADDRESS_HOST_CHANGED'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:28:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: sendMessage rechecks service identity after the native call settles
+not ok 13 - sendMessage rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.222709
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:26:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'TEAM_ADDRESS_HOST_CHANGED'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:28:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: wait rechecks service identity after the native call settles
+not ok 14 - wait rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.218333
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:26:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'TEAM_ADDRESS_HOST_CHANGED'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:28:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: resolveName rechecks service identity after the native call settles
+not ok 15 - resolveName rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.823459
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:26:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'TEAM_ADDRESS_HOST_CHANGED'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:28:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# Subtest: listDescendants rechecks service identity after the native call settles
+not ok 16 - listDescendants rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.431125
+  type: 'test'
+  location: '/Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:26:3'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'TEAM_ADDRESS_HOST_CHANGED'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/test/service-drift.test.mjs:28:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+1..16
+# tests 16
+# suites 0
+# pass 1
+# fail 15
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 436.243583

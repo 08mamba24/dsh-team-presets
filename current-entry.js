@@ -6,6 +6,7 @@ import * as roleTemplates from './src/role-templates.js';
 import { ROOT_SESSION_ID } from './src/replacement-store.js';
 import { applyTeamReplacement } from './src/team-replace.js';
 import { installRootAddressing } from './src/team-addressing.js';
+import { bindHostContext } from './src/host-adapter.js';
 
 const nativeConfiguration = await nativeConfigurationFromHost();
 const { Schema } = nativeConfiguration;
@@ -28,6 +29,7 @@ export const name = 'native-current-team';
 export const inject = ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections', 'agentTeams', 'workingDirectory', 'skills', 'settings', 'sandboxPolicy', 'sessionQuery', 'sessions'];
 
 export async function apply(ctx, raw) {
+  bindHostContext(ctx, nativeConfiguration.adapter);
   const { nativeSubagent, controlEntry } = await nativeTeamFromHost();
   const readTemplate = () => raw.template?.get();
   const launcher = await applyCurrentLauncher(ctx, { mode: raw.mode, template: readTemplate(),

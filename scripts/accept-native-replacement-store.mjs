@@ -41,7 +41,8 @@ async function start() {
     scope.effect(() => () => { state.disposals++; });
   } };
   context.provide('profileContext', { name: 'replacement-isolated', dir: profileDir, patchPath,
-    home, cwd: isolated, installAnchor: join(runtime, 'package.json'), startedBundles: [], overlays: [], telemetryDisabledEnv: '1' });
+    home, cwd: isolated, installAnchor: join(runtime, 'package.json'), startedBundles: [],
+    ...(boot.getDshRuntimeVersion() === '0.2.3-alpha.2' ? { overlayPaths: [] } : { overlays: [] }), telemetryDisabledEnv: '1' });
   await boot.mountRootInclude(context, basePath, boot.readProfilePatches('dsh', context.profileContext));
   await context.loader.await();
   await context.plugin(ConfigEditor); await context.plugin(SettingsForms);

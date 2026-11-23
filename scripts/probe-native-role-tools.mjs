@@ -14,10 +14,14 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     load('@deepseek-ai/dsh-scope'), load('@deepseek-ai/dsh-skill'), load('@deepseek-ai/dsh-agent'),
     load('@deepseek-ai/dsh-session-projection'),
   ]);
+  const { bindHostContext, createHostAdapter } = await import(pathToFileURL(join(plugin, 'src/host-adapter.js')).href);
+  const version = JSON.parse(await readFile(require.resolve('@deepseek-ai/dsh/package.json'), 'utf8')).version;
+  const adapter = createHostAdapter({ version, Context });
   const rolePlugin = await import(pathToFileURL(join(plugin, 'launcher-role.js')).href);
   const { roleToolCatalog, captureRoleToolAuthority } = await import(pathToFileURL(join(plugin, 'src', 'role-tools.js')).href);
   const { applyTeamConfigurator } = await import(pathToFileURL(join(plugin, 'src', 'team-configure.js')).href);
   const ctx = new Context(), checks = [];
+  if (version === '0.2.3-alpha.2') ctx.provide('subagentModelSelection', { allowedRoutes: () => [] });
   const scopes = [], agentDisposers = [], presetContexts = new WeakMap();
   let describeSettings = () => [];
   ctx.provide('settings', {
@@ -132,6 +136,7 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     await old.dispose();
     assert.equal(await ctx.skills.get('dsh-team-configure', { scope: root }), undefined);
     const current = ctx.plugin({ name: 'current-skill-probe', inject: ['sessionProjections'], async apply(inner) {
+      bindHostContext(inner, adapter);
       await applyTeamConfigurator(inner, { assertRoot: () => {}, defaultTemplate: () => base, hasBinding: () => false },
         { defineTool, approveEscalation() { throw new Error('probe must not request approval'); } });
     } });
@@ -157,7 +162,7 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
     const stale = JSON.parse(await captured.execute({ action: 'inspect' }, { agent: root, callId: 'stale', signal }));
     assert.equal(stale.code, 'UNLOADING');
     checks.push('native-plugin-disposal-removes-skill-and-editor-and-closes-captured-handler');
-    checks.push(...await probeWebPresetTools({ load, plugin, workspace }));
+    checks.push(...await probeWebPresetTools({ load, plugin, workspace, adapter, bindHostContext }));
     return { passed: true, checks, boundary: 'Physical native registry/executor/Scope/SkillRegistry; isolated identities and temporary files. Web-style standard Preset uses actual native file/search/shell modules, LocalFileSystem and LocalSubprocessRuntime; file and foreground shell bodies execute. Search schemas are checked without a search process. No Host daemon, provider, user profile or persistent Session. Local probe backends do not confine; OS sandbox backends and paid model execution are not claimed.' };
   } finally {
     for (const dispose of agentDisposers.reverse()) await dispose();
@@ -168,7 +173,7 @@ export async function probeNativeRoleTools({ runtime, plugin, workspace }) {
 
 /** Reproduce the official Web composition: work tools belong to a standard
  * Preset, not the shared registry; role Presets remain independent. */
-async function probeWebPresetTools({ load, plugin, workspace }) {
+async function probeWebPresetTools({ load, plugin, workspace, adapter, bindHostContext }) {
   const [{ Context }, { ToolsService }, { NativeToolExecutor }, { createScope, scopeOf },
     { SkillRegistry }, { LocalFileSystem }, { LocalSubprocessRuntime }, fsTools, searchTools,
     shellTools, shellBackend, { ShellEnvRegistry }, { approveEscalation }, { defineTool },
@@ -186,6 +191,7 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
   const rolePlugin = await import(pathToFileURL(join(plugin, 'launcher-role.js')).href);
   const { applyTeamConfigurator } = await import(pathToFileURL(join(plugin, 'src/team-configure.js')).href);
   const ctx = new Context(), scopes = [], agentDisposers = [], checks = [], presetContexts = new WeakMap();
+  if (adapter.version === '0.2.3-alpha.2') ctx.provide('subagentModelSelection', { allowedRoutes: () => [] });
   const shell = process.platform === 'win32' ? 'pwsh' : 'bash';
   let revision = 1, value = { replacementRecords: {} };
   ctx.provide('settings', { describe: () => [{ ns: 'dsh-native-current-team', revision, value }],
@@ -225,6 +231,7 @@ async function probeWebPresetTools({ load, plugin, workspace }) {
     ctx.provide('llm', { listProviders: () => [] });
     ctx.provide('sandboxPolicy', { resolve: () => ({ mode: 'danger-full-access' }) });
     await ctx.plugin({ name: 'web-configuration-probe', inject: ['sessionProjections'], apply(inner) {
+      bindHostContext(inner, adapter);
       return applyTeamConfigurator(inner, { assertRoot() {}, defaultTemplate: () => defaults, hasBinding: () => false },
         { defineTool, approveEscalation });
     } });

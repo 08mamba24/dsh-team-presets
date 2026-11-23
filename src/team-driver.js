@@ -1,3 +1,4 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, open, realpath } from 'node:fs/promises';
@@ -7,6 +8,7 @@ import { fail, LiveError } from './config.js';
 import { parseTeamConfig, authorizeTeam, preflightTeam, TEAM_ROLE_TOOLS } from './team-config.js';
 import { createTeamGate } from './team-gate.js';
 import { isHostControlPath } from './host-support.js';
+import { assertWorkingDirectory, childWorkingDirectoryMatches } from './owned.js';
 
 const ROLES = ['implementer', 'reviewer'];
 const TOOL = 'dsh_live_team_spawn';
@@ -88,6 +90,7 @@ async function assertTeamOwned(ctx, config, agent) {
     if (stat.ino !== before.ino || stat.dev !== before.dev || marker.purpose !== 'dsh-native-team-pair'
       || marker.ownedSessionId !== config.ownedSessionId || marker.runTag !== config.runTag) fail('INVALID_MARKER');
   } finally { await file.close(); }
+  assertWorkingDirectory(ctx, config, agent);
 }
 
 function promptFor(role, config, tasks) {
@@ -365,6 +368,8 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
     };
   }
   async function createChild(op, role, toolSet, signal) {
+    assertWorkingDirectory(ctx, config, op.agent);
+    authorizeTeam(config, readAuthorizedRoutes(ctx, op.agent.session));
     const child = { role, end: deferred(), ended: false, calls: [], results: new Map(), messages: [],
       scopeReservations: new Map(), scopeDenials: [] };
     op.children[role] = child;
@@ -374,7 +379,7 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
     try {
       const batch = await op.agent.ctx.tools.execute({ agent: op.agent, signal, toolSet,
         calls: [{ type: 'tool-call', id: child.callId, name: TOOL, arguments: json({ name: binding.memberName,
-          description: `Owned ${role} ${config.runTag}`, cwd: config.workspace, provider: binding.route.provider,
+          description: `Owned ${role} ${config.runTag}`, provider: binding.route.provider,
           model: binding.route.model, reasoning_effort: 'low', agent_preset: binding.presetId,
           prompt: promptFor(role, config, op.tasks) }) }] });
       const failure = delegationFailure(batch, child, role, binding.memberName);
@@ -405,13 +410,15 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
             modelSelection: true, modelDiscovery: false, allowedAgentPresets: ROLES.map(r => config.roles[r].presetId),
             agentOptions: { reasoningEffort: 'low', maxTokens: 1024 }, maxDepth: 1 });
           await mounted;
-          await preflightTeam(config, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'), ctx.llm, signal);
+          await preflightTeam(config, readAuthorizedRoutes(ctx, agent.session), ctx.llm, signal);
           await assertTeamOwned(ctx, config, agent);
-          authorizeTeam(config, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'));
+          authorizeTeam(config, readAuthorizedRoutes(ctx, agent.session));
           signal.throwIfAborted();
           toolSet = await agent.ctx.tools.resolve({ agent, modelSelection: agent.model.current(), signal });
           signal.throwIfAborted();
           if (!toolSet.view(agent).has(TOOL)) fail('SCOPED_NATIVE_TOOL_UNAVAILABLE');
+          assertWorkingDirectory(ctx, config, agent);
+          authorizeTeam(config, readAuthorizedRoutes(ctx, agent.session));
           const beforeTeam = projection(agent, op); op.priorTeamMode = ctx.agentTeams.isEnabled(agent);
           // Disabled boards reject list/get; detach the durable pre-enable state before the native flush can await.
           op.baselineTasks = beforeTeam.tasks.filter(task => task.status !== 'deleted').map(taskState);
@@ -570,8 +577,14 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
         gate.blockChild(info.id); stopAdmission(op, 'CANCELLED'); interrupt(op, record); return;
       }
       gate.track(role, info.id);
+      try { authorizeTeam(config, readAuthorizedRoutes(ctx, op.agent.session)); }
+      catch (error) {
+        op.failure ??= error?.code ?? 'SESSION_ROUTE_NOT_AUTHORIZED';
+        gate.blockChild(info.id); stopAdmission(op, op.failure); interrupt(op, record); return;
+      }
       const child = ctx.agents.get(info.id), binding = config.roles[role];
       if (!child || child.session.header.parentSession !== config.ownedSessionId
+        || !childWorkingDirectoryMatches(ctx, config, op.agent, child)
         || ctx.agentPresets.composedPreset(child.ctx) !== binding.presetId
         || child.model.current()?.provider !== binding.route.provider || child.model.current()?.model !== binding.route.model
         || child.model.current()?.reasoningEffort !== 'low' || child.options.maxTokens !== 1024

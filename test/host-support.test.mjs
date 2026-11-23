@@ -39,7 +39,7 @@ test('Windows executable admission refuses CLI, relative, UNC and noncanonical p
 });
 
 test('macOS keeps the reviewed application boundary and other platforms remain unsupported', () => {
-  assert.equal(assertHostExecutable('/Applications/DeepSeek Harness.app/Contents/Frameworks/fixture-host', 'darwin'), macArchive);
+  assert.equal(assertHostExecutable('/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness', 'darwin'), macArchive);
   for (const executable of ['/usr/local/bin/node', '/Applications/DeepSeek Harness.app-copy/Contents/host']) {
     assert.throws(() => assertHostExecutable(executable, 'darwin'), { code: 'WRONG_HOST_PROCESS' });
   }
@@ -88,7 +88,7 @@ test('control URLs admit the pinned Windows and macOS entries and reject alterna
   const originalExecutable = Object.getOwnPropertyDescriptor(process, 'execPath');
   try {
     for (const [platform, path, executable, archive] of [
-      ['darwin', posix, '/Applications/DeepSeek Harness.app/Contents/Frameworks/fixture-host', macArchive],
+      ['darwin', posix, '/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness', macArchive],
       ...windowsApps.map(app => ['win32', win32, `${app}\\DeepSeek Harness.exe`, `${app}\\resources\\app.asar`]),
     ]) {
       Object.defineProperty(process, 'platform', { ...originalPlatform, value: platform });

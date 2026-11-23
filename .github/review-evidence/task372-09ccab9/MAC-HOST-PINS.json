@@ -1,0 +1,14 @@
+[
+  {
+    "label": "rc5",
+    "archive": "/Applications/DeepSeek Harness.app/Contents/Resources/app.asar",
+    "sha256": "6f019878f523428f452957dbaad601c6468051df4093eda8af751ec65226f88e",
+    "matchesPin": true
+  },
+  {
+    "label": "alpha2",
+    "archive": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar",
+    "sha256": "55961db6dafe1091408409e57da60832e8330230355eaf4f325f3aab9f8ffc8d",
+    "matchesPin": true
+  }
+]

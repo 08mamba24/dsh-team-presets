@@ -109,6 +109,16 @@ function recordAccess(nativeSubagents, { readRecord, fixedRootId, assertCurrent 
   return { current, recordForRoot, recordForCaller };
 }
 
+function guardedServiceMethod(service, method, current) {
+  return (...args) => {
+    current();
+    const result = method.apply(service, args);
+    if (result && typeof result.then === 'function') return Promise.resolve(result).finally(current);
+    current();
+    return result;
+  };
+}
+
 function projectionFor(states, name) {
   for (const state of states) {
     if (state.mode === 'native') continue;
@@ -155,10 +165,16 @@ export function resolveLogicalTeamTarget(value, target) {
 
 /** Project the append-only native catalog onto stable logical role paths. */
 export function projectLogicalTeamAgents(value, entries) {
-  if (!Array.isArray(entries)) fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
+  const envelope = !Array.isArray(entries);
+  if (envelope && (!entries || typeof entries !== 'object'
+    || Object.keys(entries).sort().join(',') !== 'agents,limit,running'
+    || !Number.isSafeInteger(entries.running) || entries.running < 0
+    || !Number.isSafeInteger(entries.limit) || entries.limit < 1
+    || !Array.isArray(entries.agents))) fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
+  const rows = envelope ? entries.agents : entries;
   const states = statesOf(value);
   const projected = [];
-  for (const entry of entries) {
+  for (const entry of rows) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.name !== 'string') {
       fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
     }
@@ -166,7 +182,9 @@ export function projectLogicalTeamAgents(value, entries) {
     if (!projection.managed) projected.push(entry);
     else if (projection.name !== undefined) projected.push({ ...entry, name: projection.name });
   }
-  return projected;
+  // Capacity comes from the native tree pool, including pending reservations.
+  // Visible catalog length cannot substitute for its running/limit values.
+  return envelope ? { ...entries, agents: projected } : projected;
 }
 
 /** Project native descendant rows before the original list_agents body renders them. */
@@ -225,16 +243,21 @@ export function createLogicalSubagents(nativeSubagents, { readRecord, fixedRootI
       if (property === CORDIS_TRACKER || property === CORDIS_ORIGINAL) return undefined;
       if (property === 'resolveName') return async (caller, name, signal) => {
         const { record } = recordForCaller(caller);
-        return nativeSubagents.resolveName(caller, resolveLogicalTeamTarget(record, name), signal);
+        try { return await nativeSubagents.resolveName(caller, resolveLogicalTeamTarget(record, name), signal); }
+        finally { current(); }
       };
       if (property === 'listDescendants') return async (rootId, signal) => {
         current();
         const record = recordForRoot(rootId);
-        return projectLogicalTeamDescendants(record, await nativeSubagents.listDescendants(rootId, signal));
+        let rows;
+        try { rows = await nativeSubagents.listDescendants(rootId, signal); }
+        finally { current(); }
+        return projectLogicalTeamDescendants(record, rows);
       };
       if (property === 'namesOf') return agent => {
         const { record } = recordForCaller(agent);
         const names = nativeSubagents.namesOf(agent);
+        current();
         return {
           self: projectLogicalTeamName(record, names.self),
           ...(names.parent === undefined ? {} : { parent: projectLogicalTeamName(record, names.parent) }),
@@ -244,7 +267,7 @@ export function createLogicalSubagents(nativeSubagents, { readRecord, fixedRootI
       if (typeof value !== 'function') return value;
       let callable = bound.get(value);
       if (callable === undefined) {
-        callable = value.bind(nativeSubagents);
+        callable = guardedServiceMethod(nativeSubagents, value, current);
         bound.set(value, callable);
       }
       return callable;
@@ -310,6 +333,7 @@ export function createLogicalAgentTeams(nativeAgentTeams, nativeSubagents,
       if (property === 'listTasks') return caller => {
         current();
         const tasks = nativeAgentTeams.listTasks(caller);
+        current();
         if (!Array.isArray(tasks)) fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
         return tasks.map(task => project(caller, task));
       };
@@ -317,7 +341,7 @@ export function createLogicalAgentTeams(nativeAgentTeams, nativeSubagents,
       if (typeof value !== 'function') return value;
       let callable = bound.get(value);
       if (callable === undefined) {
-        callable = (...args) => { current(); return value.apply(nativeAgentTeams, args); };
+        callable = guardedServiceMethod(nativeAgentTeams, value, current);
         bound.set(value, callable);
       }
       return callable;
@@ -405,9 +429,13 @@ function bindOwnedScopeParent(scopeApi, key, parent) {
 function bridgeNativeControl(ctx, nativeSubagents, settings, bridgedDefinitions) {
   return async (exec, next) => {
     if (!bridgedDefinitions.has(exec.name)) return next();
-    if (!sameService(ctx.get('subagents'), nativeSubagents)) fail('TEAM_ADDRESS_HOST_CHANGED');
+    const current = () => {
+      if (!sameService(ctx.get('subagents'), nativeSubagents)) fail('TEAM_ADDRESS_HOST_CHANGED');
+    };
+    const checkedNext = async () => { try { return await next(); } finally { current(); } };
+    current();
     const caller = exec.agent;
-    if (caller === undefined) return next();
+    if (caller === undefined) return checkedNext();
     // Bind argument rewriting to the exact official definition admitted at
     // install time and to this step's live activation.  A later Agent-local
     // shadow (including one installed while approval is pending) must not
@@ -418,7 +446,7 @@ function bridgeNativeControl(ctx, nativeSubagents, settings, bridgedDefinitions)
     if (selected !== bridgedDefinitions.get(exec.name)) {
       fail('TEAM_ADDRESS_NATIVE_CONTROL_UNAVAILABLE');
     }
-    if (exec.name === 'wait_agent') return next();
+    if (exec.name === 'wait_agent') return checkedNext();
     const root = nativeSubagents.rootOf(caller);
     const record = readReplacementRow(settings, root.id).value;
     const logicalArguments = exec.arguments;
@@ -431,7 +459,7 @@ function bridgeNativeControl(ctx, nativeSubagents, settings, bridgedDefinitions)
     }
     let result;
     try {
-      result = await next();
+      result = await checkedNext();
     } finally {
       exec.arguments = logicalArguments;
     }
@@ -590,7 +618,7 @@ function bridgeControlForPreset(ctx, agent, presetKey) {
 function startRootInstall(ctx, presetKey, host, bridgeDefinitions) {
   const entry = { owners: new WeakSet(), refs: 0, addon: undefined, layer: undefined, disposing: undefined };
   entry.install = (async () => {
-    const addon = ctx.root.plugin({ name: 'dsh-team-root-addressing', inject: ROOT_ADDRESS_INJECT,
+    const addon = host.adapter.rootContext(ctx).plugin({ name: 'dsh-team-root-addressing', inject: ROOT_ADDRESS_INJECT,
       async apply(injected) {
         const layer = host.scopeApi.createScope(injected, presetKey);
         entry.layer = layer;
@@ -637,7 +665,7 @@ async function releaseRootInstall(presetKey, entry, ctx) {
  */
 export async function installRootAddressing(ctx, agent, host) {
   host ??= await nativeRoleControlFromHost();
-  if (!agent?.ctx || !ctx?.root || typeof ctx.root.plugin !== 'function'
+  if (!agent?.ctx || typeof host?.adapter?.rootContext !== 'function'
     || typeof ctx.effect !== 'function' || typeof ctx.get !== 'function' || typeof ctx.tools?.get !== 'function'
     || typeof host?.scopeApi?.scopeOf !== 'function'
     || typeof host.scopeApi.scopeParentOf !== 'function' || typeof host.scopeApi.createScope !== 'function') {

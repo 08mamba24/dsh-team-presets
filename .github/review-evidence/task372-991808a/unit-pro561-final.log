@@ -1,0 +1,2748 @@
+
+> dsh-subagent-live-rc2-local@0.6.0-rc.2 test
+> node --test --test-concurrency=4 test/*.test.mjs
+
+TAP version 13
+# Subtest: only a complete immutable bounded plan is admitted
+ok 1 - only a complete immutable bounded plan is admitted
+  ---
+  duration_ms: 1.415167
+  type: 'test'
+  ...
+# Subtest: missing or different native Session policy refuses before route metadata I/O
+ok 2 - missing or different native Session policy refuses before route metadata I/O
+  ---
+  duration_ms: 1.079958
+  type: 'test'
+  ...
+# Subtest: a native resolver that drops the cap or changes effort cannot admit a child
+ok 3 - a native resolver that drops the cap or changes effort cannot admit a child
+  ---
+  duration_ms: 0.77425
+  type: 'test'
+  ...
+# Subtest: dispatch admits exactly one correlated ordinary child stream and preserves unrelated streams
+ok 4 - dispatch admits exactly one correlated ordinary child stream and preserves unrelated streams
+  ---
+  duration_ms: 0.991791
+  type: 'test'
+  ...
+# Subtest: causally initiated anonymous streams and control drift cannot reach an adapter
+ok 5 - causally initiated anonymous streams and control drift cannot reach an adapter
+  ---
+  duration_ms: 0.530167
+  type: 'test'
+  ...
+# Subtest: the generic launcher stays inert outside Harness and requires explicit configuration
+ok 6 - the generic launcher stays inert outside Harness and requires explicit configuration
+  ---
+  duration_ms: 1.320417
+  type: 'test'
+  ...
+# Subtest: the actual TGZ patch inserts one complete live entry without changing existing entries
+ok 7 - the actual TGZ patch inserts one complete live entry without changing existing entries
+  ---
+  duration_ms: 700.858791
+  type: 'test'
+  ...
+# Subtest: compat CLI requires the intended Host executable instead of reading a daily default
+ok 8 - compat CLI requires the intended Host executable instead of reading a daily default
+  ---
+  duration_ms: 51.261416
+  type: 'test'
+  ...
+# Subtest: compat CLI reads the explicitly selected relocated archive
+ok 9 - compat CLI reads the explicitly selected relocated archive
+  ---
+  duration_ms: 60.274166
+  type: 'test'
+  ...
+# Subtest: one-child entry rejects a changed live workspace before mounting or spawning
+ok 10 - one-child entry rejects a changed live workspace before mounting or spawning
+  ---
+  duration_ms: 8.833625
+  type: 'test'
+  ...
+# Subtest: one-child entry rechecks live workspace after asynchronous tool resolution
+ok 11 - one-child entry rechecks live workspace after asynchronous tool resolution
+  ---
+  duration_ms: 5.709083
+  type: 'test'
+  ...
+# Subtest: one native-tool submission uses a real role module, captures output/usage and cancels only its settlement notice
+ok 12 - one native-tool submission uses a real role module, captures output/usage and cancels only its settlement notice
+  ---
+  duration_ms: 5.655542
+  type: 'test'
+  ...
+# Subtest: policy and preflight refusal never invoke the native delegation executor
+ok 13 - policy and preflight refusal never invoke the native delegation executor
+  ---
+  duration_ms: 5.25375
+  type: 'test'
+  ...
+# Subtest: a busy owned root is left alone before mounting or model metadata lookup
+ok 14 - a busy owned root is left alone before mounting or model metadata lookup
+  ---
+  duration_ms: 2.554917
+  type: 'test'
+  ...
+# Subtest: a wrong-root marker cannot admit an operation
+ok 15 - a wrong-root marker cannot admit an operation
+  ---
+  duration_ms: 2.773041
+  type: 'test'
+  ...
+# Subtest: unrelated input is retained and fails the run instead of being cleared as a child notice
+ok 16 - unrelated input is retained and fails the run instead of being cleared as a child notice
+  ---
+  duration_ms: 3.285208
+  type: 'test'
+  ...
+# Subtest: deadline reports draining; unload retains the guard until the exact child settles
+ok 17 - deadline reports draining; unload retains the guard until the exact child settles
+  ---
+  duration_ms: 1006.06575
+  type: 'test'
+  ...
+# Subtest: unload during asynchronous ownership validation refuses the admitted command before any runtime work
+ok 18 - unload during asynchronous ownership validation refuses the admitted command before any runtime work
+  ---
+  duration_ms: 5.058542
+  type: 'test'
+  ...
+# Subtest: cancellation during tool resolution stops dispatch while unload waits for the claimed operation
+ok 19 - cancellation during tool resolution stops dispatch while unload waits for the claimed operation
+  ---
+  duration_ms: 9.600167
+  type: 'test'
+  ...
+# Subtest: an interrupt exception cannot finish unload before the exact late child end
+ok 20 - an interrupt exception cannot finish unload before the exact late child end
+  ---
+  duration_ms: 1007.639792
+  type: 'test'
+  ...
+# Subtest: alpha.2 uses the root symbol exported by its pinned Context, without reading string root
+ok 21 - alpha.2 uses the root symbol exported by its pinned Context, without reading string root
+  ---
+  duration_ms: 1.0875
+  type: 'test'
+  ...
+# Subtest: rc.5 retains its root and Session projection contract
+ok 22 - rc.5 retains its root and Session projection contract
+  ---
+  duration_ms: 0.509208
+  type: 'test'
+  ...
+# Subtest: live policy is sampled again after revocation, without consulting retained Session events
+ok 23 - live policy is sampled again after revocation, without consulting retained Session events
+  ---
+  duration_ms: 0.798
+  type: 'test'
+  ...
+# Subtest: missing, broken and malformed live services fail closed even when old Session policy authorizes
+ok 24 - missing, broken and malformed live services fail closed even when old Session policy authorizes
+  ---
+  duration_ms: 0.263042
+  type: 'test'
+  ...
+# Subtest: an unbound context or unverified replacement adapter cannot choose legacy authorization
+ok 25 - an unbound context or unverified replacement adapter cannot choose legacy authorization
+  ---
+  duration_ms: 0.267291
+  type: 'test'
+  ...
+# Subtest: a per-root child plugin inherits only an explicitly bound Host contract
+ok 26 - a per-root child plugin inherits only an explicitly bound Host contract
+  ---
+  duration_ms: 0.369125
+  type: 'test'
+  ...
+# Subtest: portable pinned bundle discovery derives resources from the exact executable layout
+ok 27 - portable pinned bundle discovery derives resources from the exact executable layout
+  ---
+  duration_ms: 2.013875
+  type: 'test'
+  ...
+# Subtest: canonical bundle checks keep executable and archive in the same real bundle
+ok 28 - canonical bundle checks keep executable and archive in the same real bundle
+  ---
+  duration_ms: 7.767041
+  type: 'test'
+  ...
+# Subtest: external executable or archive symlinks are rejected before reading archive bytes
+ok 29 - external executable or archive symlinks are rejected before reading archive bytes
+  ---
+  duration_ms: 9.472709
+  type: 'test'
+  ...
+# Subtest: a bundle directory alias cannot substitute for its canonical owner
+ok 30 - a bundle directory alias cannot substitute for its canonical owner
+  ---
+  duration_ms: 4.171833
+  type: 'test'
+  ...
+# Subtest: alpha.2 native list envelope keeps actual shared capacity while projecting its agents
+ok 31 - alpha.2 native list envelope keeps actual shared capacity while projecting its agents
+  ---
+  duration_ms: 1.620667
+  type: 'test'
+  ...
+# Subtest: native list envelopes never guess capacity or accept unknown shapes
+ok 32 - native list envelopes never guess capacity or accept unknown shapes
+  ---
+  duration_ms: 0.5655
+  type: 'test'
+  ...
+# Subtest: an unknown native service method stays bound to the exact original capacity authority
+ok 33 - an unknown native service method stays bound to the exact original capacity authority
+  ---
+  duration_ms: 0.378625
+  type: 'test'
+  ...
+# Subtest: delegation inherits the validated parent workspace without the removed model-side cwd argument
+ok 34 - delegation inherits the validated parent workspace without the removed model-side cwd argument
+  ---
+  duration_ms: 0.77075
+  type: 'test'
+  ...
+# Subtest: Windows locates app.asar beside the running per-user or Program Files installation
+ok 35 - Windows locates app.asar beside the running per-user or Program Files installation
+  ---
+  duration_ms: 1.754708
+  type: 'test'
+  ...
+# Subtest: Windows executable admission refuses CLI, relative, UNC and noncanonical paths
+ok 36 - Windows executable admission refuses CLI, relative, UNC and noncanonical paths
+  ---
+  duration_ms: 0.9335
+  type: 'test'
+  ...
+# Subtest: macOS keeps the reviewed application boundary and other platforms remain unsupported
+ok 37 - macOS keeps the reviewed application boundary and other platforms remain unsupported
+  ---
+  duration_ms: 0.430125
+  type: 'test'
+  ...
+# Subtest: archive admission binds the exact reviewed version and operating system together
+ok 38 - archive admission binds the exact reviewed version and operating system together
+  ---
+  duration_ms: 0.179959
+  type: 'test'
+  ...
+# Subtest: darwin native control paths stay in this archive, including nested package layouts
+ok 39 - darwin native control paths stay in this archive, including nested package layouts
+  ---
+  duration_ms: 1.485125
+  type: 'test'
+  ...
+# Subtest: win32 native control paths stay in this archive, including nested package layouts
+ok 40 - win32 native control paths stay in this archive, including nested package layouts
+  ---
+  duration_ms: 0.931375
+  type: 'test'
+  ...
+# Subtest: control URLs admit the pinned Windows and macOS entries and reject alternate authority or paths
+ok 41 - control URLs admit the pinned Windows and macOS entries and reject alternate authority or paths
+  ---
+  duration_ms: 4.014833
+  type: 'test'
+  ...
+# Subtest: Windows refuses historical file-bound preparation before creating workspace or output files
+ok 42 - Windows refuses historical file-bound preparation before creating workspace or output files
+  ---
+  duration_ms: 8.967208
+  type: 'test'
+  ...
+# Subtest: an ordinary CLI cannot load a daily Desktop native module as a substitute Host
+ok 43 - an ordinary CLI cannot load a daily Desktop native module as a substitute Host
+  ---
+  duration_ms: 2.626458
+  type: 'test'
+  ...
+# Subtest: archive checksum reads raw bytes while public package loading keeps ASAR resolution
+ok 44 - archive checksum reads raw bytes while public package loading keeps ASAR resolution
+  ---
+  duration_ms: 17.430167
+  type: 'test'
+  ...
+# Subtest: a changed raw archive is refused before resolving a native package
+ok 45 - a changed raw archive is refused before resolving a native package
+  ---
+  duration_ms: 3.816542
+  type: 'test'
+  ...
+# Subtest: the reviewed rc.5 archive loads its matching native package
+ok 46 - the reviewed rc.5 archive loads its matching native package
+  ---
+  duration_ms: 4.164625
+  type: 'test'
+  ...
+# Subtest: alpha.2 darwin binds its matching root-symbol contract
+ok 47 - alpha.2 darwin binds its matching root-symbol contract
+  ---
+  duration_ms: 7.058458
+  type: 'test'
+  ...
+# Subtest: alpha.2 win32 binds its matching root-symbol contract
+ok 48 - alpha.2 win32 binds its matching root-symbol contract
+  ---
+  duration_ms: 6.541416
+  type: 'test'
+  ...
+# Subtest: mismatched runtimeVersion refuses before native module resolution
+ok 49 - mismatched runtimeVersion refuses before native module resolution
+  ---
+  duration_ms: 3.687709
+  type: 'test'
+  ...
+# Subtest: mismatched cliVersion refuses before native module resolution
+ok 50 - mismatched cliVersion refuses before native module resolution
+  ---
+  duration_ms: 4.91275
+  type: 'test'
+  ...
+# Subtest: an rc.5 version cannot borrow the reviewed rc.2 archive identity
+ok 51 - an rc.5 version cannot borrow the reviewed rc.2 archive identity
+  ---
+  duration_ms: 6.126666
+  type: 'test'
+  ...
+# Subtest: native package version remains checked after reading the raw pinned archive
+ok 52 - native package version remains checked after reading the raw pinned archive
+  ---
+  duration_ms: 5.743833
+  type: 'test'
+  ...
+# Subtest: Windows raw archive and package resolution follow the running app at C:\\Users\\DSH Operator\\AppData\\Local\\Programs\\DeepSeek Harness
+ok 53 - Windows raw archive and package resolution follow the running app at C:\\Users\\DSH Operator\\AppData\\Local\\Programs\\DeepSeek Harness
+  ---
+  duration_ms: 5.394541
+  type: 'test'
+  ...
+# Subtest: Windows raw archive and package resolution follow the running app at C:\\Program Files\\DeepSeek Harness
+ok 54 - Windows raw archive and package resolution follow the running app at C:\\Program Files\\DeepSeek Harness
+  ---
+  duration_ms: 3.944459
+  type: 'test'
+  ...
+# Subtest: a Windows Host cannot borrow a reviewed macOS archive digest
+ok 55 - a Windows Host cannot borrow a reviewed macOS archive digest
+  ---
+  duration_ms: 3.258917
+  type: 'test'
+  ...
+# Subtest: a same-version runtimeMetadata resolved outside the pinned archive is refused
+ok 56 - a same-version runtimeMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.762917
+  type: 'test'
+  ...
+# Subtest: a same-version cliMetadata resolved outside the pinned archive is refused
+ok 57 - a same-version cliMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 3.686542
+  type: 'test'
+  ...
+# Subtest: a same-version subagentMetadata resolved outside the pinned archive is refused
+ok 58 - a same-version subagentMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 3.923958
+  type: 'test'
+  ...
+# Subtest: a same-version subagentEntry resolved outside the pinned archive is refused
+ok 59 - a same-version subagentEntry resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.38075
+  type: 'test'
+  ...
+# Subtest: a same-version cordisMetadata resolved outside the pinned archive is refused
+ok 60 - a same-version cordisMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.24425
+  type: 'test'
+  ...
+# Subtest: a same-version cordisEntry resolved outside the pinned archive is refused
+ok 61 - a same-version cordisEntry resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.353875
+  type: 'test'
+  ...
+# Subtest: a Cordis entry whose real path escapes the archive is refused
+ok 62 - a Cordis entry whose real path escapes the archive is refused
+  ---
+  duration_ms: 3.65825
+  type: 'test'
+  ...
+# Subtest: the alpha.2 Cordis package must match its separately inspected version
+ok 63 - the alpha.2 Cordis package must match its separately inspected version
+  ---
+  duration_ms: 2.575416
+  type: 'test'
+  ...
+# Subtest: candidate Preset carries immutable standby identity without widening requested active tools
+ok 64 - candidate Preset carries immutable standby identity without widening requested active tools
+  ---
+  duration_ms: 2.204416
+  type: 'test'
+  ...
+# Subtest: invalid standby identity is rejected before native Preset registration
+ok 65 - invalid standby identity is rejected before native Preset registration
+  ---
+  duration_ms: 0.796625
+  type: 'test'
+  ...
+# Subtest: full raw snapshot is detached and compares unknown metadata, property presence and ownerName
+ok 66 - full raw snapshot is detached and compares unknown metadata, property presence and ownerName
+  ---
+  duration_ms: 2.35575
+  type: 'test'
+  ...
+# Subtest: external create then delete is invisible in a list view but changes complete authority
+ok 67 - external create then delete is invisible in a list view but changes complete authority
+  ---
+  duration_ms: 0.80525
+  type: 'test'
+  ...
+# Subtest: counter-only drift and tombstone-only drift are conflicts even with equal visible tasks
+ok 68 - counter-only drift and tombstone-only drift are conflicts even with equal visible tasks
+  ---
+  duration_ms: 0.209584
+  type: 'test'
+  ...
+# Subtest: unchanged old tombstone survives explicit mode create claim edit complete and restore transitions
+ok 69 - unchanged old tombstone survives explicit mode create claim edit complete and restore transitions
+  ---
+  duration_ms: 1.470083
+  type: 'test'
+  ...
+# Subtest: CAS confirmation preserves unprojected raw fields and exact native owner-name behavior
+ok 70 - CAS confirmation preserves unprojected raw fields and exact native owner-name behavior
+  ---
+  duration_ms: 0.424375
+  type: 'test'
+  ...
+# Subtest: an acknowledged view cannot authorize wrong ids counters owners revisions or new metadata
+ok 71 - an acknowledged view cannot authorize wrong ids counters owners revisions or new metadata
+  ---
+  duration_ms: 0.953542
+  type: 'test'
+  ...
+# Subtest: configuration is strict, deeply frozen and contains no inferred authorization
+ok 72 - configuration is strict, deeply frozen and contains no inferred authorization
+  ---
+  duration_ms: 8.786083
+  type: 'test'
+  ...
+# Subtest: the two fixed owned files validate without writes and keep persona separate from startup prompt
+ok 73 - the two fixed owned files validate without writes and keep persona separate from startup prompt
+  ---
+  duration_ms: 5.816375
+  type: 'test'
+  ...
+# Subtest: template byte drift and marker binding changes are refused without disclosing content
+ok 74 - template byte drift and marker binding changes are refused without disclosing content
+  ---
+  duration_ms: 5.073458
+  type: 'test'
+  ...
+# Subtest: a data-valid template still requires complete members, at most eight, and an explicit effort
+ok 75 - a data-valid template still requires complete members, at most eight, and an explicit effort
+  ---
+  duration_ms: 16.689958
+  type: 'test'
+  ...
+# Subtest: symlinks, hardlinks, permissive modes and oversized files never become owned inputs
+ok 76 - symlinks, hardlinks, permissive modes and oversized files never become owned inputs
+  ---
+  duration_ms: 23.225792
+  type: 'test'
+  ...
+# Subtest: only the exact registered root and canonical workspace can use the existing marker
+ok 77 - only the exact registered root and canonical workspace can use the existing marker
+  ---
+  duration_ms: 2.89475
+  type: 'test'
+  ...
+# Subtest: inode replacement between lstat and open is detected before template bytes are trusted
+ok 78 - inode replacement between lstat and open is detected before template bytes are trusted
+  ---
+  duration_ms: 3.926291
+  type: 'test'
+  ...
+# Subtest: the exact live root is rechecked after marker I/O yields
+ok 79 - the exact live root is rechecked after marker I/O yields
+  ---
+  duration_ms: 3.395208
+  type: 'test'
+  ...
+# Subtest: foreign ownership is refused before opening a configured file
+ok 80 - foreign ownership is refused before opening a configured file
+  ---
+  duration_ms: 2.619167
+  type: 'test'
+  ...
+# Subtest: missing or malformed fixed files return stable errors without paths or template text
+ok 81 - missing or malformed fixed files return stable errors without paths or template text
+  ---
+  duration_ms: 4.579083
+  type: 'test'
+  ...
+# Subtest: managed root preparation finishes before commands can start member work and failures stop dispatch
+ok 82 - managed root preparation finishes before commands can start member work and failures stop dispatch
+  ---
+  duration_ms: 19.925375
+  type: 'test'
+  ...
+# Subtest: live template defaults affect unbound roots while existing plans and Presets retain their snapshot
+ok 83 - live template defaults affect unbound roots while existing plans and Presets retain their snapshot
+  ---
+  duration_ms: 19.7835
+  type: 'test'
+  ...
+# Subtest: current-session configuration starts the invoking root without a configured Session ID
+ok 84 - current-session configuration starts the invoking root without a configured Session ID
+  ---
+  duration_ms: 27.835834
+  type: 'test'
+  ...
+# Subtest: the same generic configuration also starts a different root and isolates its Preset IDs
+ok 85 - the same generic configuration also starts a different root and isolates its Preset IDs
+  ---
+  duration_ms: 27.597125
+  type: 'test'
+  ...
+# Subtest: current-session admission rejects a detached or child invoker before creating presets or model calls
+ok 86 - current-session admission rejects a detached or child invoker before creating presets or model calls
+  ---
+  duration_ms: 2.744042
+  type: 'test'
+  ...
+# Subtest: current-session mode retains native route authorization and partial-failure cleanup
+ok 87 - current-session mode retains native route authorization and partial-failure cleanup
+  ---
+  duration_ms: 11.704667
+  type: 'test'
+  ...
+# Subtest: current-session commands reject cancellation and binding drift without another model call
+ok 88 - current-session commands reject cancellation and binding drift without another model call
+  ---
+  duration_ms: 4.29375
+  type: 'test'
+  ...
+# Subtest: a native directory change before the first command creates children in the effective directory
+ok 89 - a native directory change before the first command creates children in the effective directory
+  ---
+  duration_ms: 13.145375
+  type: 'test'
+  ...
+# Subtest: partial creation after native cd drains the inherited-header child and restores Team mode
+ok 90 - partial creation after native cd drains the inherited-header child and restores Team mode
+  ---
+  duration_ms: 6.447459
+  type: 'test'
+  ...
+# Subtest: an incorrect effective child directory is rejected but an ended idle child can drain
+ok 91 - an incorrect effective child directory is rejected but an ended idle child can drain
+  ---
+  duration_ms: 4.827958
+  type: 'test'
+  ...
+# Subtest: reload restores retained Presets and prepares live or resumed roots without recreating members
+ok 92 - reload restores retained Presets and prepares live or resumed roots without recreating members
+  ---
+  duration_ms: 12.344125
+  type: 'test'
+  ...
+# Subtest: one command registration plans two registered roots independently
+ok 93 - one command registration plans two registered roots independently
+  ---
+  duration_ms: 6.664542
+  type: 'test'
+  ...
+# Subtest: the bundled template defaults both roles to max without changing their explicit model routes
+ok 94 - the bundled template defaults both roles to max without changing their explicit model routes
+  ---
+  duration_ms: 1.977583
+  type: 'test'
+  ...
+# Subtest: configured providers own model ids and effort ids, including equal models for separate roles
+ok 95 - configured providers own model ids and effort ids, including equal models for separate roles
+  ---
+  duration_ms: 46.865333
+  type: 'test'
+  ...
+# Subtest: per-role effort reaches the native spawn and request without a shared low override
+ok 96 - per-role effort reaches the native spawn and request without a shared low override
+  ---
+  duration_ms: 15.362
+  type: 'test'
+  ...
+# Subtest: native unsupported effort and unauthorized routes stop before team mutation or provider calls
+ok 97 - native unsupported effort and unauthorized routes stop before team mutation or provider calls
+  ---
+  duration_ms: 10.82425
+  type: 'test'
+  ...
+# Subtest: a provider-owned effort is data, while malformed effort remains rejected
+ok 98 - a provider-owned effort is data, while malformed effort remains rejected
+  ---
+  duration_ms: 0.976209
+  type: 'test'
+  ...
+# Subtest: bound launcher rejects a live workspace different from its unchanged Session header
+ok 99 - bound launcher rejects a live workspace different from its unchanged Session header
+  ---
+  duration_ms: 12.887125
+  type: 'test'
+  ...
+# Subtest: bound launcher rechecks live workspace across model preflight before any write
+ok 100 - bound launcher rechecks live workspace across model preflight before any write
+  ---
+  duration_ms: 15.577167
+  type: 'test'
+  ...
+# Subtest: fresh disabled root creates two native routes, presets, task dependencies and exact startup tool masks
+ok 101 - fresh disabled root creates two native routes, presets, task dependencies and exact startup tool masks
+  ---
+  duration_ms: 25.335125
+  type: 'test'
+  ...
+# Subtest: startup may finish while seeded business tasks remain pending
+ok 102 - startup may finish while seeded business tasks remain pending
+  ---
+  duration_ms: 8.353625
+  type: 'test'
+  ...
+# Subtest: native catalog presence with unobservable persona blocks repeat launch without any mutation or wake
+ok 103 - native catalog presence with unobservable persona blocks repeat launch without any mutation or wake
+  ---
+  duration_ms: 13.105125
+  type: 'test'
+  ...
+# Subtest: second native activation failure retains first session and new tasks and restores mode only after settlement
+ok 104 - second native activation failure retains first session and new tasks and restores mode only after settlement
+  ---
+  duration_ms: 10.323334
+  type: 'test'
+  ...
+# Subtest: unconfirmed task persistence preserves committed records and stops subsequent mode writes
+ok 105 - unconfirmed task persistence preserves committed records and stops subsequent mode writes
+  ---
+  duration_ms: 8.378417
+  type: 'test'
+  ...
+# Subtest: foreign board drift during native enable await stops before own task creation or mode rollback
+ok 106 - foreign board drift during native enable await stops before own task creation or mode rollback
+  ---
+  duration_ms: 7.258417
+  type: 'test'
+  ...
+# Subtest: foreign mode change during startup is preserved with no later mode write
+ok 107 - foreign mode change during startup is preserved with no later mode write
+  ---
+  duration_ms: 9.815209
+  type: 'test'
+  ...
+# Subtest: native ask approval wait happens after pre-execute and final guard rejects changed task before body
+ok 108 - native ask approval wait happens after pre-execute and final guard rejects changed task before body
+  ---
+  duration_ms: 8.386
+  type: 'test'
+  ...
+# Subtest: policy refusal and resolved-control drift both happen before native mutation or child activation
+ok 109 - policy refusal and resolved-control drift both happen before native mutation or child activation
+  ---
+  duration_ms: 10.209458
+  type: 'test'
+  ...
+# Subtest: timeout and unload retain closed startup guards until uninterruptible child lifecycles settle
+ok 110 - timeout and unload retain closed startup guards until uninterruptible child lifecycles settle
+  ---
+  duration_ms: 31.052875
+  type: 'test'
+  ...
+# Subtest: native disposed settlement permits restore from exact original idle handles and unchanged board
+ok 111 - native disposed settlement permits restore from exact original idle handles and unchanged board
+  ---
+  duration_ms: 10.3995
+  type: 'test'
+  ...
+# Subtest: restore with a changed board refuses all mode writes after native disposed settlement
+ok 112 - restore with a changed board refuses all mode writes after native disposed settlement
+  ---
+  duration_ms: 8.871458
+  type: 'test'
+  ...
+# Subtest: unexpected native publication during preflight metadata await blocks all mutation
+ok 113 - unexpected native publication during preflight metadata await blocks all mutation
+  ---
+  duration_ms: 5.529
+  type: 'test'
+  ...
+# Subtest: restore rejects a same-id registry replacement rather than accepting its idle fields
+ok 114 - restore rejects a same-id registry replacement rather than accepting its idle fields
+  ---
+  duration_ms: 12.871
+  type: 'test'
+  ...
+# Subtest: restore post-write failures report exact uncertainty, clear authority and never compensate
+ok 115 - restore post-write failures report exact uncertainty, clear authority and never compensate
+  ---
+  duration_ms: 37.388709
+  type: 'test'
+  ...
+# Subtest: native disposal ownership retains late-start guards and exact end observation until drain
+ok 116 - native disposal ownership retains late-start guards and exact end observation until drain
+  ---
+  duration_ms: 36.9985
+  type: 'test'
+  ...
+# Subtest: native disposal ownership automatically clears top-level hooks concurrently while yielded groups wait
+ok 117 - native disposal ownership automatically clears top-level hooks concurrently while yielded groups wait
+  ---
+  duration_ms: 0.737792
+  type: 'test'
+  ...
+# Subtest: 1066 F1 enable-await create-delete raw drift stops own writes and preserves current mode
+ok 118 - 1066 F1 enable-await create-delete raw drift stops own writes and preserves current mode
+  ---
+  duration_ms: 9.033542
+  type: 'test'
+  ...
+# Subtest: 1066 F1 post-launch create-delete raw drift prevents restore mode write
+ok 119 - 1066 F1 post-launch create-delete raw drift prevents restore mode write
+  ---
+  duration_ms: 15.099833
+  type: 'test'
+  ...
+# Subtest: 1066 F1 unchanged existing tombstone permits normal launch and restore with confirmed own changes
+ok 120 - 1066 F1 unchanged existing tombstone permits normal launch and restore with confirmed own changes
+  ---
+  duration_ms: 19.043208
+  type: 'test'
+  ...
+# Subtest: 1066 F2 idle ended peer is rejected before native send body and never woken
+ok 121 - 1066 F2 idle ended peer is rejected before native send body and never woken
+  ---
+  duration_ms: 14.72875
+  type: 'test'
+  ...
+# Subtest: 1066 F2 legitimate message to a peer still working in wait_agent does not start another turn
+ok 122 - 1066 F2 legitimate message to a peer still working in wait_agent does not start another turn
+  ---
+  duration_ms: 19.908333
+  type: 'test'
+  ...
+# Subtest: 1066 F2 new run cannot finish startup before actual child work is idle
+ok 123 - 1066 F2 new run cannot finish startup before actual child work is idle
+  ---
+  duration_ms: 10.283167
+  type: 'test'
+  ...
+# Subtest: 1066 F2 same-id replacement cannot finish startup before actual child work is idle
+ok 124 - 1066 F2 same-id replacement cannot finish startup before actual child work is idle
+  ---
+  duration_ms: 14.749333
+  type: 'test'
+  ...
+# Subtest: 1066 F2 peer ending during native ask is rejected by finalGuard before send body
+ok 125 - 1066 F2 peer ending during native ask is rejected by finalGuard before send body
+  ---
+  duration_ms: 27.935958
+  type: 'test'
+  ...
+# Subtest: 1066 F2 native send resolve await may expose a new run but cannot outlive the startup guard
+ok 126 - 1066 F2 native send resolve await may expose a new run but cannot outlive the startup guard
+  ---
+  duration_ms: 15.705584
+  type: 'test'
+  ...
+# Subtest: 1066 F2 same-running-phase second native turn is stopped before another provider body and drains exact lifecycle
+ok 127 - 1066 F2 same-running-phase second native turn is stopped before another provider body and drains exact lifecycle
+  ---
+  duration_ms: 13.847083
+  type: 'test'
+  ...
+# Subtest: one shared gate admits two distinct explicit three-tool role masks
+ok 128 - one shared gate admits two distinct explicit three-tool role masks
+  ---
+  duration_ms: 2.437584
+  type: 'test'
+  ...
+# Subtest: an explicit empty mask admits an exactly empty prepared tool set
+ok 129 - an explicit empty mask admits an exactly empty prepared tool set
+  ---
+  duration_ms: 0.436375
+  type: 'test'
+  ...
+# Subtest: missing, excessive, duplicated or other-role tools fail before provider dispatch
+ok 130 - missing, excessive, duplicated or other-role tools fail before provider dispatch
+  ---
+  duration_ms: 1.396209
+  type: 'test'
+  ...
+# Subtest: invalid option, role and tool shapes return one stable code without echoing input
+ok 131 - invalid option, role and tool shapes return one stable code without echoing input
+  ---
+  duration_ms: 0.530584
+  type: 'test'
+  ...
+# Subtest: constructor snapshots masks so later caller mutation cannot expand or shrink admission
+ok 132 - constructor snapshots masks so later caller mutation cannot expand or shrink admission
+  ---
+  duration_ms: 0.3805
+  type: 'test'
+  ...
+# Subtest: omitted options preserve the exact accepted four-tool M2 mask
+ok 133 - omitted options preserve the exact accepted four-tool M2 mask
+  ---
+  duration_ms: 1.063625
+  type: 'test'
+  ...
+# Subtest: default request allowance, retry refusal and closed admission retain their prior semantics
+ok 134 - default request allowance, retry refusal and closed admission retain their prior semantics
+  ---
+  duration_ms: 1.149833
+  type: 'test'
+  ...
+# Subtest: explicit masks do not change root quarantine, causal attribution or unrelated passthrough
+ok 135 - explicit masks do not change root quarantine, causal attribution or unrelated passthrough
+  ---
+  duration_ms: 0.567875
+  type: 'test'
+  ...
+# Subtest: empty durable catalog is the only absence basis and never enumerates or wakes live agents
+ok 136 - empty durable catalog is the only absence basis and never enumerates or wakes live agents
+  ---
+  duration_ms: 1.918667
+  type: 'test'
+  ...
+# Subtest: live fields use the exact public handles and resolved tool set but never prove persona or durable route
+ok 137 - live fields use the exact public handles and resolved tool set but never prove persona or durable route
+  ---
+  duration_ms: 1.362917
+  type: 'test'
+  ...
+# Subtest: diagnostics, contradictory ancestry or names and duplicate identities block the entire catalog
+ok 138 - diagnostics, contradictory ancestry or names and duplicate identities block the entire catalog
+  ---
+  duration_ms: 1.710709
+  type: 'test'
+  ...
+# Subtest: a cold catalog member stays present and absent labels are never fabricated from headers or names
+ok 139 - a cold catalog member stays present and absent labels are never fabricated from headers or names
+  ---
+  duration_ms: 0.551417
+  type: 'test'
+  ...
+# Subtest: normal foreign descendants do not become direct roles or prevent planning two new named members
+ok 140 - normal foreign descendants do not become direct roles or prevent planning two new named members
+  ---
+  duration_ms: 0.259375
+  type: 'test'
+  ...
+# Subtest: legal anonymous foreign ids are preserved outside planner members without inventing role names
+ok 141 - legal anonymous foreign ids are preserved outside planner members without inventing role names
+  ---
+  duration_ms: 0.338625
+  type: 'test'
+  ...
+# Subtest: wrong live parent and busy live state never resolve tools or substitute header preset identity
+ok 142 - wrong live parent and busy live state never resolve tools or substitute header preset identity
+  ---
+  duration_ms: 0.2935
+  type: 'test'
+  ...
+# Subtest: resolve, view and disposal exceptions withhold tool fields and dispose every obtained set
+ok 143 - resolve, view and disposal exceptions withhold tool fields and dispose every obtained set
+  ---
+  duration_ms: 0.292209
+  type: 'test'
+  ...
+# Subtest: replacement or route drift while resolving tools invalidates live facts and still disposes the set
+ok 144 - replacement or route drift while resolving tools invalidates live facts and still disposes the set
+  ---
+  duration_ms: 0.626708
+  type: 'test'
+  ...
+# Subtest: cancellation during a read returns no partial catalog and disposes its prepared tool set
+ok 145 - cancellation during a read returns no partial catalog and disposes its prepared tool set
+  ---
+  duration_ms: 0.607375
+  type: 'test'
+  ...
+# Subtest: preset registration supplies native control then generic persona and keeps ownership until explicit disposal
+ok 146 - preset registration supplies native control then generic persona and keeps ownership until explicit disposal
+  ---
+  duration_ms: 0.790541
+  type: 'test'
+  ...
+# Subtest: partial registration failure rolls back only returned native disposers in reverse order even if cleanup rejects
+ok 147 - partial registration failure rolls back only returned native disposers in reverse order even if cleanup rejects
+  ---
+  duration_ms: 0.823542
+  type: 'test'
+  ...
+# Subtest: registration refuses absent persona/tools, duplicate presets and unguarded control before any writes
+ok 148 - registration refuses absent persona/tools, duplicate presets and unguarded control before any writes
+  ---
+  duration_ms: 0.503042
+  type: 'test'
+  ...
+# Subtest: spawn construction uses only explicit selected values and creates unique native call identities
+ok 149 - spawn construction uses only explicit selected values and creates unique native call identities
+  ---
+  duration_ms: 0.686833
+  type: 'test'
+  ...
+# Subtest: batch parsing reuses strict execution-result checks, projects activation only and never reads call arguments
+ok 150 - batch parsing reuses strict execution-result checks, projects activation only and never reads call arguments
+  ---
+  duration_ms: 0.749666
+  type: 'test'
+  ...
+# Subtest: a complete valid native catalog proves absence before planning CREATE
+ok 151 - a complete valid native catalog proves absence before planning CREATE
+  ---
+  duration_ms: 3.523917
+  type: 'test'
+  ...
+# Subtest: fully matching explicitly observed roles can be reused in the pure synthetic plan
+ok 152 - fully matching explicitly observed roles can be reused in the pure synthetic plan
+  ---
+  duration_ms: 1.178917
+  type: 'test'
+  ...
+# Subtest: startup prompt is create-only input, never current persona evidence or a resend instruction
+ok 153 - startup prompt is create-only input, never current persona evidence or a resend instruction
+  ---
+  duration_ms: 0.535875
+  type: 'test'
+  ...
+# Subtest: description requires an actual native catalog label and cannot be inferred from the spec
+ok 154 - description requires an actual native catalog label and cannot be inferred from the spec
+  ---
+  duration_ms: 0.587334
+  type: 'test'
+  ...
+# Subtest: every explicit scalar must be currently observable and equal
+ok 155 - every explicit scalar must be currently observable and equal
+  ---
+  duration_ms: 1.006333
+  type: 'test'
+  ...
+# Subtest: preset IDs and historical receipts do not prove an unobservable current persona or tool set
+ok 156 - preset IDs and historical receipts do not prove an unobservable current persona or tool set
+  ---
+  duration_ms: 0.233917
+  type: 'test'
+  ...
+# Subtest: missing intended persona or capability configuration cannot establish reuse by inference
+ok 157 - missing intended persona or capability configuration cannot establish reuse by inference
+  ---
+  duration_ms: 0.346542
+  type: 'test'
+  ...
+# Subtest: unspecified preset and effort do not silently become explicit expected defaults
+ok 158 - unspecified preset and effort do not silently become explicit expected defaults
+  ---
+  duration_ms: 0.150125
+  type: 'test'
+  ...
+# Subtest: tool allowlists are compared as sets, including an explicitly observed empty set
+ok 159 - tool allowlists are compared as sets, including an explicitly observed empty set
+  ---
+  duration_ms: 0.780333
+  type: 'test'
+  ...
+# Subtest: an absent, false, malformed, or live-registry-only completeness claim cannot plan creation or reuse
+ok 160 - an absent, false, malformed, or live-registry-only completeness claim cannot plan creation or reuse
+  ---
+  duration_ms: 1.22
+  type: 'test'
+  ...
+# Subtest: duplicate names, duplicate IDs, and invalid native member identities invalidate the catalog
+ok 161 - duplicate names, duplicate IDs, and invalid native member identities invalidate the catalog
+  ---
+  duration_ms: 1.996334
+  type: 'test'
+  ...
+# Subtest: foreign members stay untouched and are detached identities, not a sidecar roster
+ok 162 - foreign members stay untouched and are detached identities, not a sidecar roster
+  ---
+  duration_ms: 0.350375
+  type: 'test'
+  ...
+# Subtest: a malformed or duplicate-name normalized template fails closed without throwing
+ok 163 - a malformed or duplicate-name normalized template fails closed without throwing
+  ---
+  duration_ms: 0.60525
+  type: 'test'
+  ...
+# Subtest: offline preparation produces an exact bound TGZ and files accepted by existing readers
+ok 164 - offline preparation produces an exact bound TGZ and files accepted by existing readers
+  ---
+  duration_ms: 818.181333
+  type: 'test'
+  ...
+# Subtest: existing template or marker, including symlinks and hardlinks, is never replaced
+ok 165 - existing template or marker, including symlinks and hardlinks, is never replaced
+  ---
+  duration_ms: 32.64275
+  type: 'test'
+  ...
+# Subtest: invalid routes, capabilities, roles and effort are refused without any workspace writes
+ok 166 - invalid routes, capabilities, roles and effort are refused without any workspace writes
+  ---
+  duration_ms: 21.8025
+  type: 'test'
+  ...
+# Subtest: a second-file race preserves both the new template and conflicting marker, reports partial and produces no ready receipt
+ok 167 - a second-file race preserves both the new template and conflicting marker, reports partial and produces no ready receipt
+  ---
+  duration_ms: 690.665083
+  type: 'test'
+  ...
+# Subtest: output must be new and a workspace symlink becomes only its canonical path
+ok 168 - output must be new and a workspace symlink becomes only its canonical path
+  ---
+  duration_ms: 717.108417
+  type: 'test'
+  ...
+# Subtest: package whitelist traversal through a symlink is refused before workspace writes
+ok 169 - package whitelist traversal through a symlink is refused before workspace writes
+  ---
+  duration_ms: 15.198292
+  type: 'test'
+  ...
+# Subtest: npm packing ignores lifecycle scripts and leaves other local data untouched
+ok 170 - npm packing ignores lifecycle scripts and leaves other local data untouched
+  ---
+  duration_ms: 314.922375
+  type: 'test'
+  ...
+# Subtest: CLI help and argument errors do not start preparation or disclose supplied text
+ok 171 - CLI help and argument errors do not start preparation or disclose supplied text
+  ---
+  duration_ms: 117.407708
+  type: 'test'
+  ...
+# Subtest: receipt write and fsync failures cannot publish PREPARED.json
+ok 172 - receipt write and fsync failures cannot publish PREPARED.json
+  ---
+  duration_ms: 1401.268042
+  type: 'test'
+  ...
+# Subtest: failure to remove the temporary receipt alias after publication does not report a failed preparation
+ok 173 - failure to remove the temporary receipt alias after publication does not report a failed preparation
+  ---
+  duration_ms: 736.536542
+  type: 'test'
+  ...
+# Subtest: atomic receipt publication never replaces an existing final receipt
+ok 174 - atomic receipt publication never replaces an existing final receipt
+  ---
+  duration_ms: 708.617375
+  type: 'test'
+  ...
+# Subtest: shared writable workspace or output parents are refused before creating data
+ok 175 - shared writable workspace or output parents are refused before creating data
+  ---
+  duration_ms: 4.786958
+  type: 'test'
+  ...
+# Subtest: a root-owned sticky temporary directory is allowed as the output parent
+ok 176 - a root-owned sticky temporary directory is allowed as the output parent
+  ---
+  duration_ms: 699.436083
+  type: 'test'
+  ...
+# Subtest: a workspace renamed and redirected while npm pack is awaited receives no prepared workspace files
+ok 177 - a workspace renamed and redirected while npm pack is awaited receives no prepared workspace files
+  ---
+  duration_ms: 715.767125
+  type: 'test'
+  ...
+# Subtest: happy path persists the plan before spawn and returns only after real takeover proof
+ok 178 - happy path persists the plan before spawn and returns only after real takeover proof
+  ---
+  duration_ms: 10.554667
+  type: 'test'
+  ...
+# Subtest: preflight and all observation/quiet assertions are awaited before freeze
+ok 179 - preflight and all observation/quiet assertions are awaited before freeze
+  ---
+  duration_ms: 7.90925
+  type: 'test'
+  ...
+# Subtest: a cold-member race is rechecked after the frozen CAS and remains durably fenced
+ok 180 - a cold-member race is rechecked after the frozen CAS and remains durably fenced
+  ---
+  duration_ms: 1.06125
+  type: 'test'
+  ...
+# Subtest: instance binding and takeover-write capability fail before the frozen CAS
+ok 181 - instance binding and takeover-write capability fail before the frozen CAS
+  ---
+  duration_ms: 0.422333
+  type: 'test'
+  ...
+# Subtest: strict ACK uses the native sender and cancellation revokes candidate before thawing old
+ok 182 - strict ACK uses the native sender and cancellation revokes candidate before thawing old
+  ---
+  duration_ms: 1.842958
+  type: 'test'
+  ...
+# Subtest: unconfirmed candidate cancellation stays cancelling and never revives the old member
+ok 183 - unconfirmed candidate cancellation stays cancelling and never revives the old member
+  ---
+  duration_ms: 1.074834
+  type: 'test'
+  ...
+# Subtest: a spawn exception cancels by the persisted plan and only then thaws the old member
+ok 184 - a spawn exception cancels by the persisted plan and only then thaws the old member
+  ---
+  duration_ms: 1.640083
+  type: 'test'
+  ...
+# Subtest: owner write intent is durable before CAS and an unconfirmed write enters recovery
+ok 185 - owner write intent is durable before CAS and an unconfirmed write enters recovery
+  ---
+  duration_ms: 1.85375
+  type: 'test'
+  ...
+# Subtest: partial multi-task transfer persists progress and explicit reconciliation resumes without respawn
+ok 186 - partial multi-task transfer persists progress and explicit reconciliation resumes without respawn
+  ---
+  duration_ms: 5.598458
+  type: 'test'
+  ...
+# Subtest: an exception after a partial owner transfer durably recovers and never runs pre-CAS cancellation
+ok 187 - an exception after a partial owner transfer durably recovers and never runs pre-CAS cancellation
+  ---
+  duration_ms: 3.460083
+  type: 'test'
+  ...
+# Subtest: a lost settings readback after owner CAS keeps the last attempted fence and never thaws old
+ok 188 - a lost settings readback after owner CAS keeps the last attempted fence and never thaws old
+  ---
+  duration_ms: 2.033083
+  type: 'test'
+  ...
+# Subtest: a thrown owner write with exact authoritative readback is resolved without guessing failure
+ok 189 - a thrown owner write with exact authoritative readback is resolved without guessing failure
+  ---
+  duration_ms: 3.5065
+  type: 'test'
+  ...
+# Subtest: completed, deleted and disappeared tasks are recorded but never reassigned or used as proof
+ok 190 - completed, deleted and disappeared tasks are recorded but never reassigned or used as proof
+  ---
+  duration_ms: 3.68175
+  type: 'test'
+  ...
+# Subtest: a frozen operation restores only the planned candidate and never blindly spawns
+ok 191 - a frozen operation restores only the planned candidate and never blindly spawns
+  ---
+  duration_ms: 2.843875
+  type: 'test'
+  ...
+# Subtest: wrong takeover evidence enters recovering instead of reporting active
+ok 192 - wrong takeover evidence enters recovering instead of reporting active
+  ---
+  duration_ms: 2.460667
+  type: 'test'
+  ...
+# Subtest: durable role mapping drives a second replacement after reload
+ok 193 - durable role mapping drives a second replacement after reload
+  ---
+  duration_ms: 6.860459
+  type: 'test'
+  ...
+# Subtest: cached transfer owner is rechecked before recovery activates business work
+ok 194 - cached transfer owner is rechecked before recovery activates business work
+  ---
+  duration_ms: 3.110667
+  type: 'test'
+  ...
+# Subtest: cached transferred tasks that became terminal are refreshed before takeover requirements
+ok 195 - cached transferred tasks that became terminal are refreshed before takeover requirements
+  ---
+  duration_ms: 4.031125
+  type: 'test'
+  ...
+# Subtest: a later candidate CAS after a Lead edit keeps the transfer baseline and proves takeover
+ok 196 - a later candidate CAS after a Lead edit keeps the transfer baseline and proves takeover
+  ---
+  duration_ms: 3.685291
+  type: 'test'
+  ...
+# Subtest: preflight refusal and record CAS conflict remain zero-side-effect failures
+ok 197 - preflight refusal and record CAS conflict remain zero-side-effect failures
+  ---
+  duration_ms: 0.379334
+  type: 'test'
+  ...
+# Subtest: launcher persona is the exact supplied section and each role gets its own native mask
+ok 198 - launcher persona is the exact supplied section and each role gets its own native mask
+  ---
+  duration_ms: 10.303208
+  type: 'test'
+  ...
+# Subtest: pre-step is waterfall middleware: allowed path must invoke next()
+ok 199 - pre-step is waterfall middleware: allowed path must invoke next()
+  ---
+  duration_ms: 0.932708
+  type: 'test'
+  ...
+# Subtest: pre-step rejects a frozen old member from the durable record
+ok 200 - pre-step rejects a frozen old member from the durable record
+  ---
+  duration_ms: 1.78225
+  type: 'test'
+  ...
+# Subtest: native profile root partition retires an old member before its first model step or tool body
+ok 201 - native profile root partition retires an old member before its first model step or tool body
+  ---
+  duration_ms: 1.060875
+  type: 'test'
+  ...
+# Subtest: managed Presets fail closed on cold startup before the native owner or root partition is visible
+ok 202 - managed Presets fail closed on cold startup before the native owner or root partition is visible
+  ---
+  duration_ms: 1.63475
+  type: 'test'
+  ...
+# Subtest: a candidate awaiting takeover proof loses admission when native task ownership changes
+ok 203 - a candidate awaiting takeover proof loses admission when native task ownership changes
+  ---
+  duration_ms: 3.693625
+  type: 'test'
+  ...
+# Subtest: a born-Standby candidate gets only snapshot-bound task reads and the exact Lead ACK
+ok 204 - a born-Standby candidate gets only snapshot-bound task reads and the exact Lead ACK
+  ---
+  duration_ms: 1.340916
+  type: 'test'
+  ...
+# Subtest: known retirement stays denied across projection loss and registry identity changes
+ok 205 - known retirement stays denied across projection loss and registry identity changes
+  ---
+  duration_ms: 0.489833
+  type: 'test'
+  ...
+# Subtest: membership gates readiness tools, failed continuation and direct prompts after removal
+ok 206 - membership gates readiness tools, failed continuation and direct prompts after removal
+  ---
+  duration_ms: 2.112125
+  type: 'test'
+  ...
+# Subtest: launcher role freezes accepted persona and tools instead of following later config edits
+ok 207 - launcher role freezes accepted persona and tools instead of following later config edits
+  ---
+  duration_ms: 0.8985
+  type: 'test'
+  ...
+# Subtest: an explicit empty subset installs the native empty allow mask
+ok 208 - an explicit empty subset installs the native empty allow mask
+  ---
+  duration_ms: 0.264208
+  type: 'test'
+  ...
+# Subtest: wrong origin or parent refuses before any tool restriction
+ok 209 - wrong origin or parent refuses before any tool restriction
+  ---
+  duration_ms: 0.912125
+  type: 'test'
+  ...
+# Subtest: strict config rejects unknown or missing fields without installing context contributions
+ok 210 - strict config rejects unknown or missing fields without installing context contributions
+  ---
+  duration_ms: 0.618959
+  type: 'test'
+  ...
+# Subtest: owner, role and persona have finite validated values
+ok 211 - owner, role and persona have finite validated values
+  ---
+  duration_ms: 1.076834
+  type: 'test'
+  ...
+# Subtest: role tool names are explicit and unique, with orchestration capabilities excluded
+ok 212 - role tool names are explicit and unique, with orchestration capabilities excluded
+  ---
+  duration_ms: 0.391833
+  type: 'test'
+  ...
+# Subtest: missing or failed native restriction emits a stable code without leaking persona or native errors
+ok 213 - missing or failed native restriction emits a stable code without leaking persona or native errors
+  ---
+  duration_ms: 0.253459
+  type: 'test'
+  ...
+# Subtest: native context disposal removes persona and hooks, and child disposal removes only its mask
+ok 214 - native context disposal removes persona and hooks, and child disposal removes only its mask
+  ---
+  duration_ms: 0.193292
+  type: 'test'
+  ...
+# Subtest: the delivered template normalizes without conflating launch prompt, persona or role-specific tools
+ok 215 - the delivered template normalizes without conflating launch prompt, persona or role-specific tools
+  ---
+  duration_ms: 2.146042
+  type: 'test'
+  ...
+# Subtest: optional persona, preset and capabilities stay absent instead of acquiring defaults
+ok 216 - optional persona, preset and capabilities stay absent instead of acquiring defaults
+  ---
+  duration_ms: 0.729417
+  type: 'test'
+  ...
+# Subtest: unknown fields cannot add budgets, hidden authority or a second persona channel
+ok 217 - unknown fields cannot add budgets, hidden authority or a second persona channel
+  ---
+  duration_ms: 0.845
+  type: 'test'
+  ...
+# Subtest: names, presets, explicit routes and effort are checked before any execution adapter
+ok 218 - names, presets, explicit routes and effort are checked before any execution adapter
+  ---
+  duration_ms: 0.642042
+  type: 'test'
+  ...
+# Subtest: capability validation accepts work tool names and empty sets, refuses duplicates and orchestration
+ok 219 - capability validation accepts work tool names and empty sets, refuses duplicates and orchestration
+  ---
+  duration_ms: 1.018209
+  type: 'test'
+  ...
+# Subtest: task ownership, dependency references, duplicate blockers and cycles fail with stable codes
+ok 220 - task ownership, dependency references, duplicate blockers and cycles fail with stable codes
+  ---
+  duration_ms: 0.59775
+  type: 'test'
+  ...
+# Subtest: JSON structure and all required fields are checked without evaluating accessors
+ok 221 - JSON structure and all required fields are checked without evaluating accessors
+  ---
+  duration_ms: 0.566125
+  type: 'test'
+  ...
+# Subtest: errors never echo private persona or startup text
+ok 222 - errors never echo private persona or startup text
+  ---
+  duration_ms: 0.248791
+  type: 'test'
+  ...
+# Subtest: fingerprints are stable for key ordering and tool-set ordering, sensitive to actual template content
+ok 223 - fingerprints are stable for key ordering and tool-set ordering, sensitive to actual template content
+  ---
+  duration_ms: 2.528167
+  type: 'test'
+  ...
+# Subtest: an optional role tag round-trips as duty-template metadata and stays shape-checked
+ok 224 - an optional role tag round-trips as duty-template metadata and stays shape-checked
+  ---
+  duration_ms: 1.386542
+  type: 'test'
+  ...
+# Subtest: fingerprints of role-less templates stay byte-identical to the pre-role digests
+ok 225 - fingerprints of role-less templates stay byte-identical to the pre-role digests
+  ---
+  duration_ms: 0.864709
+  type: 'test'
+  ...
+# Subtest: configured read/write tools execute during native-lifecycle fixture startup with exact per-role schemas
+ok 226 - configured read/write tools execute during native-lifecycle fixture startup with exact per-role schemas
+  ---
+  duration_ms: 50.040167
+  type: 'test'
+  ...
+# Subtest: a selected but unregistered work tool is refused before model metadata, mode writes or member creation
+ok 227 - a selected but unregistered work tool is refused before model metadata, mode writes or member creation
+  ---
+  duration_ms: 5.674125
+  type: 'test'
+  ...
+# Subtest: a globally registered write tool outside the role list cannot reach its body
+ok 228 - a globally registered write tool outside the role list cannot reach its body
+  ---
+  duration_ms: 8.264083
+  type: 'test'
+  ...
+# Subtest: the launcher preserves a downstream native permission refusal for a selected write tool
+ok 229 - the launcher preserves a downstream native permission refusal for a selected write tool
+  ---
+  duration_ms: 7.033
+  type: 'test'
+  ...
+# Subtest: root tool withdrawal during awaited metadata preflight stops before startup mutation
+ok 230 - root tool withdrawal during awaited metadata preflight stops before startup mutation
+  ---
+  duration_ms: 5.866541
+  type: 'test'
+  ...
+# Subtest: native approval does not preserve stale work authority after root-deny
+ok 231 - native approval does not preserve stale work authority after root-deny
+  ---
+  duration_ms: 8.061042
+  type: 'test'
+  ...
+# Subtest: native approval does not preserve stale work authority after root-shadow
+ok 232 - native approval does not preserve stale work authority after root-shadow
+  ---
+  duration_ms: 7.269792
+  type: 'test'
+  ...
+# Subtest: native approval does not preserve stale work authority after shared-remove
+ok 233 - native approval does not preserve stale work authority after shared-remove
+  ---
+  duration_ms: 8.014209
+  type: 'test'
+  ...
+# Subtest: native approval does not preserve stale work authority after shared-replace
+ok 234 - native approval does not preserve stale work authority after shared-replace
+  ---
+  duration_ms: 10.269958
+  type: 'test'
+  ...
+# Subtest: native approval does not preserve stale work authority after child-shadow
+ok 235 - native approval does not preserve stale work authority after child-shadow
+  ---
+  duration_ms: 9.692292
+  type: 'test'
+  ...
+# Subtest: root Preset-local tools bridge into independent role scopes and execute exact selected bodies
+ok 236 - root Preset-local tools bridge into independent role scopes and execute exact selected bodies
+  ---
+  duration_ms: 10.439
+  type: 'test'
+  ...
+# Subtest: legacy bootstrap authenticates the entire original template and native member identities
+ok 237 - legacy bootstrap authenticates the entire original template and native member identities
+  ---
+  duration_ms: 2.220125
+  type: 'test'
+  ...
+# Subtest: parses an explicit replacement request and rejects substitutions
+ok 238 - parses an explicit replacement request and rejects substitutions
+  ---
+  duration_ms: 2.608084
+  type: 'test'
+  ...
+# Subtest: record persists the candidate plan, full task snapshots and large valid config
+ok 239 - record persists the candidate plan, full task snapshots and large valid config
+  ---
+  duration_ms: 4.012458
+  type: 'test'
+  ...
+# Subtest: root base binding is immutable JSON configuration and survives every operation rewrite
+ok 240 - root base binding is immutable JSON configuration and survives every operation rewrite
+  ---
+  duration_ms: 3.893541
+  type: 'test'
+  ...
+# Subtest: candidate config durably reserves the exact native preset and child before spawn
+ok 241 - candidate config durably reserves the exact native preset and child before spawn
+  ---
+  duration_ms: 0.6765
+  type: 'test'
+  ...
+# Subtest: record round trip rejects phase, plan and task-evidence tampering
+ok 242 - record round trip rejects phase, plan and task-evidence tampering
+  ---
+  duration_ms: 0.929959
+  type: 'test'
+  ...
+# Subtest: phase transitions require strict ACK, durable transfer evidence and takeover proof
+ok 243 - phase transitions require strict ACK, durable transfer evidence and takeover proof
+  ---
+  duration_ms: 3.489875
+  type: 'test'
+  ...
+# Subtest: pre-owner-write cancellation denies both members until candidate settlement is confirmed
+ok 244 - pre-owner-write cancellation denies both members until candidate settlement is confirmed
+  ---
+  duration_ms: 1.074583
+  type: 'test'
+  ...
+# Subtest: eligibility is standby in recovery, full only while activating/active, and none while cancelling
+ok 245 - eligibility is standby in recovery, full only while activating/active, and none while cancelling
+  ---
+  duration_ms: 0.812875
+  type: 'test'
+  ...
+# Subtest: admission allowlist: standby reads only; full keeps configured plus collaboration floor
+ok 246 - admission allowlist: standby reads only; full keeps configured plus collaboration floor
+  ---
+  duration_ms: 0.609084
+  type: 'test'
+  ...
+# Subtest: durable role mapping supports a second replacement and rejects a broken chain
+ok 247 - durable role mapping supports a second replacement and rejects a broken chain
+  ---
+  duration_ms: 2.566042
+  type: 'test'
+  ...
+# Subtest: handoff snapshot binds complete task state and rejects non-JSON progress
+ok 248 - handoff snapshot binds complete task state and rejects non-JSON progress
+  ---
+  duration_ms: 0.404584
+  type: 'test'
+  ...
+# Subtest: readiness ACK is exact JSON bound to real sender, operation, handoff and config
+ok 249 - readiness ACK is exact JSON bound to real sender, operation, handoff and config
+  ---
+  duration_ms: 0.498084
+  type: 'test'
+  ...
+# Subtest: takeover proof binds child, operation, handoff, task and post-transfer revision
+ok 250 - takeover proof binds child, operation, handoff, task and post-transfer revision
+  ---
+  duration_ms: 1.643125
+  type: 'test'
+  ...
+# Subtest: explicit add spawns one root-scoped member with its own Preset, route, tools and durable roster entry
+ok 251 - explicit add spawns one root-scoped member with its own Preset, route, tools and durable roster entry
+  ---
+  duration_ms: 14.572666
+  type: 'test'
+  ...
+# Subtest: remove retains unclaimed seed responsibilities until completion or explicit native reassignment
+ok 252 - remove retains unclaimed seed responsibilities until completion or explicit native reassignment
+  ---
+  duration_ms: 3.04075
+  type: 'test'
+  ...
+# Subtest: remove rechecks native task responsibilities after quiescence, before the durable removal
+ok 253 - remove rechecks native task responsibilities after quiescence, before the durable removal
+  ---
+  duration_ms: 0.8745
+  type: 'test'
+  ...
+# Subtest: Team mode withdrawal cannot make existing task responsibilities look empty
+ok 254 - Team mode withdrawal cannot make existing task responsibilities look empty
+  ---
+  duration_ms: 0.327292
+  type: 'test'
+  ...
+# Subtest: route authority revoked while registering the addition prevents any activation
+ok 255 - route authority revoked while registering the addition prevents any activation
+  ---
+  duration_ms: 1.013375
+  type: 'test'
+  ...
+# Subtest: add with a template member name is refused before any write, Preset or spawn
+ok 256 - add with a template member name is refused before any write, Preset or spawn
+  ---
+  duration_ms: 0.362791
+  type: 'test'
+  ...
+# Subtest: add with a foreign native child name is refused before any write, Preset or spawn
+ok 257 - add with a foreign native child name is refused before any write, Preset or spawn
+  ---
+  duration_ms: 0.379292
+  type: 'test'
+  ...
+# Subtest: add with an unauthorized route is refused before any write, Preset or spawn
+ok 258 - add with an unauthorized route is refused before any write, Preset or spawn
+  ---
+  duration_ms: 1.001042
+  type: 'test'
+  ...
+# Subtest: add with an unavailable tool is refused before any write, Preset or spawn
+ok 259 - add with an unavailable tool is refused before any write, Preset or spawn
+  ---
+  duration_ms: 0.887916
+  type: 'test'
+  ...
+# Subtest: add with an incomplete member is refused before any write, Preset or spawn
+ok 260 - add with an incomplete member is refused before any write, Preset or spawn
+  ---
+  duration_ms: 0.649292
+  type: 'test'
+  ...
+# Subtest: failed startup stops only the new member, keeps old members and tasks, and reserves the name
+ok 261 - failed startup stops only the new member, keeps old members and tasks, and reserves the name
+  ---
+  duration_ms: 1.764042
+  type: 'test'
+  ...
+# Subtest: remove refuses unfinished owned tasks, then retires a quiet member and its addresses
+ok 262 - remove refuses unfinished owned tasks, then retires a quiet member and its addresses
+  ---
+  duration_ms: 1.484125
+  type: 'test'
+  ...
+# Subtest: addition readiness cannot execute work before active, and failed/removed sessions cannot resume
+ok 263 - addition readiness cannot execute work before active, and failed/removed sessions cannot resume
+  ---
+  duration_ms: 2.614209
+  type: 'test'
+  ...
+# Subtest: rc.7 records without membership round-trip with their exact shape
+ok 264 - rc.7 records without membership round-trip with their exact shape
+  ---
+  duration_ms: 0.6245
+  type: 'test'
+  ...
+# Subtest: removing an original native member accepts its real bare UUID Session id
+ok 265 - removing an original native member accepts its real bare UUID Session id
+  ---
+  duration_ms: 0.563084
+  type: 'test'
+  ...
+# Subtest: membership additions and removals persist beside the immutable base binding
+ok 266 - membership additions and removals persist beside the immutable base binding
+  ---
+  duration_ms: 1.038875
+  type: 'test'
+  ...
+# Subtest: any member name with replacement history addresses its current child; removed members are refused everywhere
+ok 267 - any member name with replacement history addresses its current child; removed members are refused everywhere
+  ---
+  duration_ms: 5.473875
+  type: 'test'
+  ...
+# Subtest: roles lists the six built-in duty templates and saved customs without writes
+ok 268 - roles lists the six built-in duty templates and saved customs without writes
+  ---
+  duration_ms: 7.816083
+  type: 'test'
+  ...
+# Subtest: duty templates are explicitly unavailable without the wired library while inspect keeps working
+ok 269 - duty templates are explicitly unavailable without the wired library while inspect keeps working
+  ---
+  duration_ms: 11.437
+  type: 'test'
+  ...
+# Subtest: adding members two-to-four persists synthesized presets, routes and seed tasks unchanged
+ok 270 - adding members two-to-four persists synthesized presets, routes and seed tasks unchanged
+  ---
+  duration_ms: 4.489917
+  type: 'test'
+  ...
+# Subtest: two members sharing one duty template keep distinct routes, prompts and tools
+ok 271 - two members sharing one duty template keep distinct routes, prompts and tools
+  ---
+  duration_ms: 4.31175
+  type: 'test'
+  ...
+# Subtest: adds beyond the declared cap require an explicit maxMembers raise in the same preview
+ok 272 - adds beyond the declared cap require an explicit maxMembers raise in the same preview
+  ---
+  duration_ms: 3.527708
+  type: 'test'
+  ...
+# Subtest: removing a seed-task owner is refused; removing a plain added member persists
+ok 273 - removing a seed-task owner is refused; removing a plain added member persists
+  ---
+  duration_ms: 4.432041
+  type: 'test'
+  ...
+# Subtest: explicit seed reassignment unlocks the installed-default four-member path
+ok 274 - explicit seed reassignment unlocks the installed-default four-member path
+  ---
+  duration_ms: 2.967958
+  type: 'test'
+  ...
+# Subtest: seed reassignment keeps the removal guard for lingering, unknown or malformed owners
+ok 275 - seed reassignment keeps the removal guard for lingering, unknown or malformed owners
+  ---
+  duration_ms: 2.465
+  type: 'test'
+  ...
+# Subtest: unknown duty ids and missing routes refuse before approval or persistence
+ok 276 - unknown duty ids and missing routes refuse before approval or persistence
+  ---
+  duration_ms: 2.4075
+  type: 'test'
+  ...
+# Subtest: a role fills only non-route defaults for a new member and explicit edits win
+ok 277 - a role fills only non-route defaults for a new member and explicit edits win
+  ---
+  duration_ms: 2.780125
+  type: 'test'
+  ...
+# Subtest: retagging an existing member with a role never rewrites its configured fields
+ok 278 - retagging an existing member with a role never rewrites its configured fields
+  ---
+  duration_ms: 1.355958
+  type: 'test'
+  ...
+# Subtest: built-in suggestions intersect the live root catalog; explicit and custom lists stay exact
+ok 279 - built-in suggestions intersect the live root catalog; explicit and custom lists stay exact
+  ---
+  duration_ms: 4.349209
+  type: 'test'
+  ...
+# Subtest: custom duty templates persist in the same CAS write and survive a cold re-read
+ok 280 - custom duty templates persist in the same CAS write and survive a cold re-read
+  ---
+  duration_ms: 3.435625
+  type: 'test'
+  ...
+# Subtest: a member may adopt a custom template submitted in the same preview
+ok 281 - a member may adopt a custom template submitted in the same preview
+  ---
+  duration_ms: 2.832584
+  type: 'test'
+  ...
+# Subtest: custom template shape failures, duplicates and built-in shadowing are refused
+ok 282 - custom template shape failures, duplicates and built-in shadowing are refused
+  ---
+  duration_ms: 1.371417
+  type: 'test'
+  ...
+# Subtest: the configure fingerprint covers both the member template and the custom catalog
+ok 283 - the configure fingerprint covers both the member template and the custom catalog
+  ---
+  duration_ms: 2.956
+  type: 'test'
+  ...
+# Subtest: concurrent revision change, approval cancellation and tool revocation never persist member additions
+ok 284 - concurrent revision change, approval cancellation and tool revocation never persist member additions
+  ---
+  duration_ms: 4.497958
+  type: 'test'
+  ...
+# Subtest: operator-configured seeds serve as defaults until the settings row persists its own catalog
+ok 285 - operator-configured seeds serve as defaults until the settings row persists its own catalog
+  ---
+  duration_ms: 4.381667
+  type: 'test'
+  ...
+# Subtest: template validation accepts one to eight complete named members and rejects incomplete ones
+ok 286 - template validation accepts one to eight complete named members and rejects incomplete ones
+  ---
+  duration_ms: 2.084875
+  type: 'test'
+  ...
+# Subtest: startup stream bounds are per member name and default to one when omitted
+ok 287 - startup stream bounds are per member name and default to one when omitted
+  ---
+  duration_ms: 0.594
+  type: 'test'
+  ...
+# Subtest: team authorization and gate derive the member set from controls, not a fixed pair
+ok 288 - team authorization and gate derive the member set from controls, not a fixed pair
+  ---
+  duration_ms: 0.731167
+  type: 'test'
+  ...
+# Subtest: launch creates every template member with its own Preset, exact tools and gate evidence
+ok 289 - launch creates every template member with its own Preset, exact tools and gate evidence
+  ---
+  duration_ms: 42.760041
+  type: 'test'
+  ...
+# Subtest: startup message from a member to itself is denied before the native body
+ok 290 - startup message from a member to itself is denied before the native body
+  ---
+  duration_ms: 10.271333
+  type: 'test'
+  ...
+# Subtest: startup message from a member to the Lead is denied before the native body
+ok 291 - startup message from a member to the Lead is denied before the native body
+  ---
+  duration_ms: 8.291792
+  type: 'test'
+  ...
+# Subtest: startup message from a member to a name outside the template is denied before the native body
+ok 292 - startup message from a member to a name outside the template is denied before the native body
+  ---
+  duration_ms: 8.6525
+  type: 'test'
+  ...
+# Subtest: a cold old member cannot complete an unobserved turn between quiet evidence and the frozen write
+ok 293 - a cold old member cannot complete an unobserved turn between quiet evidence and the frozen write
+  ---
+  duration_ms: 2.385292
+  type: 'test'
+  ...
+# Subtest: an activating candidate loses business eligibility when a transferred terminal task no longer belongs to it
+ok 294 - an activating candidate loses business eligibility when a transferred terminal task no longer belongs to it
+  ---
+  duration_ms: 17.707292
+  type: 'test'
+  ...
+# Subtest: an explicit cancellation releases a frozen operation whose planned candidate never existed
+ok 295 - an explicit cancellation releases a frozen operation whose planned candidate never existed
+  ---
+  duration_ms: 9.05225
+  type: 'test'
+  ...
+# Subtest: unconfirmed cancellation keeps the old member frozen for explicit reconciliation
+ok 296 - unconfirmed cancellation keeps the old member frozen for explicit reconciliation
+  ---
+  duration_ms: 1.2075
+  type: 'test'
+  ...
+# Subtest: an owner write intent permanently forbids the cancellation path
+ok 297 - an owner write intent permanently forbids the cancellation path
+  ---
+  duration_ms: 2.5795
+  type: 'test'
+  ...
+# Subtest: replacement metadata resolution cannot retain a route revoked while awaiting the adapter
+ok 298 - replacement metadata resolution cannot retain a route revoked while awaiting the adapter
+  ---
+  duration_ms: 10.099667
+  type: 'test'
+  ...
+# Subtest: readiness authenticates the real relay source and parses the payload after its native address prefix
+ok 299 - readiness authenticates the real relay source and parses the payload after its native address prefix
+  ---
+  duration_ms: 0.672
+  type: 'test'
+  ...
+# Subtest: takeover needs an authenticated successful native call/result pair with the named owner and next revision
+ok 300 - takeover needs an authenticated successful native call/result pair with the named owner and next revision
+  ---
+  duration_ms: 1.007792
+  type: 'test'
+  ...
+# Subtest: logical TaskView owner still proves the exact candidate write and never another role or child
+ok 301 - logical TaskView owner still proves the exact candidate write and never another role or child
+  ---
+  duration_ms: 0.371542
+  type: 'test'
+  ...
+# Subtest: quiescence checks resident work, queued input, managed background jobs and cold Session settlement
+ok 302 - quiescence checks resident work, queued input, managed background jobs and cold Session settlement
+  ---
+  duration_ms: 0.893625
+  type: 'test'
+  ...
+# Subtest: freeze claims the old Agent maintenance phase without requiring the tool-calling root to be idle
+ok 303 - freeze claims the old Agent maintenance phase without requiring the tool-calling root to be idle
+  ---
+  duration_ms: 0.547666
+  type: 'test'
+  ...
+# Subtest: unrelated unowned job progress does not invalidate the target member quiet snapshot
+ok 304 - unrelated unowned job progress does not invalidate the target member quiet snapshot
+  ---
+  duration_ms: 0.350208
+  type: 'test'
+  ...
+# Subtest: the native entry persists one complete root record while preserving the template and other roots
+ok 305 - the native entry persists one complete root record while preserving the template and other roots
+  ---
+  duration_ms: 3.008625
+  type: 'test'
+  ...
+# Subtest: a template or other-root edit invalidates the whole-entry revision without overwriting either root
+ok 306 - a template or other-root edit invalidates the whole-entry revision without overwriting either root
+  ---
+  duration_ms: 0.582
+  type: 'test'
+  ...
+# Subtest: initialization creates a permanent empty root partition and never overwrites existing retirement
+ok 307 - initialization creates a permanent empty root partition and never overwrites existing retirement
+  ---
+  duration_ms: 0.79275
+  type: 'test'
+  ...
+# Subtest: successful mutation with a different readback never confirms persistence
+ok 308 - successful mutation with a different readback never confirms persistence
+  ---
+  duration_ms: 0.477042
+  type: 'test'
+  ...
+# Subtest: inactive, duplicate, missing and corrupt native owner projections cannot become empty records
+ok 309 - inactive, duplicate, missing and corrupt native owner projections cannot become empty records
+  ---
+  duration_ms: 0.238375
+  type: 'test'
+  ...
+# Subtest: six built-in templates exist with stable ids and the exact five-field record shape
+ok 310 - six built-in templates exist with stable ids and the exact five-field record shape
+  ---
+  duration_ms: 1.572917
+  type: 'test'
+  ...
+# Subtest: returned templates are copies; mutating an instance never pollutes later reads
+ok 311 - returned templates are copies; mutating an instance never pollutes later reads
+  ---
+  duration_ms: 0.437833
+  type: 'test'
+  ...
+# Subtest: custom templates join listing and resolution with sorted exact tool lists
+ok 312 - custom templates join listing and resolution with sorted exact tool lists
+  ---
+  duration_ms: 0.457708
+  type: 'test'
+  ...
+# Subtest: a custom template is rejected when its persona is missing or blank, never stored with an implicit default
+ok 313 - a custom template is rejected when its persona is missing or blank, never stored with an implicit default
+  ---
+  duration_ms: 0.390208
+  type: 'test'
+  ...
+# Subtest: a resolved custom template fills a launcher example member and passes the real member validation
+ok 314 - a resolved custom template fills a launcher example member and passes the real member validation
+  ---
+  duration_ms: 5.53375
+  type: 'test'
+  ...
+# Subtest: validation normalizes and freezes without mutating the caller input
+ok 315 - validation normalizes and freezes without mutating the caller input
+  ---
+  duration_ms: 0.152084
+  type: 'test'
+  ...
+# Subtest: unknown, malformed and reserved ids are rejected explicitly
+ok 316 - unknown, malformed and reserved ids are rejected explicitly
+  ---
+  duration_ms: 0.330625
+  type: 'test'
+  ...
+# Subtest: even when resolving a built-in id, malformed custom data fails closed first
+ok 317 - even when resolving a built-in id, malformed custom data fails closed first
+  ---
+  duration_ms: 0.091958
+  type: 'test'
+  ...
+# Subtest: custom records must be exact five-field objects with usable text
+ok 318 - custom records must be exact five-field objects with usable text
+  ---
+  duration_ms: 0.551
+  type: 'test'
+  ...
+# Subtest: managed, recursive and plugin-control tool names cannot enter a template allowlist
+ok 319 - managed, recursive and plugin-control tool names cannot enter a template allowlist
+  ---
+  duration_ms: 0.544
+  type: 'test'
+  ...
+# Subtest: collaboration tool names stay selectable and an empty list means intentionally no work tools
+ok 320 - collaboration tool names stay selectable and an empty list means intentionally no work tools
+  ---
+  duration_ms: 0.143875
+  type: 'test'
+  ...
+# Subtest: unsaved work defaults use registered tools including the available Windows shell, without changing the example
+ok 321 - unsaved work defaults use registered tools including the available Windows shell, without changing the example
+  ---
+  duration_ms: 8.464167
+  type: 'test'
+  ...
+# Subtest: unconditional root Preset tools are available to the role bridge, while conditional local tools are excluded
+ok 322 - unconditional root Preset tools are available to the role bridge, while conditional local tools are excluded
+  ---
+  duration_ms: 0.243875
+  type: 'test'
+  ...
+# Subtest: actual native management and recursive tool names cannot enter a role allowlist
+ok 323 - actual native management and recursive tool names cannot enter a role allowlist
+  ---
+  duration_ms: 0.080416
+  type: 'test'
+  ...
+# Subtest: a delegated local definition cannot lose its unconditional registration during Host reconfiguration
+ok 324 - a delegated local definition cannot lose its unconditional registration during Host reconfiguration
+  ---
+  duration_ms: 0.726167
+  type: 'test'
+  ...
+# Subtest: resolveName refuses service replacement while its promise is pending
+ok 325 - resolveName refuses service replacement while its promise is pending
+  ---
+  duration_ms: 1.646792
+  type: 'test'
+  ...
+# Subtest: listDescendants refuses service replacement while its promise is pending
+ok 326 - listDescendants refuses service replacement while its promise is pending
+  ---
+  duration_ms: 0.223542
+  type: 'test'
+  ...
+# Subtest: sendMessage refuses service replacement while its promise is pending
+ok 327 - sendMessage refuses service replacement while its promise is pending
+  ---
+  duration_ms: 0.112875
+  type: 'test'
+  ...
+# Subtest: wait refuses service replacement while its promise is pending
+ok 328 - wait refuses service replacement while its promise is pending
+  ---
+  duration_ms: 0.08025
+  type: 'test'
+  ...
+# Subtest: capacityOf rejects a captured method after service replacement
+ok 329 - capacityOf rejects a captured method after service replacement
+  ---
+  duration_ms: 0.184459
+  type: 'test'
+  ...
+# Subtest: sendMessage rejects a captured method after service replacement
+ok 330 - sendMessage rejects a captured method after service replacement
+  ---
+  duration_ms: 0.066625
+  type: 'test'
+  ...
+# Subtest: wait rejects a captured method after service replacement
+ok 331 - wait rejects a captured method after service replacement
+  ---
+  duration_ms: 0.140584
+  type: 'test'
+  ...
+# Subtest: capacityOf rechecks service identity after the native call settles
+ok 332 - capacityOf rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.121375
+  type: 'test'
+  ...
+# Subtest: sendMessage rechecks service identity after the native call settles
+ok 333 - sendMessage rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.465958
+  type: 'test'
+  ...
+# Subtest: wait rechecks service identity after the native call settles
+ok 334 - wait rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.436958
+  type: 'test'
+  ...
+# Subtest: resolveName rechecks service identity after the native call settles
+ok 335 - resolveName rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.206
+  type: 'test'
+  ...
+# Subtest: listDescendants rechecks service identity after the native call settles
+ok 336 - listDescendants rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.087583
+  type: 'test'
+  ...
+# Subtest: only an exact logical task delegate may use the conditional reuse contract
+ok 337 - only an exact logical task delegate may use the conditional reuse contract
+  ---
+  duration_ms: 1.206625
+  type: 'test'
+  ...
+# Subtest: stable role and descendant paths address the first and second active replacement
+ok 338 - stable role and descendant paths address the first and second active replacement
+  ---
+  duration_ms: 5.5685
+  type: 'test'
+  ...
+# Subtest: every nonterminal replacement phase fails closed instead of routing to the frozen owner
+ok 339 - every nonterminal replacement phase fails closed instead of routing to the frozen owner
+  ---
+  duration_ms: 2.887875
+  type: 'test'
+  ...
+# Subtest: aborted replacement restores the prior active generation and never exposes its cancelled candidate
+ok 340 - aborted replacement restores the prior active generation and never exposes its cancelled candidate
+  ---
+  duration_ms: 0.989958
+  type: 'test'
+  ...
+# Subtest: legacy active records without a persisted instance name fail closed
+ok 341 - legacy active records without a persisted instance name fail closed
+  ---
+  duration_ms: 0.904125
+  type: 'test'
+  ...
+# Subtest: list_agents projects only stable current roles and rewrites their descendant paths
+ok 342 - list_agents projects only stable current roles and rewrites their descendant paths
+  ---
+  duration_ms: 1.295458
+  type: 'test'
+  ...
+# Subtest: unmanaged names and lead ACK routing remain native pass-throughs
+ok 343 - unmanaged names and lead ACK routing remain native pass-throughs
+  ---
+  duration_ms: 0.2085
+  type: 'test'
+  ...
+# Subtest: native control service view rewrites only resolution and catalog projection
+ok 344 - native control service view rewrites only resolution and catalog projection
+  ---
+  duration_ms: 1.685917
+  type: 'test'
+  ...
+# Subtest: native task service view keeps board identity and projects owner names only
+ok 345 - native task service view keeps board identity and projects owner names only
+  ---
+  duration_ms: 1.289334
+  type: 'test'
+  ...
+# Subtest: standby self identity and lead target remain native while its stable business role is unavailable
+ok 346 - standby self identity and lead target remain native while its stable business role is unavailable
+  ---
+  duration_ms: 0.683583
+  type: 'test'
+  ...
+# Subtest: replacement-managed Presets select logical native control while legacy Presets remain unchanged
+ok 347 - replacement-managed Presets select logical native control while legacy Presets remain unchanged
+  ---
+  duration_ms: 0.67025
+  type: 'test'
+  ...
+# Subtest: registered management and recursive tools are absent from the catalog and cannot be saved for a role
+ok 348 - registered management and recursive tools are absent from the catalog and cannot be saved for a role
+  ---
+  duration_ms: 15.815417
+  type: 'test'
+  ...
+# Subtest: the profile-wide skill and inspection need no metadata lookup, model call or settings write
+ok 349 - the profile-wide skill and inspection need no metadata lookup, model call or settings write
+  ---
+  duration_ms: 2.394625
+  type: 'test'
+  ...
+# Subtest: preview validates selected provider/model/effort without granting authorization or writing
+ok 350 - preview validates selected provider/model/effort without granting authorization or writing
+  ---
+  duration_ms: 1.84525
+  type: 'test'
+  ...
+# Subtest: apply persists the previewed template through native settings CAS and preserves tools/tasks
+ok 351 - apply persists the previewed template through native settings CAS and preserves tools/tasks
+  ---
+  duration_ms: 2.953416
+  type: 'test'
+  ...
+# Subtest: stale revision or fingerprint and unsupported effort refuse before permission or writes
+ok 352 - stale revision or fingerprint and unsupported effort refuse before permission or writes
+  ---
+  duration_ms: 2.811416
+  type: 'test'
+  ...
+# Subtest: permission refusal, cancellation and concurrent settings changes never overwrite configuration
+ok 353 - permission refusal, cancellation and concurrent settings changes never overwrite configuration
+  ---
+  duration_ms: 5.389041
+  type: 'test'
+  ...
+# Subtest: write uncertainty is reported without compensation or automatic retry
+ok 354 - write uncertainty is reported without compensation or automatic retry
+  ---
+  duration_ms: 1.568791
+  type: 'test'
+  ...
+# Subtest: model catalog selection and root-only editing reject malformed or foreign requests
+ok 355 - model catalog selection and root-only editing reject malformed or foreign requests
+  ---
+  duration_ms: 1.589959
+  type: 'test'
+  ...
+# Subtest: tool catalog exposes registered tools visible to the root, excluding delegation and reserved transports
+ok 356 - tool catalog exposes registered tools visible to the root, excluding delegation and reserved transports
+  ---
+  duration_ms: 0.694958
+  type: 'test'
+  ...
+# Subtest: role tool edits preview and persist exact tool names without changing peer, models or tasks
+ok 357 - role tool edits preview and persist exact tool names without changing peer, models or tasks
+  ---
+  duration_ms: 1.799333
+  type: 'test'
+  ...
+# Subtest: unknown, restricted and orchestration tools refuse before approval or persistence
+ok 358 - unknown, restricted and orchestration tools refuse before approval or persistence
+  ---
+  duration_ms: 1.886541
+  type: 'test'
+  ...
+# Subtest: tool removal between preview/apply or while native approval is pending does not save an unavailable selection
+ok 359 - tool removal between preview/apply or while native approval is pending does not save an unavailable selection
+  ---
+  duration_ms: 3.133833
+  type: 'test'
+  ...
+# Subtest: plugin unload unregisters the runtime skill and rejects a captured old configuration tool
+ok 360 - plugin unload unregisters the runtime skill and rejects a captured old configuration tool
+  ---
+  duration_ms: 0.558459
+  type: 'test'
+  ...
+# Subtest: team plan requires explicit distinct roles, models, presets and immutable controls
+ok 361 - team plan requires explicit distinct roles, models, presets and immutable controls
+  ---
+  duration_ms: 1.795834
+  type: 'test'
+  ...
+# Subtest: a missing reviewer authorization prevents even implementer metadata lookup
+ok 362 - a missing reviewer authorization prevents even implementer metadata lookup
+  ---
+  duration_ms: 0.694625
+  type: 'test'
+  ...
+# Subtest: each role has its own normal-step allowance and summed final usage per stream
+ok 363 - each role has its own normal-step allowance and summed final usage per stream
+  ---
+  duration_ms: 2.898583
+  type: 'test'
+  ...
+# Subtest: identical history cannot become an automatic retry and failed native tools are terminal
+ok 364 - identical history cannot become an automatic retry and failed native tools are terminal
+  ---
+  duration_ms: 0.487625
+  type: 'test'
+  ...
+# Subtest: native tool results may omit optional isError, while malformed error flags are refused
+ok 365 - native tool results may omit optional isError, while malformed error flags are refused
+  ---
+  duration_ms: 0.446875
+  type: 'test'
+  ...
+# Subtest: quarantine, causal attribution, tool leakage and route drift refuse before provider dispatch
+ok 366 - quarantine, causal attribution, tool leakage and route drift refuse before provider dispatch
+  ---
+  duration_ms: 0.835042
+  type: 'test'
+  ...
+# Subtest: a failed or overlapping owned stream cannot admit more work
+ok 367 - a failed or overlapping owned stream cannot admit more work
+  ---
+  duration_ms: 0.305
+  type: 'test'
+  ...
+# Subtest: close synchronously fences both children despite spare budgets and fresh successful tool results
+ok 368 - close synchronously fences both children despite spare budgets and fresh successful tool results
+  ---
+  duration_ms: 0.453041
+  type: 'test'
+  ...
+# Subtest: close preserves an already admitted drain, unrelated traffic, and the root quarantine
+ok 369 - close preserves an already admitted drain, unrelated traffic, and the root quarantine
+  ---
+  duration_ms: 0.684834
+  type: 'test'
+  ...
+# Subtest: close refuses a late child association without inventing an activation or stream failure
+ok 370 - close refuses a late child association without inventing an activation or stream failure
+  ---
+  duration_ms: 0.478459
+  type: 'test'
+  ...
+# Subtest: role creation restricts native capabilities without resolving Team ownership too early
+ok 371 - role creation restricts native capabilities without resolving Team ownership too early
+  ---
+  duration_ms: 0.523292
+  type: 'test'
+  ...
+# Subtest: PRESET_STARTUP registered implementer includes native control definitions before its role hook
+ok 372 - PRESET_STARTUP registered implementer includes native control definitions before its role hook
+  ---
+  duration_ms: 1.230917
+  type: 'test'
+  ...
+# Subtest: PRESET_STARTUP registered reviewer includes native control definitions before its role hook
+ok 373 - PRESET_STARTUP registered reviewer includes native control definitions before its role hook
+  ---
+  duration_ms: 0.268208
+  type: 'test'
+  ...
+# Subtest: PRESET_STARTUP native control in a preset ancestor permits exactly the existing four capabilities
+ok 374 - PRESET_STARTUP native control in a preset ancestor permits exactly the existing four capabilities
+  ---
+  duration_ms: 0.392875
+  type: 'test'
+  ...
+# Subtest: PRESET_STARTUP child-own control registrations cannot stand in for a native preset entry
+ok 375 - PRESET_STARTUP child-own control registrations cannot stand in for a native preset entry
+  ---
+  duration_ms: 0.112791
+  type: 'test'
+  ...
+# Subtest: PRESET_STARTUP M2 control binding refuses missing, external, queried or interrupt-enabled entries
+ok 376 - PRESET_STARTUP M2 control binding refuses missing, external, queried or interrupt-enabled entries
+  ---
+  duration_ms: 0.461708
+  type: 'test'
+  ...
+# Subtest: Team pair rejects a changed live parent workspace without changing the board
+ok 377 - Team pair rejects a changed live parent workspace without changing the board
+  ---
+  duration_ms: 10.450375
+  type: 'test'
+  ...
+# Subtest: Team pair rechecks live workspace after tool resolution before its first write
+ok 378 - Team pair rechecks live workspace after tool resolution before its first write
+  ---
+  duration_ms: 5.372792
+  type: 'test'
+  ...
+# Subtest: TEAM_DISABLED cold root enables the native task board before using it
+ok 379 - TEAM_DISABLED cold root enables the native task board before using it
+  ---
+  duration_ms: 12.135833
+  type: 'test'
+  ...
+# Subtest: TEAM_DISABLED existing durable tasks survive enabling and restoring a disabled root
+ok 380 - TEAM_DISABLED existing durable tasks survive enabling and restoring a disabled root
+  ---
+  duration_ms: 8.510958
+  type: 'test'
+  ...
+# Subtest: TEAM_DISABLED foreign board drift during enable flush is rejected before task creation
+ok 381 - TEAM_DISABLED foreign board drift during enable flush is rejected before task creation
+  ---
+  duration_ms: 4.403167
+  type: 'test'
+  ...
+# Subtest: native pair uses child-owned task CAS and peer delivery, then restores only its Team selection
+ok 382 - native pair uses child-owned task CAS and peer delivery, then restores only its Team selection
+  ---
+  duration_ms: 6.92225
+  type: 'test'
+  ...
+# Subtest: an already-enabled Team stays enabled after a settled pair
+ok 383 - an already-enabled Team stays enabled after a settled pair
+  ---
+  duration_ms: 6.462667
+  type: 'test'
+  ...
+# Subtest: native tool results with the optional isError flag omitted are successful
+ok 384 - native tool results with the optional isError flag omitted are successful
+  ---
+  duration_ms: 6.085083
+  type: 'test'
+  ...
+# Subtest: policy refusal creates no tasks or children and does not change Team mode
+ok 385 - policy refusal creates no tasks or children and does not change Team mode
+  ---
+  duration_ms: 4.001917
+  type: 'test'
+  ...
+# Subtest: partial child creation failure drains the reviewer before scoped disposal and Team restoration
+ok 386 - partial child creation failure drains the reviewer before scoped disposal and Team restoration
+  ---
+  duration_ms: 5.616416
+  type: 'test'
+  ...
+# Subtest: unrelated root input is preserved and fails the pair rather than being canceled as a child notice
+ok 387 - unrelated root input is preserved and fails the pair rather than being canceled as a child notice
+  ---
+  duration_ms: 6.184375
+  type: 'test'
+  ...
+# Subtest: foreign task-board mutation prevents further creation without overwriting it
+ok 388 - foreign task-board mutation prevents further creation without overwriting it
+  ---
+  duration_ms: 3.918625
+  type: 'test'
+  ...
+# Subtest: a concurrent Team-mode selection stops writes and reports the current mode for reconciliation
+ok 389 - a concurrent Team-mode selection stops writes and reports the current mode for reconciliation
+  ---
+  duration_ms: 3.390667
+  type: 'test'
+  ...
+# Subtest: unexpected ownership, revision or scope of an owned task leaves mode and tasks for reconciliation
+ok 390 - unexpected ownership, revision or scope of an owned task leaves mode and tasks for reconciliation
+  ---
+  duration_ms: 18.054917
+  type: 'test'
+  ...
+# Subtest: a board change during scoped-tool disposal is detected before any restoration write
+ok 391 - a board change during scoped-tool disposal is detected before any restoration write
+  ---
+  duration_ms: 6.704083
+  type: 'test'
+  ...
+# Subtest: child scope rejects foreign task reads, writes and delete before the native body
+ok 392 - child scope rejects foreign task reads, writes and delete before the native body
+  ---
+  duration_ms: 29.2475
+  type: 'test'
+  ...
+# Subtest: child scope rejects messages to lead, wrong peer and reviewer sends before the native body
+ok 393 - child scope rejects messages to lead, wrong peer and reviewer sends before the native body
+  ---
+  duration_ms: 16.4375
+  type: 'test'
+  ...
+# Subtest: child tool guards pass root and unrelated callers through the remaining native policy
+ok 394 - child tool guards pass root and unrelated callers through the remaining native policy
+  ---
+  duration_ms: 4.942334
+  type: 'test'
+  ...
+# Subtest: uncertain native persistence is reported without retry or another Team-mode write
+ok 395 - uncertain native persistence is reported without retry or another Team-mode write
+  ---
+  duration_ms: 3.727583
+  type: 'test'
+  ...
+# Subtest: timeout and interrupt errors retain both guards until both exact child lifecycles end
+ok 396 - timeout and interrupt errors retain both guards until both exact child lifecycles end
+  ---
+  duration_ms: 1005.802291
+  type: 'test'
+  ...
+# Subtest: unload during asynchronous marker checks admits no runtime work
+ok 397 - unload during asynchronous marker checks admits no runtime work
+  ---
+  duration_ms: 3.11175
+  type: 'test'
+  ...
+# Subtest: F1 next rechecks board before body dispatch
+ok 398 - F1 next rechecks board before body dispatch
+  ---
+  duration_ms: 3.854875
+  type: 'test'
+  ...
+# Subtest: F1 ask rechecks board before body dispatch
+ok 399 - F1 ask rechecks board before body dispatch
+  ---
+  duration_ms: 4.615084
+  type: 'test'
+  ...
+# Subtest: F1 cancellation and closing cannot cross a suspended native allow or ask even when interrupt throws
+ok 400 - F1 cancellation and closing cannot cross a suspended native allow or ask even when interrupt throws
+  ---
+  duration_ms: 16.616291
+  type: 'test'
+  ...
+# Subtest: F1 invokes native policy once and preserves allow and deny decisions including ask
+ok 401 - F1 invokes native policy once and preserves allow and deny decisions including ask
+  ---
+  duration_ms: 18.412125
+  type: 'test'
+  ...
+# Subtest: F2 cleanup detects owned task drift independently of bad JSON, wrong persona or abnormal end
+ok 402 - F2 cleanup detects owned task drift independently of bad JSON, wrong persona or abnormal end
+  ---
+  duration_ms: 44.170458
+  type: 'test'
+  ...
+# Subtest: F2 output validation errors without native task drift still restore the owned Team selection
+ok 403 - F2 output validation errors without native task drift still restore the owned Team selection
+  ---
+  duration_ms: 15.719833
+  type: 'test'
+  ...
+# Subtest: F3 timeout and cancel synchronously close remaining model budget while exact children drain
+ok 404 - F3 timeout and cancel synchronously close remaining model budget while exact children drain
+  ---
+  duration_ms: 1012.319375
+  type: 'test'
+  ...
+# Subtest: F3 unload and terminal partial activation failure close admission before interrupt errors
+ok 405 - F3 unload and terminal partial activation failure close admission before interrupt errors
+  ---
+  duration_ms: 14.890042
+  type: 'test'
+  ...
+# Subtest: F3 canceled creation retains the late published child identity and guard until its actual end
+ok 406 - F3 canceled creation retains the late published child identity and guard until its actual end
+  ---
+  duration_ms: 9.062667
+  type: 'test'
+  ...
+# Subtest: native delegation diagnostics identify all seven batch mismatches without accepting a missing success flag
+ok 407 - native delegation diagnostics identify all seven batch mismatches without accepting a missing success flag
+  ---
+  duration_ms: 51.273334
+  type: 'test'
+  ...
+# Subtest: native delegation diagnostics enumerate concurrent malformed batch fields rather than short-circuiting
+ok 408 - native delegation diagnostics enumerate concurrent malformed batch fields rather than short-circuiting
+  ---
+  duration_ms: 5.88025
+  type: 'test'
+  ...
+# Subtest: native error diagnostics preserve safe structure and omit secrets, headers, queries and full content
+ok 409 - native error diagnostics preserve safe structure and omit secrets, headers, queries and full content
+  ---
+  duration_ms: 17.252
+  type: 'test'
+  ...
+# Subtest: ordinary CLI is refused by the unchanged original Host guard
+ok 410 - ordinary CLI is refused by the unchanged original Host guard
+  ---
+  duration_ms: 1.293291
+  type: 'test'
+  ...
+# Subtest: pinned public control exports become an immutable preset entry without a bare-name fallback
+ok 411 - pinned public control exports become an immutable preset entry without a bare-name fallback
+  ---
+  duration_ms: 10.749708
+  type: 'test'
+  ...
+# Subtest: the original ASAR and subagent-version guards run before any control resolution
+    # Subtest: /HOST_ARCHIVE_CHANGED/
+    ok 1 - /HOST_ARCHIVE_CHANGED/
+      ---
+      duration_ms: 3.663208
+      type: 'test'
+      ...
+    # Subtest: /WRONG_HOST_VERSION/
+    ok 2 - /WRONG_HOST_VERSION/
+      ---
+      duration_ms: 3.638
+      type: 'test'
+      ...
+    1..2
+ok 412 - the original ASAR and subagent-version guards run before any control resolution
+  ---
+  duration_ms: 7.681208
+  type: 'test'
+  ...
+# Subtest: rc.5 loads the matching public native control entry
+ok 413 - rc.5 loads the matching public native control entry
+  ---
+  duration_ms: 4.528625
+  type: 'test'
+  ...
+# Subtest: rc.5 refuses an rc.2 control package even though that version is supported on its own archive
+ok 414 - rc.5 refuses an rc.2 control package even though that version is supported on its own archive
+  ---
+  duration_ms: 4.959458
+  type: 'test'
+  ...
+# Subtest: outside, traversing or mismatched public paths refuse before control metadata reads
+    # Subtest: untrusted path 1
+    ok 1 - untrusted path 1
+      ---
+      duration_ms: 3.163083
+      type: 'test'
+      ...
+    # Subtest: untrusted path 2
+    ok 2 - untrusted path 2
+      ---
+      duration_ms: 3.700708
+      type: 'test'
+      ...
+    # Subtest: untrusted path 3
+    ok 3 - untrusted path 3
+      ---
+      duration_ms: 4.073417
+      type: 'test'
+      ...
+    # Subtest: untrusted path 4
+    ok 4 - untrusted path 4
+      ---
+      duration_ms: 3.806292
+      type: 'test'
+      ...
+    1..4
+ok 415 - outside, traversing or mismatched public paths refuse before control metadata reads
+  ---
+  duration_ms: 15.470458
+  type: 'test'
+  ...
+# Subtest: control package version, name and metadata errors refuse with no alternate module
+    # Subtest: /WRONG_CONTROL_HOST_VERSION/
+    ok 1 - /WRONG_CONTROL_HOST_VERSION/
+      ---
+      duration_ms: 4.314292
+      type: 'test'
+      ...
+    # Subtest: /WRONG_CONTROL_PACKAGE/
+    ok 2 - /WRONG_CONTROL_PACKAGE/
+      ---
+      duration_ms: 4.448625
+      type: 'test'
+      ...
+    # Subtest: /CONTROL_PACKAGE_METADATA_INVALID/
+    ok 3 - /CONTROL_PACKAGE_METADATA_INVALID/
+      ---
+      duration_ms: 3.224125
+      type: 'test'
+      ...
+    1..3
+ok 416 - control package version, name and metadata errors refuse with no alternate module
+  ---
+  duration_ms: 12.346416
+  type: 'test'
+  ...
+# Subtest: a missing public export is not replaced by a private path or another package root
+ok 417 - a missing public export is not replaced by a private path or another package root
+  ---
+  duration_ms: 3.34275
+  type: 'test'
+  ...
+# Subtest: Windows control export uses an escaped file URL from C:\\Users\\DSH Operator\\AppData\\Local\\Programs\\DeepSeek Harness
+ok 418 - Windows control export uses an escaped file URL from C:\\Users\\DSH Operator\\AppData\\Local\\Programs\\DeepSeek Harness
+  ---
+  duration_ms: 5.353667
+  type: 'test'
+  ...
+# Subtest: Windows control export uses an escaped file URL from C:\\Program Files\\DeepSeek Harness
+ok 419 - Windows control export uses an escaped file URL from C:\\Program Files\\DeepSeek Harness
+  ---
+  duration_ms: 3.367292
+  type: 'test'
+  ...
+# Subtest: Windows refuses foreign archives, noncanonical paths and mismatched package roots before control reads
+    # Subtest: untrusted Windows path 1
+    ok 1 - untrusted Windows path 1
+      ---
+      duration_ms: 3.539167
+      type: 'test'
+      ...
+    # Subtest: untrusted Windows path 2
+    ok 2 - untrusted Windows path 2
+      ---
+      duration_ms: 3.3905
+      type: 'test'
+      ...
+    # Subtest: untrusted Windows path 3
+    ok 3 - untrusted Windows path 3
+      ---
+      duration_ms: 4.172666
+      type: 'test'
+      ...
+    # Subtest: untrusted Windows path 4
+    ok 4 - untrusted Windows path 4
+      ---
+      duration_ms: 3.504417
+      type: 'test'
+      ...
+    # Subtest: untrusted Windows path 5
+    ok 5 - untrusted Windows path 5
+      ---
+      duration_ms: 3.545625
+      type: 'test'
+      ...
+    1..5
+ok 420 - Windows refuses foreign archives, noncanonical paths and mismatched package roots before control reads
+  ---
+  duration_ms: 18.751
+  type: 'test'
+  ...
+# Subtest: Agent-facing replacement binds the observed old member and preserves explicit configuration
+ok 421 - Agent-facing replacement binds the observed old member and preserves explicit configuration
+  ---
+  duration_ms: 5.708583
+  type: 'test'
+  ...
+# Subtest: child, stale cancellation and unloading cannot initiate replacement
+ok 422 - child, stale cancellation and unloading cannot initiate replacement
+  ---
+  duration_ms: 1.169958
+  type: 'test'
+  ...
+# Subtest: missing old identity, unsupported role and ambiguous recovery input are refused before mutation
+ok 423 - missing old identity, unsupported role and ambiguous recovery input are refused before mutation
+  ---
+  duration_ms: 1.88375
+  type: 'test'
+  ...
+# Subtest: native legacy UUID children are exact observed identities and adoption has a separate input contract
+ok 424 - native legacy UUID children are exact observed identities and adoption has a separate input contract
+  ---
+  duration_ms: 0.942416
+  type: 'test'
+  ...
+# Subtest: add and remove have exact separate input contracts and pass the stable member name
+ok 425 - add and remove have exact separate input contracts and pass the stable member name
+  ---
+  duration_ms: 1.114959
+  type: 'test'
+  ...
+# Subtest: official folded update feed resolves its exact version and SHA512, with no arbitrary installer URL
+ok 426 - official folded update feed resolves its exact version and SHA512, with no arbitrary installer URL
+  ---
+  duration_ms: 1.243042
+  type: 'test'
+  ...
+# Subtest: RC releases are monitored even when a full release exists; drafts and unrelated tags are excluded
+ok 427 - RC releases are monitored even when a full release exists; drafts and unrelated tags are excluded
+  ---
+  duration_ms: 0.862292
+  type: 'test'
+  ...
+# Subtest: native source comparison includes removed paths and refuses an incomplete Git tree
+ok 428 - native source comparison includes removed paths and refuses an incomplete Git tree
+  ---
+  duration_ms: 0.561208
+  type: 'test'
+  ...
+# Subtest: tag moves, repackages and a new plugin build each invalidate deduplication
+ok 429 - tag moves, repackages and a new plugin build each invalidate deduplication
+  ---
+  duration_ms: 0.556125
+  type: 'test'
+  ...
+# Subtest: unchanged verified and pending versions deduplicate; infrastructure failures retry after six hours
+ok 430 - unchanged verified and pending versions deduplicate; infrastructure failures retry after six hours
+  ---
+  duration_ms: 1.154792
+  type: 'test'
+  ...
+# Subtest: unknown archive admission is pending; missing, forged and failed results cannot become compatible
+ok 431 - unknown archive admission is pending; missing, forged and failed results cannot become compatible
+  ---
+  duration_ms: 1.170875
+  type: 'test'
+  ...
+# Subtest: one version keeps one Issue across repeat runs and reopens after a previously verified version changes
+ok 432 - one version keeps one Issue across repeat runs and reopens after a previously verified version changes
+  ---
+  duration_ms: 6.750834
+  type: 'test'
+  ...
+# Subtest: a verified platform requires all six suites, CLI installation, reviewed admission and successful cleanup
+ok 433 - a verified platform requires all six suites, CLI installation, reviewed admission and successful cleanup
+  ---
+  duration_ms: 0.530542
+  type: 'test'
+  ...
+# Subtest: matching public fingerprints cannot turn incomplete or mismatched proof into verified
+ok 434 - matching public fingerprints cannot turn incomplete or mismatched proof into verified
+  ---
+  duration_ms: 0.666166
+  type: 'test'
+  ...
+# Subtest: timeouts, signals and cleanup errors stay infrastructure failures; source-bound contract failures are distinct
+ok 435 - timeouts, signals and cleanup errors stay infrastructure failures; source-bound contract failures are distinct
+  ---
+  duration_ms: 0.737583
+  type: 'test'
+  ...
+# Subtest: pending admission and incompatibility require the corresponding source-bound execution proof
+ok 436 - pending admission and incompatibility require the corresponding source-bound execution proof
+  ---
+  duration_ms: 0.698875
+  type: 'test'
+  ...
+# Subtest: the admission suite emits explicit business failures while setup exceptions remain infrastructure
+ok 437 - the admission suite emits explicit business failures while setup exceptions remain infrastructure
+  ---
+  duration_ms: 0.590083
+  type: 'test'
+  ...
+# Subtest: real Node assertion wrappers retain nested actual/cause IO provenance
+ok 438 - real Node assertion wrappers retain nested actual/cause IO provenance
+  ---
+  duration_ms: 1.585
+  type: 'test'
+  ...
+# Subtest: Host environment inherits neither GitHub credentials, model keys nor operator startup options
+ok 439 - Host environment inherits neither GitHub credentials, model keys nor operator startup options
+  ---
+  duration_ms: 0.626208
+  type: 'test'
+  ...
+# Subtest: planning consumes public prereleases and official feeds, without writing or automatically trusting an archive
+ok 440 - planning consumes public prereleases and official feeds, without writing or automatically trusting an archive
+  ---
+  duration_ms: 12.23925
+  type: 'test'
+  ...
+# Subtest: an old tag move is still observed after Desktop feeds advance; its attested installer remains usable
+ok 441 - an old tag move is still observed after Desktop feeds advance; its attested installer remains usable
+  ---
+  duration_ms: 4.346292
+  type: 'test'
+  ...
+1..441
+# tests 455
+# suites 0
+# pass 455
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 7972.545167

@@ -1,6 +1,7 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
 import { randomUUID } from 'node:crypto';
 import { parseConfig, preflight, authorize, LiveError, fail } from './config.js';
-import { assertOwned } from './owned.js';
+import { assertOwned, assertWorkingDirectory, childWorkingDirectoryMatches } from './owned.js';
 import { createGate } from './gate.js';
 
 const TOOL = 'dsh_live_one_spawn';
@@ -40,7 +41,7 @@ export async function applyLive(ctx, raw, nativeSubagent) {
     if (!op.agent.inbox.remove(id) || pending(op.agent).length !== 0) fail('NOTICE_CANCELLATION_FAILED');
     return [id];
   }
-  const readPolicy = agent => ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy');
+  const readPolicy = agent => readAuthorizedRoutes(ctx, agent.session);
 
   async function perform(op, commandSignal) {
     const agent = op.agent;
@@ -69,13 +70,15 @@ export async function applyLive(ctx, raw, nativeSubagent) {
           toolSet = await agent.ctx.tools.resolve({ agent, modelSelection: agent.model.current(), signal });
           signal.throwIfAborted();
           if (!toolSet.view(agent).has(TOOL)) fail('SCOPED_NATIVE_TOOL_UNAVAILABLE');
+          assertWorkingDirectory(ctx, config, agent);
+          authorize(config, readPolicy(agent));
           if (spent) fail('RUN_ALREADY_ATTEMPTED');
           spent = true;
           op.dispatching = true;
           op.callId = `dsh-live-${randomUUID()}`;
           const batch = await agent.ctx.tools.execute({ agent, signal, toolSet, calls: [{ type: 'tool-call', id: op.callId,
             name: TOOL, arguments: JSON.stringify({ name: config.memberName, description: `Owned synthetic ${config.runTag}`,
-              cwd: config.workspace, provider: config.route.provider, model: config.route.model,
+              provider: config.route.provider, model: config.route.model,
               reasoning_effort: 'low', agent_preset: config.presetId,
               prompt: 'Compute 2+3. Return only a JSON object with role, personaNonce from your system persona, and value. Do not call tools or delegate.' }) }] });
           if (batch.results?.length !== 1 || batch.results[0].callId !== op.callId
@@ -170,7 +173,13 @@ export async function applyLive(ctx, raw, nativeSubagent) {
       }
       const child = ctx.agents.get(info.id);
       op.childId = info.id;op.runId = info.runId;gate.track(info.id);
+      try { authorize(config, readPolicy(op.agent)); }
+      catch (error) {
+        op.failure = error?.code ?? 'SESSION_ROUTE_NOT_AUTHORIZED';
+        gate.blockChild(info.id); interrupt(op); return;
+      }
       if (!child || child.session.header.parentSession !== config.ownedSessionId
+        || !childWorkingDirectoryMatches(ctx, config, op.agent, child)
         || ctx.agentPresets.composedPreset(child.ctx) !== config.presetId
         || child.model.current()?.provider !== config.route.provider || child.model.current()?.model !== config.route.model
         || child.model.current()?.reasoningEffort !== 'low' || child.options.maxTokens !== 1024) {

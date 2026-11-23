@@ -270,7 +270,7 @@ try {
 const report = {
   sourceHead, plugin, runtime, node: process.versions.node, sourceHashes: hashes,
   checks, setupError, passed: setupError === undefined && checks.length === 5 && checks.every(item => item.passed),
-  boundary: 'Physical rc.5 Cordis Loader, AgentPresetRegistry composition, AgentRegistry, AgentLoop, native executor and temporary JSONL cold resume. Provider, approval and tool bodies are isolated local fixtures. No Host daemon, network provider, account, daily profile or user Session.',
+  boundary: 'Physical pinned Host Cordis Loader, AgentPresetRegistry composition, AgentRegistry, AgentLoop, native executor and temporary JSONL cold resume. Provider, approval and tool bodies are isolated local fixtures. No Host daemon, network provider, account, daily profile or user Session.',
 };
 await writeFile(receipt, JSON.stringify(report, null, 2) + '\n', { flag: 'wx' });
 process.stdout.write(JSON.stringify({ receipt, passed: report.passed, setupError,

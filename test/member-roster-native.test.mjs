@@ -1,3 +1,4 @@
+import { bindRc5Fixture } from './fixtures/host-contract.mjs';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createRosterRuntime } from '../src/member-roster-native.js';
@@ -58,7 +59,7 @@ function host({ tasks = [], startup = 'completed', models = ['m'], foreign = [],
     } },
   };
   const store = createReplacementStore(ctx.settings, ROOT);
-  const runtime = createRosterRuntime(ctx, { ownedSessionId: ROOT, workspace: '/w', runTag: `current-${SUFFIX}`, timeoutMs: 1000 },
+  const runtime = createRosterRuntime(bindRc5Fixture(ctx), { ownedSessionId: ROOT, workspace: '/w', runTag: `current-${SUFFIX}`, timeoutMs: 1000 },
     { baseMembers, store, registerMember: async entry => { registered.push(entry.id); await onRegister?.(ctx); }, lifetimeSignal: new AbortController().signal });
   const signal = new AbortController().signal;
   return { ctx, runtime, settings, children, activations, registered, interrupts, root, signal,
