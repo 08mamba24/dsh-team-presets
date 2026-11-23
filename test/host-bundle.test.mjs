@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mkdtemp, mkdir, writeFile, rm, realpath, symlink, unlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join, relative } from 'node:path';
 import * as host from '../src/host-support.js';
 
 test('portable pinned bundle discovery derives resources from the exact executable layout', () => {
@@ -23,31 +23,33 @@ test('portable pinned bundle discovery derives resources from the exact executab
 async function bundle(t) {
   const root = await realpath(await mkdtemp(join(tmpdir(), 'dsh-host-bundle-')));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const app = join(root, 'DeepSeek Harness.app');
-  await mkdir(join(app, 'Contents/MacOS'), { recursive: true });
-  await mkdir(join(app, 'Contents/Resources'));
-  const executable = join(app, 'Contents/MacOS/DeepSeek Harness'), archive = join(app, 'Contents/Resources/app.asar');
+  const app = join(root, process.platform === 'win32' ? 'DeepSeek Harness' : 'DeepSeek Harness.app');
+  const executable = process.platform === 'win32' ? join(app, 'DeepSeek Harness.exe') : join(app, 'Contents', 'MacOS', 'DeepSeek Harness');
+  const archive = process.platform === 'win32' ? join(app, 'resources', 'app.asar') : join(app, 'Contents', 'Resources', 'app.asar');
+  await mkdir(dirname(executable), { recursive: true });
+  await mkdir(dirname(archive), { recursive: true });
   await writeFile(executable, 'synthetic executable; never executed'); await writeFile(archive, 'synthetic archive');
   return { root, app, executable, archive };
 }
 
 test('canonical bundle checks keep executable and archive in the same real bundle', async t => {
   const b = await bundle(t);
-  assert.equal(await host.assertCanonicalHostBundle(b.executable, 'darwin', realpath), b.archive);
+  assert.equal(await host.assertCanonicalHostBundle(b.executable, process.platform, realpath), b.archive);
 });
 
 test('external executable or archive symlinks are rejected before reading archive bytes', async t => {
   for (const target of ['executable', 'archive']) {
     const b = await bundle(t), outside = join(b.root, `outside-${target}`);
     await writeFile(outside, 'foreign bytes'); await unlink(b[target]); await symlink(outside, b[target]);
-    await assert.rejects(host.assertCanonicalHostBundle(b.executable, 'darwin', realpath),
+    await assert.rejects(host.assertCanonicalHostBundle(b.executable, process.platform, realpath),
       { code: 'HOST_BUNDLE_PATH_CHANGED' });
   }
 });
 
 test('a bundle directory alias cannot substitute for its canonical owner', async t => {
   const b = await bundle(t), parent = join(b.root, 'alias-parent'); await mkdir(parent);
-  const alias = join(parent, 'DeepSeek Harness.app'); await symlink(b.app, alias, 'dir');
-  await assert.rejects(host.assertCanonicalHostBundle(join(alias, 'Contents/MacOS/DeepSeek Harness'), 'darwin', realpath),
+  const alias = join(parent, process.platform === 'win32' ? 'DeepSeek Harness' : 'DeepSeek Harness.app');
+  await symlink(b.app, alias, process.platform === 'win32' ? 'junction' : 'dir');
+  await assert.rejects(host.assertCanonicalHostBundle(join(alias, relative(b.app, b.executable)), process.platform, realpath),
     { code: 'HOST_BUNDLE_PATH_CHANGED' });
 });
