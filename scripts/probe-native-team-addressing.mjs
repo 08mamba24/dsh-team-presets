@@ -664,7 +664,7 @@ for (const name of ['src/team-addressing.js', 'role-control.js', 'src/launcher-n
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }
 const result = { sourceHead, runtime, passed: checks.length === 14 && checks.every(item => item.passed), hashes, checks, setupError, cleanupError,
-  boundary: 'Physical rc.5 Cordis, dsh-scope, ToolsService, NativeToolExecutor and an official-Standard-equivalent Preset scope mounting unmodified dsh-tool-subagent-control (interrupt false), plus unmodified dsh-tool-agent-team definitions. Isolated in-memory Settings/AgentRegistry, catalog and task-board service; no user profile, Host daemon, model, network, manager mutation or persistent Session.' };
+  boundary: 'Physical pinned Host Cordis, dsh-scope, ToolsService, NativeToolExecutor and an official-Standard-equivalent Preset scope mounting unmodified dsh-tool-subagent-control (interrupt false), plus unmodified dsh-tool-agent-team definitions. Isolated in-memory Settings/AgentRegistry, catalog and task-board service; no user profile, Host daemon, model, network, manager mutation or persistent Session.' };
 await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
 process.stdout.write(JSON.stringify(result) + '\n');
 if (!result.passed) process.exitCode = 1;
