@@ -9,6 +9,15 @@ export function assertWorkingDirectory(ctx, config, agent) {
   if (ctx.workingDirectory.get(agent.session) !== config.workspace) fail('WRONG_WORKSPACE');
 }
 
+/** A native tool can await metadata after dispatch; validate again at publication. */
+export function childWorkingDirectoryMatches(ctx, config, parent, child) {
+  try {
+    assertWorkingDirectory(ctx, config, parent);
+    assertWorkingDirectory(ctx, config, child);
+    return true;
+  } catch { return false; }
+}
+
 export async function assertOwned(ctx, c, agent) {
   if (process.platform === 'win32') fail('LEGACY_BOUND_ENTRY_REQUIRES_MACOS');
   if (!agent || agent.id !== c.ownedSessionId || agent.session?.id !== agent.id

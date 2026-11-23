@@ -96,6 +96,7 @@ async function fixture(t, options = {}) {
   }
   const native = { apply() {} };
   async function spawn(input) {
+    await options.nativePreflight?.();
     assert.equal(input.agent, root); assert.equal(input.calls.length, 1); assert.equal(input.calls[0].name, 'dsh_live_team_spawn');
     const args = JSON.parse(input.calls[0].arguments), role = Object.keys(config.roles).find(r => config.roles[r].memberName === args.name);
     order.push(`spawn:${role}`);
@@ -250,7 +251,10 @@ async function fixture(t, options = {}) {
     }; return p;
   };
   const ctx = { agents: { get: id => agents.get(id) }, agentTeams: team,
-    workingDirectory: { get: () => liveWorkspace },
+    workingDirectory: { get: session => {
+      if (session !== root.session && options.childDirectoryError) throw new Error('native directory unavailable');
+      return session !== root.session && options.childDirectory ? '/outside-child-workspace' : liveWorkspace;
+    } },
     // Durable projection reads remain available while Team mode is disabled; they are not board service calls.
     sessionProjections: { stateOf(_session, key) { return key === 'agentTeam'
       ? { ...(teamModeSaved ? { enabled: teamEnabled } : {}), id: root.id, tasks: [...tasks.values()].map(task => structuredClone(task)), nextTaskNumber: createAttempts + 1 }
@@ -299,6 +303,20 @@ test('Team pair rechecks live workspace after tool resolution before its first w
   assert.equal(h.stats().mutations, 0); assert.deepEqual(h.childIds(), []);
   assert.equal(h.stats().disposals, 1); await h.dispose();
 });
+
+for (const scenario of ['inner-preflight', 'child-directory', 'directory-error']) {
+  test(`Team pair blocks ${scenario} at native child publication before model execution`, async t => {
+    const h = await fixture(t, { childDirectory: scenario === 'child-directory', childDirectoryError: scenario === 'directory-error',
+      nativePreflight: scenario === 'inner-preflight' ? async () => {
+        await Promise.resolve(); h.setWorkingDirectory('/outside-owned-workspace');
+      } : undefined });
+    const result = await h.invoke();
+    assert.match(result.text, /CHILD_CONFIGURATION_CHANGED/);
+    assert.equal(h.stats().providerCalls, 0); assert.ok(h.stats().interrupts >= 1);
+    assert.deepEqual(h.childIds(), ['child-reviewer']); assert.equal(h.stats().mounted, false);
+    await h.dispose();
+  });
+}
 
 test('TEAM_DISABLED cold root enables the native task board before using it', async t => {
   const h = await fixture(t); assert.equal(h.stats().teamEnabled, false);

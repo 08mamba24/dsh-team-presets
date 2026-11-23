@@ -1,7 +1,7 @@
 import { readAuthorizedRoutes } from './host-adapter.js';
 import { randomUUID } from 'node:crypto';
 import { parseConfig, preflight, authorize, LiveError, fail } from './config.js';
-import { assertOwned, assertWorkingDirectory } from './owned.js';
+import { assertOwned, assertWorkingDirectory, childWorkingDirectoryMatches } from './owned.js';
 import { createGate } from './gate.js';
 
 const TOOL = 'dsh_live_one_spawn';
@@ -174,6 +174,7 @@ export async function applyLive(ctx, raw, nativeSubagent) {
       const child = ctx.agents.get(info.id);
       op.childId = info.id;op.runId = info.runId;gate.track(info.id);
       if (!child || child.session.header.parentSession !== config.ownedSessionId
+        || !childWorkingDirectoryMatches(ctx, config, op.agent, child)
         || ctx.agentPresets.composedPreset(child.ctx) !== config.presetId
         || child.model.current()?.provider !== config.route.provider || child.model.current()?.model !== config.route.model
         || child.model.current()?.reasoningEffort !== 'low' || child.options.maxTokens !== 1024) {

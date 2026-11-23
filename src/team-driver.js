@@ -8,7 +8,7 @@ import { fail, LiveError } from './config.js';
 import { parseTeamConfig, authorizeTeam, preflightTeam, TEAM_ROLE_TOOLS } from './team-config.js';
 import { createTeamGate } from './team-gate.js';
 import { isHostControlPath } from './host-support.js';
-import { assertWorkingDirectory } from './owned.js';
+import { assertWorkingDirectory, childWorkingDirectoryMatches } from './owned.js';
 
 const ROLES = ['implementer', 'reviewer'];
 const TOOL = 'dsh_live_team_spawn';
@@ -579,6 +579,7 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
       gate.track(role, info.id);
       const child = ctx.agents.get(info.id), binding = config.roles[role];
       if (!child || child.session.header.parentSession !== config.ownedSessionId
+        || !childWorkingDirectoryMatches(ctx, config, op.agent, child)
         || ctx.agentPresets.composedPreset(child.ctx) !== binding.presetId
         || child.model.current()?.provider !== binding.route.provider || child.model.current()?.model !== binding.route.model
         || child.model.current()?.reasoningEffort !== 'low' || child.options.maxTokens !== 1024

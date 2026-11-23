@@ -41,6 +41,7 @@ async function fixture(t, options = {}) {
       return { view: agent => new Map(nativeMounted && agent === root ? [['dsh_live_one_spawn', {}]] : []), dispose() {} };
     },
     async execute(input) {
+      await options.nativePreflight?.();
       starts++;assert.equal(input.agent, root);assert.equal(input.calls[0].name, 'dsh_live_one_spawn');
       const args = JSON.parse(input.calls[0].arguments);calls.push(args);
       assert.equal(args.agent_preset, config.presetId);assert.equal(args.reasoning_effort, 'low');
@@ -89,7 +90,10 @@ async function fixture(t, options = {}) {
     const p = Promise.resolve();p.dispose = async () => { disposed++;nativeMounted = false; };return p;
   };
   const ctx = { agents: { get: id => agents.get(id) },
-    workingDirectory: { get: () => liveWorkspace },
+    workingDirectory: { get: session => {
+      if (session !== root.session && options.childDirectoryError) throw new Error('native directory unavailable');
+      return session !== root.session && options.childDirectory ? '/outside-child-workspace' : liveWorkspace;
+    } },
     sessionProjections: { stateOf(session, key) { assert.equal(session, root.session);assert.equal(key, 'subagentModelSelectionPolicy');return options.unauthorized ? [] : [config.route]; } },
     llm: { async resolveCallConfig(x) { metadata++;return options.drift ? { ...x, maxTokens: 2048 } : x; } },
     subagents: { interrupt(id, auth) {
@@ -127,6 +131,19 @@ test('one-child entry rechecks live workspace after asynchronous tool resolution
   assert.match(result.text, /WRONG_WORKSPACE/); assert.equal(h.stats().starts, 0);
   assert.equal(h.stats().disposed, 1); await h.dispose();
 });
+
+for (const scenario of ['inner-preflight', 'child-directory', 'directory-error']) {
+  test(`one-child entry blocks ${scenario} at native child publication before model execution`, async t => {
+    const h = await fixture(t, { childDirectory: scenario === 'child-directory', childDirectoryError: scenario === 'directory-error',
+      nativePreflight: scenario === 'inner-preflight' ? async () => {
+        await Promise.resolve(); h.setWorkingDirectory('/outside-owned-workspace');
+      } : undefined });
+    const result = await h.invoke();
+    assert.match(result.text, /CHILD_CONFIGURATION_CHANGED/);
+    assert.equal(h.stats().providerCalls, 0); assert.ok(h.stats().interruptions >= 1);
+    assert.equal(h.stats().disposed, 1); await h.dispose();
+  });
+}
 
 test('one native-tool submission uses a real role module, captures output/usage and cancels only its settlement notice', async t => {
   const h = await fixture(t);const r = await h.invoke();assert.equal(r.kind, 'success', r.text);
