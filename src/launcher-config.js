@@ -5,6 +5,7 @@ import { isAbsolute, join, normalize } from 'node:path';
 import { types } from 'node:util';
 import { LiveError, fail } from './config.js';
 import { parseLauncherTemplate } from './launcher-template.js';
+import { assertWorkingDirectory } from './owned.js';
 
 const FIELDS = ['mode', 'ownedSessionId', 'workspace', 'runTag', 'timeoutMs', 'templateSha256', 'startup'];
 const MEMBER_NAME = /^[a-z][a-z0-9-]{0,31}$/;
@@ -152,5 +153,6 @@ export async function assertLauncherOwned(ctx, rawConfig, agent) {
   if (ctx.agents.get(agent.id) !== agent || agent.id !== config.ownedSessionId || agent.session?.id !== agent.id
     || agent.session.header?.origin === 'subagent') fail('WRONG_AGENT');
   if (agent.session.header?.cwd !== config.workspace) fail('WRONG_WORKSPACE');
+  assertWorkingDirectory(ctx, config, agent);
   return true;
 }

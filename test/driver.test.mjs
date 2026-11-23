@@ -12,6 +12,7 @@ import { apply as applyRole } from '../role.js';
 // Synthetic Host contract fixture. These tests are not Desktop/native subagent acceptance.
 async function fixture(t, options = {}) {
   const workspace = await realpath(await mkdtemp(join(tmpdir(), 'dsh-live-one-')));
+  let liveWorkspace = workspace;
   t.after(() => rm(workspace, { recursive: true, force: true }));
   const config = { ownedSessionId: 'session-20000000-0000-4000-8000-000000000001', workspace,
     runTag: 'live-one-648', memberName: 'live-648-implementer', presetId: 'dsh-live-648-implementer',
@@ -88,6 +89,7 @@ async function fixture(t, options = {}) {
     const p = Promise.resolve();p.dispose = async () => { disposed++;nativeMounted = false; };return p;
   };
   const ctx = { agents: { get: id => agents.get(id) },
+    workingDirectory: { get: () => liveWorkspace },
     sessionProjections: { stateOf(session, key) { assert.equal(session, root.session);assert.equal(key, 'subagentModelSelectionPolicy');return options.unauthorized ? [] : [config.route]; } },
     llm: { async resolveCallConfig(x) { metadata++;return options.drift ? { ...x, maxTokens: 2048 } : x; } },
     subagents: { interrupt(id, auth) {
@@ -101,9 +103,30 @@ async function fixture(t, options = {}) {
   };
   await applyLive(bindRc5Fixture(ctx), config, native);
   return { ctx, root, config, hooks, calls, invoke: (signal = new AbortController().signal) => commands.get('dsh-subagent-live').handler({ agent: root, rawInput: 'run-one', attachments: [], signal }),
+    setWorkingDirectory: value => { liveWorkspace = value; },
     dispose: async () => { for (const f of effects.slice().reverse()) await f(); }, release: () => finish(),
     stats: () => ({ starts, metadata, mounts, providerCalls, disposed, unregisters, interruptions, nativeMounted }) };
 }
+
+test('one-child entry rejects a changed live workspace before mounting or spawning', async t => {
+  const h = await fixture(t); h.setWorkingDirectory('/outside-owned-workspace');
+  const result = await h.invoke();
+  assert.match(result.text, /WRONG_WORKSPACE/);
+  assert.equal(h.stats().starts, 0); assert.equal(h.stats().mounts, 0);
+  await h.dispose();
+});
+
+test('one-child entry rechecks live workspace after asynchronous tool resolution', async t => {
+  let enter, release;
+  const entered = new Promise(resolve => { enter = resolve; });
+  const ready = new Promise(resolve => { release = resolve; });
+  const h = await fixture(t, { toolResolution: { entered: enter, ready } });
+  const command = h.invoke(); await entered;
+  h.setWorkingDirectory('/outside-owned-workspace'); release();
+  const result = await command;
+  assert.match(result.text, /WRONG_WORKSPACE/); assert.equal(h.stats().starts, 0);
+  assert.equal(h.stats().disposed, 1); await h.dispose();
+});
 
 test('one native-tool submission uses a real role module, captures output/usage and cancels only its settlement notice', async t => {
   const h = await fixture(t);const r = await h.invoke();assert.equal(r.kind, 'success', r.text);

@@ -1,7 +1,7 @@
 import { readAuthorizedRoutes } from './host-adapter.js';
 import { randomUUID } from 'node:crypto';
 import { parseConfig, preflight, authorize, LiveError, fail } from './config.js';
-import { assertOwned } from './owned.js';
+import { assertOwned, assertWorkingDirectory } from './owned.js';
 import { createGate } from './gate.js';
 
 const TOOL = 'dsh_live_one_spawn';
@@ -70,6 +70,8 @@ export async function applyLive(ctx, raw, nativeSubagent) {
           toolSet = await agent.ctx.tools.resolve({ agent, modelSelection: agent.model.current(), signal });
           signal.throwIfAborted();
           if (!toolSet.view(agent).has(TOOL)) fail('SCOPED_NATIVE_TOOL_UNAVAILABLE');
+          assertWorkingDirectory(ctx, config, agent);
+          authorize(config, readPolicy(agent));
           if (spent) fail('RUN_ALREADY_ATTEMPTED');
           spent = true;
           op.dispatching = true;

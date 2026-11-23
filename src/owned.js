@@ -3,6 +3,12 @@ import { open, realpath, lstat } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fail } from './config.js';
 
+/** Native delegation inherits the live directory, not the immutable Session header. */
+export function assertWorkingDirectory(ctx, config, agent) {
+  if (typeof ctx.workingDirectory?.get !== 'function') fail('HOST_CONTRACT_UNAVAILABLE');
+  if (ctx.workingDirectory.get(agent.session) !== config.workspace) fail('WRONG_WORKSPACE');
+}
+
 export async function assertOwned(ctx, c, agent) {
   if (process.platform === 'win32') fail('LEGACY_BOUND_ENTRY_REQUIRES_MACOS');
   if (!agent || agent.id !== c.ownedSessionId || agent.session?.id !== agent.id
@@ -18,4 +24,5 @@ export async function assertOwned(ctx, c, agent) {
     if (s.ino !== before.ino || s.dev !== before.dev || marker.purpose !== 'dsh-subagent-live-one'
       || marker.ownedSessionId !== c.ownedSessionId || marker.runTag !== c.runTag) fail('INVALID_MARKER');
   } finally { await f.close(); }
+  assertWorkingDirectory(ctx, c, agent);
 }

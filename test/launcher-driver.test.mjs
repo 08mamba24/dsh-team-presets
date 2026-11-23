@@ -24,6 +24,23 @@ const assertNoPersona = (host, text) => {
   assert.ok(!text.includes('PRIVATE_PERSONA_'));
 };
 
+test('bound launcher rejects a live workspace different from its unchanged Session header', async t => {
+  const host = await launcherHost(t, applyLauncher);
+  await host.ctx.workingDirectory.set(host.root, '/outside-owned-workspace');
+  const result = await host.invoke('launch');
+  assert.match(result.text, /WRONG_WORKSPACE/);
+  assert.equal(host.counts().spawnAttempts, 0); assert.deepEqual(host.writes, []);
+});
+
+test('bound launcher rechecks live workspace across model preflight before any write', async t => {
+  const host = await launcherHost(t, applyLauncher, { resolveCallConfig: async route => {
+    await host.ctx.workingDirectory.set(host.root, '/outside-owned-workspace'); return route;
+  } });
+  const result = await host.invoke('launch');
+  assert.match(result.text, /WRONG_WORKSPACE/);
+  assert.equal(host.counts().spawnAttempts, 0); assert.deepEqual(host.writes, []);
+});
+
 test('fresh disabled root creates two native routes, presets, task dependencies and exact startup tool masks', async t => {
   const host = await launcherHost(t, applyLauncher, { rawEnabledMissing: true });
   assert.throws(() => host.board.listTasks(host.root), { code: 'TEAM_DISABLED' });

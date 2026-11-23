@@ -25,7 +25,8 @@ async function fixture(t, template = structuredClone(example)) {
     runTag: config.runTag, templateSha256: config.templateSha256 };
   await fs.writeFile(markerPath, JSON.stringify(marker), { mode: 0o600 });
   const agent = { id: config.ownedSessionId, session: { id: config.ownedSessionId, header: { cwd: workspace } } };
-  const ctx = { agents: { get: id => id === agent.id ? agent : undefined } };
+  const ctx = { agents: { get: id => id === agent.id ? agent : undefined },
+    workingDirectory: { get: () => workspace } };
   return { root, workspace, templatePath, markerPath, config, marker, agent, ctx };
 }
 const code = wanted => error => {

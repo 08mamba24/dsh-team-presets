@@ -8,6 +8,7 @@ import { fail, LiveError } from './config.js';
 import { parseTeamConfig, authorizeTeam, preflightTeam, TEAM_ROLE_TOOLS } from './team-config.js';
 import { createTeamGate } from './team-gate.js';
 import { isHostControlPath } from './host-support.js';
+import { assertWorkingDirectory } from './owned.js';
 
 const ROLES = ['implementer', 'reviewer'];
 const TOOL = 'dsh_live_team_spawn';
@@ -89,6 +90,7 @@ async function assertTeamOwned(ctx, config, agent) {
     if (stat.ino !== before.ino || stat.dev !== before.dev || marker.purpose !== 'dsh-native-team-pair'
       || marker.ownedSessionId !== config.ownedSessionId || marker.runTag !== config.runTag) fail('INVALID_MARKER');
   } finally { await file.close(); }
+  assertWorkingDirectory(ctx, config, agent);
 }
 
 function promptFor(role, config, tasks) {
@@ -366,6 +368,8 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
     };
   }
   async function createChild(op, role, toolSet, signal) {
+    assertWorkingDirectory(ctx, config, op.agent);
+    authorizeTeam(config, readAuthorizedRoutes(ctx, op.agent.session));
     const child = { role, end: deferred(), ended: false, calls: [], results: new Map(), messages: [],
       scopeReservations: new Map(), scopeDenials: [] };
     op.children[role] = child;
@@ -413,6 +417,8 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
           toolSet = await agent.ctx.tools.resolve({ agent, modelSelection: agent.model.current(), signal });
           signal.throwIfAborted();
           if (!toolSet.view(agent).has(TOOL)) fail('SCOPED_NATIVE_TOOL_UNAVAILABLE');
+          assertWorkingDirectory(ctx, config, agent);
+          authorizeTeam(config, readAuthorizedRoutes(ctx, agent.session));
           const beforeTeam = projection(agent, op); op.priorTeamMode = ctx.agentTeams.isEnabled(agent);
           // Disabled boards reject list/get; detach the durable pre-enable state before the native flush can await.
           op.baselineTasks = beforeTeam.tasks.filter(task => task.status !== 'deleted').map(taskState);

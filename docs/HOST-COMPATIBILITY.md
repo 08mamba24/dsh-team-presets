@@ -19,6 +19,8 @@ The candidate targets [dsh-v0.2.3-alpha.2](https://github.com/deepseek-ai/deepse
 
 Mac resources are derived only from the running `.../DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness`, with canonical executable/bundle/archive paths. The archive digest and native package versions must match one OS-specific row. This verifies the exact layout and pinned `app.asar`, not the executable's cryptographic signature. No environment variable, CLI argument or risk exemption can bypass runtime admission.
 
+Canonical path equality deliberately rejects symlink or alias installations. The alpha.2 candidate retains the rc.2 identity mapping through unit regression; it has not repeated physical rc.2 acceptance. The current physical regression targets are rc.5 and alpha.2.
+
 Migration acceptance creates old Settings/JSONL under the separately pinned official rc.5 Host, closes it, and resumes the same isolated data under alpha.2. Old published plugins are not forced to run under alpha.2. The rc.5 regression remains a separate control. No daily profile or update channel is changed.
 
 Version 0.5.0-rc.1 declared only rc.2 and its runtime also pinned the rc.2 archive and native module versions. The rc.5 installer therefore rejected it before activation. Version 0.5.0-rc.2 declares the two inspected versions explicitly. The loader matches one archive to its own native subagent and control versions; a supported version from the other archive does not satisfy that check.

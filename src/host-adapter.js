@@ -22,7 +22,7 @@ export function createHostAdapter({ version, Context }) {
         if (live) {
           const service = ctx.get('subagentModelSelection');
           if (typeof service?.allowedRoutes !== 'function') fail('HOST_MODEL_POLICY_UNAVAILABLE');
-          // Undefined means the live setting is disabled. It grants no route.
+          // Disabled settings grant no route under this plugin's stricter policy.
           routes = service.allowedRoutes();
         } else {
           routes = ctx.sessionProjections.stateOf(session, 'subagentModelSelectionPolicy');

@@ -1,4 +1,5 @@
 import { readAuthorizedRoutes } from './host-adapter.js';
+import { assertWorkingDirectory } from './owned.js';
 import { randomUUID } from 'node:crypto';
 import { LiveError, fail } from './config.js';
 import * as replacementOrchestrator from './launcher-replace.js';
@@ -101,6 +102,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       || op.agent.session?.id !== config.ownedSessionId || op.agent.session.header?.origin === 'subagent') fail('WRONG_AGENT');
     if (currentBinding) currentBinding.assertOwned(op.agent);
     else if (op.agent.session.header?.cwd !== config.workspace) fail('WRONG_WORKSPACE');
+    assertWorkingDirectory(ctx, config, op.agent);
   };
   function liveChildMatches(op, record, status) {
     try {

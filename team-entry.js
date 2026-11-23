@@ -5,7 +5,7 @@ import { bindHostContext } from './src/host-adapter.js';
 
 // A separate public entry keeps the accepted one-child command unchanged.
 export const name = 'native-team-live-pair';
-export const inject = ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections', 'agentTeams'];
+export const inject = ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections', 'agentTeams', 'workingDirectory'];
 export async function apply(ctx, config) {
   parseTeamConfig(config);
   const { nativeSubagent, controlEntry, adapter } = await nativeTeamFromHost();
