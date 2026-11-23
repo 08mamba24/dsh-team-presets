@@ -1,0 +1,350 @@
+TAP version 13
+# Subtest: compat CLI requires the intended Host executable instead of reading a daily default
+ok 1 - compat CLI requires the intended Host executable instead of reading a daily default
+  ---
+  duration_ms: 50.809625
+  type: 'test'
+  ...
+# Subtest: compat CLI reads the explicitly selected relocated archive
+ok 2 - compat CLI reads the explicitly selected relocated archive
+  ---
+  duration_ms: 65.084
+  type: 'test'
+  ...
+# Subtest: an ordinary CLI cannot load a daily Desktop native module as a substitute Host
+ok 3 - an ordinary CLI cannot load a daily Desktop native module as a substitute Host
+  ---
+  duration_ms: 1.254042
+  type: 'test'
+  ...
+# Subtest: archive checksum reads raw bytes while public package loading keeps ASAR resolution
+ok 4 - archive checksum reads raw bytes while public package loading keeps ASAR resolution
+  ---
+  duration_ms: 12.697334
+  type: 'test'
+  ...
+# Subtest: a changed raw archive is refused before resolving a native package
+ok 5 - a changed raw archive is refused before resolving a native package
+  ---
+  duration_ms: 4.085334
+  type: 'test'
+  ...
+# Subtest: the reviewed rc.5 archive loads its matching native package
+ok 6 - the reviewed rc.5 archive loads its matching native package
+  ---
+  duration_ms: 4.033292
+  type: 'test'
+  ...
+# Subtest: alpha.2 darwin binds its matching root-symbol contract
+ok 7 - alpha.2 darwin binds its matching root-symbol contract
+  ---
+  duration_ms: 5.691
+  type: 'test'
+  ...
+# Subtest: alpha.2 win32 binds its matching root-symbol contract
+ok 8 - alpha.2 win32 binds its matching root-symbol contract
+  ---
+  duration_ms: 6.349042
+  type: 'test'
+  ...
+# Subtest: mismatched runtimeVersion refuses before native module resolution
+ok 9 - mismatched runtimeVersion refuses before native module resolution
+  ---
+  duration_ms: 3.352542
+  type: 'test'
+  ...
+# Subtest: mismatched cliVersion refuses before native module resolution
+ok 10 - mismatched cliVersion refuses before native module resolution
+  ---
+  duration_ms: 4.979333
+  type: 'test'
+  ...
+# Subtest: an rc.5 version cannot borrow the reviewed rc.2 archive identity
+ok 11 - an rc.5 version cannot borrow the reviewed rc.2 archive identity
+  ---
+  duration_ms: 4.661
+  type: 'test'
+  ...
+# Subtest: native package version remains checked after reading the raw pinned archive
+ok 12 - native package version remains checked after reading the raw pinned archive
+  ---
+  duration_ms: 4.028125
+  type: 'test'
+  ...
+# Subtest: Windows raw archive and package resolution follow the running app at C:\\Users\\DSH Operator\\AppData\\Local\\Programs\\DeepSeek Harness
+ok 13 - Windows raw archive and package resolution follow the running app at C:\\Users\\DSH Operator\\AppData\\Local\\Programs\\DeepSeek Harness
+  ---
+  duration_ms: 4.786625
+  type: 'test'
+  ...
+# Subtest: Windows raw archive and package resolution follow the running app at C:\\Program Files\\DeepSeek Harness
+ok 14 - Windows raw archive and package resolution follow the running app at C:\\Program Files\\DeepSeek Harness
+  ---
+  duration_ms: 4.216958
+  type: 'test'
+  ...
+# Subtest: a Windows Host cannot borrow a reviewed macOS archive digest
+ok 15 - a Windows Host cannot borrow a reviewed macOS archive digest
+  ---
+  duration_ms: 2.7385
+  type: 'test'
+  ...
+# Subtest: a same-version runtimeMetadata resolved outside the pinned archive is refused
+ok 16 - a same-version runtimeMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.242625
+  type: 'test'
+  ...
+# Subtest: a same-version cliMetadata resolved outside the pinned archive is refused
+ok 17 - a same-version cliMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.992084
+  type: 'test'
+  ...
+# Subtest: a same-version subagentMetadata resolved outside the pinned archive is refused
+ok 18 - a same-version subagentMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 3.433625
+  type: 'test'
+  ...
+# Subtest: a same-version subagentEntry resolved outside the pinned archive is refused
+ok 19 - a same-version subagentEntry resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.677208
+  type: 'test'
+  ...
+# Subtest: a same-version cordisMetadata resolved outside the pinned archive is refused
+ok 20 - a same-version cordisMetadata resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.593166
+  type: 'test'
+  ...
+# Subtest: a same-version cordisEntry resolved outside the pinned archive is refused
+ok 21 - a same-version cordisEntry resolved outside the pinned archive is refused
+  ---
+  duration_ms: 2.98325
+  type: 'test'
+  ...
+# Subtest: a Cordis entry whose real path escapes the archive is refused
+ok 22 - a Cordis entry whose real path escapes the archive is refused
+  ---
+  duration_ms: 4.217792
+  type: 'test'
+  ...
+# Subtest: the alpha.2 Cordis package must match its separately inspected version
+ok 23 - the alpha.2 Cordis package must match its separately inspected version
+  ---
+  duration_ms: 3.312708
+  type: 'test'
+  ...
+# Subtest: capacityOf rejects a captured method after service replacement
+ok 24 - capacityOf rejects a captured method after service replacement
+  ---
+  duration_ms: 1.521292
+  type: 'test'
+  ...
+# Subtest: sendMessage rejects a captured method after service replacement
+ok 25 - sendMessage rejects a captured method after service replacement
+  ---
+  duration_ms: 0.124542
+  type: 'test'
+  ...
+# Subtest: wait rejects a captured method after service replacement
+ok 26 - wait rejects a captured method after service replacement
+  ---
+  duration_ms: 0.090959
+  type: 'test'
+  ...
+# Subtest: capacityOf rechecks service identity after the native call settles
+ok 27 - capacityOf rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.151583
+  type: 'test'
+  ...
+# Subtest: sendMessage rechecks service identity after the native call settles
+ok 28 - sendMessage rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.09825
+  type: 'test'
+  ...
+# Subtest: wait rechecks service identity after the native call settles
+ok 29 - wait rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.226375
+  type: 'test'
+  ...
+# Subtest: resolveName rechecks service identity after the native call settles
+ok 30 - resolveName rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.532083
+  type: 'test'
+  ...
+# Subtest: listDescendants rechecks service identity after the native call settles
+ok 31 - listDescendants rechecks service identity after the native call settles
+  ---
+  duration_ms: 0.228833
+  type: 'test'
+  ...
+# Subtest: ordinary CLI is refused by the unchanged original Host guard
+ok 32 - ordinary CLI is refused by the unchanged original Host guard
+  ---
+  duration_ms: 1.309458
+  type: 'test'
+  ...
+# Subtest: pinned public control exports become an immutable preset entry without a bare-name fallback
+ok 33 - pinned public control exports become an immutable preset entry without a bare-name fallback
+  ---
+  duration_ms: 11.993875
+  type: 'test'
+  ...
+# Subtest: the original ASAR and subagent-version guards run before any control resolution
+    # Subtest: /HOST_ARCHIVE_CHANGED/
+    ok 1 - /HOST_ARCHIVE_CHANGED/
+      ---
+      duration_ms: 3.514792
+      type: 'test'
+      ...
+    # Subtest: /WRONG_HOST_VERSION/
+    ok 2 - /WRONG_HOST_VERSION/
+      ---
+      duration_ms: 3.2525
+      type: 'test'
+      ...
+    1..2
+ok 34 - the original ASAR and subagent-version guards run before any control resolution
+  ---
+  duration_ms: 7.123625
+  type: 'test'
+  ...
+# Subtest: rc.5 loads the matching public native control entry
+ok 35 - rc.5 loads the matching public native control entry
+  ---
+  duration_ms: 4.043917
+  type: 'test'
+  ...
+# Subtest: rc.5 refuses an rc.2 control package even though that version is supported on its own archive
+ok 36 - rc.5 refuses an rc.2 control package even though that version is supported on its own archive
+  ---
+  duration_ms: 5.175708
+  type: 'test'
+  ...
+# Subtest: outside, traversing or mismatched public paths refuse before control metadata reads
+    # Subtest: untrusted path 1
+    ok 1 - untrusted path 1
+      ---
+      duration_ms: 3.433042
+      type: 'test'
+      ...
+    # Subtest: untrusted path 2
+    ok 2 - untrusted path 2
+      ---
+      duration_ms: 3.547166
+      type: 'test'
+      ...
+    # Subtest: untrusted path 3
+    ok 3 - untrusted path 3
+      ---
+      duration_ms: 5.5765
+      type: 'test'
+      ...
+    # Subtest: untrusted path 4
+    ok 4 - untrusted path 4
+      ---
+      duration_ms: 4.283458
+      type: 'test'
+      ...
+    1..4
+ok 37 - outside, traversing or mismatched public paths refuse before control metadata reads
+  ---
+  duration_ms: 17.647875
+  type: 'test'
+  ...
+# Subtest: control package version, name and metadata errors refuse with no alternate module
+    # Subtest: /WRONG_CONTROL_HOST_VERSION/
+    ok 1 - /WRONG_CONTROL_HOST_VERSION/
+      ---
+      duration_ms: 3.111209
+      type: 'test'
+      ...
+    # Subtest: /WRONG_CONTROL_PACKAGE/
+    ok 2 - /WRONG_CONTROL_PACKAGE/
+      ---
+      duration_ms: 4.051375
+      type: 'test'
+      ...
+    # Subtest: /CONTROL_PACKAGE_METADATA_INVALID/
+    ok 3 - /CONTROL_PACKAGE_METADATA_INVALID/
+      ---
+      duration_ms: 3.2585
+      type: 'test'
+      ...
+    1..3
+ok 38 - control package version, name and metadata errors refuse with no alternate module
+  ---
+  duration_ms: 10.818417
+  type: 'test'
+  ...
+# Subtest: a missing public export is not replaced by a private path or another package root
+ok 39 - a missing public export is not replaced by a private path or another package root
+  ---
+  duration_ms: 4.126
+  type: 'test'
+  ...
+# Subtest: Windows control export uses an escaped file URL from C:\\Users\\DSH Operator\\AppData\\Local\\Programs\\DeepSeek Harness
+ok 40 - Windows control export uses an escaped file URL from C:\\Users\\DSH Operator\\AppData\\Local\\Programs\\DeepSeek Harness
+  ---
+  duration_ms: 4.826
+  type: 'test'
+  ...
+# Subtest: Windows control export uses an escaped file URL from C:\\Program Files\\DeepSeek Harness
+ok 41 - Windows control export uses an escaped file URL from C:\\Program Files\\DeepSeek Harness
+  ---
+  duration_ms: 3.152166
+  type: 'test'
+  ...
+# Subtest: Windows refuses foreign archives, noncanonical paths and mismatched package roots before control reads
+    # Subtest: untrusted Windows path 1
+    ok 1 - untrusted Windows path 1
+      ---
+      duration_ms: 2.778166
+      type: 'test'
+      ...
+    # Subtest: untrusted Windows path 2
+    ok 2 - untrusted Windows path 2
+      ---
+      duration_ms: 3.393292
+      type: 'test'
+      ...
+    # Subtest: untrusted Windows path 3
+    ok 3 - untrusted Windows path 3
+      ---
+      duration_ms: 2.871334
+      type: 'test'
+      ...
+    # Subtest: untrusted Windows path 4
+    ok 4 - untrusted Windows path 4
+      ---
+      duration_ms: 2.605667
+      type: 'test'
+      ...
+    # Subtest: untrusted Windows path 5
+    ok 5 - untrusted Windows path 5
+      ---
+      duration_ms: 3.189334
+      type: 'test'
+      ...
+    1..5
+ok 42 - Windows refuses foreign archives, noncanonical paths and mismatched package roots before control reads
+  ---
+  duration_ms: 15.260166
+  type: 'test'
+  ...
+1..42
+# tests 56
+# suites 0
+# pass 56
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 176.312917

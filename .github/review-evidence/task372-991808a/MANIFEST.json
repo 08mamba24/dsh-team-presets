@@ -1,0 +1,166 @@
+{
+  "runtimeSourceHead": "991808aa268c3b42a949d3d405d4404fc642ccc0",
+  "pluginSha256": "1b2e35d751899590f337870d5a0b6bd0462004f91fa152e9b3d8f13e433f99e9",
+  "sourceMatchesPayload": true,
+  "boundary": "Byte-identical copies of isolated local Mac receipts and local unit logs; no paid-provider or GUI claim. This directory is excluded from the npm payload.",
+  "macChecks": {
+    "rc5": {
+      "admission": 5,
+      "store": 5,
+      "addressing": 14,
+      "replacement": 13,
+      "multi-role": 18,
+      "legacy-changed": 15,
+      "legacy-unchanged": 15
+    },
+    "alpha2": {
+      "admission": 5,
+      "store": 5,
+      "addressing": 14,
+      "replacement": 13,
+      "multi-role": 21,
+      "legacy-changed": 14,
+      "legacy-unchanged": 14
+    }
+  },
+  "files": [
+    {
+      "name": "PAYLOAD-PROOF.json",
+      "bytes": 11141,
+      "sha256": "8c93843f17a548b96a8db1c7eecca9750ab42bd3005acf6eddd6714a2f9bc3f7",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/PAYLOAD-PROOF.json"
+    },
+    {
+      "name": "HOST-INTEGRITY-RAW-IO.json",
+      "bytes": 1024,
+      "sha256": "8977addd52982fb85b54d7f0cec6a5a6b1ed281662da2130afa4fce5d87c1296",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/HOST-INTEGRITY-RAW-IO.json"
+    },
+    {
+      "name": "MAC-DESKTOP-IPC.json",
+      "bytes": 268,
+      "sha256": "466bf652d1b2d5dfd2d33305b536b4913367174be6029ed5272055ddb46aaa4a",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/MAC-DESKTOP-IPC.json"
+    },
+    {
+      "name": "MODULE-PROVENANCE-alpha2.json",
+      "bytes": 1735,
+      "sha256": "e8522b166298ad814c676f7e1365a5637ccc032d2486a5b926e68788377ac2b0",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/MODULE-PROVENANCE-alpha2.json"
+    },
+    {
+      "name": "unit-pro561-final.log",
+      "bytes": 107887,
+      "sha256": "be914886bbe1ea15567aef650b49ac345edc568d4677aabd04d35973c1000aa3",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/unit-pro561-final.log"
+    },
+    {
+      "name": "red-pro561.log",
+      "bytes": 12066,
+      "sha256": "f935d9d73cd6f9037b2170ec1d72f4d4da1fdd8a33a670f03499455d7b78096a",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/red-pro561.log"
+    },
+    {
+      "name": "green-pro561-all.log",
+      "bytes": 11353,
+      "sha256": "1b4faa8047787660a54dc0490889690e4f1468e24f410407a730149f46dd951c",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/green-pro561-all.log"
+    },
+    {
+      "name": "rc5-SUMMARY.json",
+      "bytes": 2456,
+      "sha256": "5eaaea01a00b0e52546dbfaa8a5496469a09333e7472126e77396b82a2ece3d9",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/rc5-SUMMARY.json"
+    },
+    {
+      "name": "rc5-admission.json",
+      "bytes": 4722,
+      "sha256": "fa150d674c409bccfd3c444fa7c9b4712fa8e892ceb82817ff1584d5b4589077",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/rc5-admission.json"
+    },
+    {
+      "name": "rc5-store.json",
+      "bytes": 966,
+      "sha256": "a52a69bddf480f74cca5253da4bb020d3118f648a255a246bc098411bde11865",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/rc5-store.json"
+    },
+    {
+      "name": "rc5-addressing.json",
+      "bytes": 3082,
+      "sha256": "4baa51f765ef4a31614ef6550de699f239d3045472d35fe12a928f5d17716eb5",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/rc5-addressing.json"
+    },
+    {
+      "name": "rc5-replacement.json",
+      "bytes": 24555,
+      "sha256": "2bd8d008e771ff4ba81f1d277f15f215aaed7eda092e128552d2bfbfbef59e57",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/rc5-replacement.json"
+    },
+    {
+      "name": "rc5-multi-role.json",
+      "bytes": 41276,
+      "sha256": "4598c973947470654a3db264c72be63a16b3590687fd63c35b331ed076a0454d",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/rc5-multi-role.json"
+    },
+    {
+      "name": "rc5-legacy-changed.json",
+      "bytes": 25804,
+      "sha256": "dfd3b96fddb0f8560b67a667ddcddaaab4763b6c21df13bd3f03cd257e797658",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/rc5-legacy-changed.json"
+    },
+    {
+      "name": "rc5-legacy-unchanged.json",
+      "bytes": 25821,
+      "sha256": "d228a99f421f900d7c1ccd6a9f1c447908e39a7ceb48f6a5ed7eaec7cdc0b8f7",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/rc5-legacy-unchanged.json"
+    },
+    {
+      "name": "alpha2-SUMMARY.json",
+      "bytes": 2501,
+      "sha256": "8cb95666de6bfc2c6686ddcf9e944c437c23d0085d250e4eda4308b39f8da57d",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-SUMMARY.json"
+    },
+    {
+      "name": "alpha2-admission.json",
+      "bytes": 5002,
+      "sha256": "13934b2019ffdfc05892c1376f3a48c8fe9d6eef02dfdb9d90319a7ee46e335b",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-admission.json"
+    },
+    {
+      "name": "alpha2-store.json",
+      "bytes": 1006,
+      "sha256": "924e14f25f800cbcddc46c4403716d26d828fecf3c966de535fd4b0778c1227a",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-store.json"
+    },
+    {
+      "name": "alpha2-addressing.json",
+      "bytes": 3122,
+      "sha256": "30d3c57f2885c8e3f2486c9c2ffe3cafbd65947e2314fef879605f50a2c3a27b",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-addressing.json"
+    },
+    {
+      "name": "alpha2-replacement.json",
+      "bytes": 24836,
+      "sha256": "3e2adb813ad8d95a022c7e54e20bb947d25804960b332f46289c77afd3e8745d",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-replacement.json"
+    },
+    {
+      "name": "alpha2-multi-role.json",
+      "bytes": 50234,
+      "sha256": "4e9282d265ab03566fad4486dcb532cd997a5bcbb0b0be3a5fc8bc41763932fb",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-multi-role.json"
+    },
+    {
+      "name": "alpha2-legacy-changed.json",
+      "bytes": 32620,
+      "sha256": "72ab073adec08edfa249d08e2d293b5c83dae023beccfbed2bf5e7871e3f0c87",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-legacy-changed.json"
+    },
+    {
+      "name": "alpha2-legacy-unchanged.json",
+      "bytes": 32641,
+      "sha256": "e0bbe60c9f77a2aeeb977322d4a47d6c355b0a5a3dd093c825dbf9e36ababc59",
+      "source": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-991808a/alpha2-legacy-unchanged.json"
+    }
+  ]
+}

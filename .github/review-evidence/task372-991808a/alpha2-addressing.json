@@ -1,0 +1,70 @@
+{
+  "sourceHead": "tgz-sha256:1b2e35d751899590f337870d5a0b6bd0462004f91fa152e9b3d8f13e433f99e9",
+  "runtime": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh",
+  "passed": true,
+  "hashes": {
+    "src/team-addressing.js": "c40e6e0c96554d93078822b7b7d20bc4d3e703c7723ad3c73bd2f9b497c4db08",
+    "role-control.js": "9e612b0e0f301fd67ae89445a6164b052cd3168bbb45bcf948f8f1293259695e",
+    "src/launcher-native.js": "e55ab55a7afceb8db321ce194e239a2c7827133668392bd94d7ea5e19b65cb1b",
+    "src/team-host.js": "c2898ac05427070b0b66e948d731e3b486d7f3e82719e92ca5b345cd943dd822"
+  },
+  "checks": [
+    {
+      "name": "first replacement keeps raw catalog unchanged while native send and list use the stable logical role",
+      "passed": true
+    },
+    {
+      "name": "official Standard Preset control definitions remain the exact executable definitions under logical addressing",
+      "passed": true
+    },
+    {
+      "name": "logical bridging refuses a late Agent-local control definition before rewriting arguments or invoking its body",
+      "passed": true
+    },
+    {
+      "name": "the unmodified native task list resolves and renders the first logical owner",
+      "passed": true
+    },
+    {
+      "name": "only the exact frozen logical task delegate exposes its original conditional reuse contract",
+      "passed": true
+    },
+    {
+      "name": "historical physical name and retired Session id are rejected before native delivery",
+      "passed": true
+    },
+    {
+      "name": "Standby lead ACK remains native while the frozen business role fails closed in send and list",
+      "passed": true
+    },
+    {
+      "name": "second replacement routes native send and interrupt to the new current Session only",
+      "passed": true
+    },
+    {
+      "name": "native task owner input and output follow the second logical generation and reject retired ids",
+      "passed": true
+    },
+    {
+      "name": "native conditions, Agent-scope masks, definition replacement and post-approval revocation stop unverified bodies",
+      "passed": true
+    },
+    {
+      "name": "fresh native scope reload reads the durable second-generation mapping without respawn or catalog mutation",
+      "passed": true
+    },
+    {
+      "name": "a Preset-scoped control remains occupied unless the Registry proves the official native module",
+      "passed": true
+    },
+    {
+      "name": "two live roots sharing one Preset retain logical addressing when the first plugin owner unloads",
+      "passed": true
+    },
+    {
+      "name": "one live root and Preset generation can unload and reinstall the addressing plugin",
+      "passed": true
+    }
+  ],
+  "boundary": "Physical pinned Host Cordis, dsh-scope, ToolsService, NativeToolExecutor and an official-Standard-equivalent Preset scope mounting unmodified dsh-tool-subagent-control (interrupt false), plus unmodified dsh-tool-agent-team definitions. Isolated in-memory Settings/AgentRegistry, catalog and task-board service; no user profile, Host daemon, model, network, manager mutation or persistent Session."
+}

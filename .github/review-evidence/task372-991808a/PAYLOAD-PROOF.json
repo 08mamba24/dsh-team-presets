@@ -1,0 +1,353 @@
+{
+  "sourceHead": "991808aa268c3b42a949d3d405d4404fc642ccc0",
+  "sourceTree": "f2af28692ee61c7d0ac830de94ed6e101b5ac080",
+  "pluginSha256": "1b2e35d751899590f337870d5a0b6bd0462004f91fa152e9b3d8f13e433f99e9",
+  "sourceMatchesPayload": true,
+  "files": [
+    {
+      "path": "src/config.js",
+      "bytes": 2154,
+      "sha256": "0e293eb67d416f7938513d0fe2a57bc0f9fcc16addeb2b6a853df9d228a697dc"
+    },
+    {
+      "path": "src/configure-host.js",
+      "bytes": 1989,
+      "sha256": "4adcba25cef7e8902a632a5b4c3e9310c369dae6c9f8e12ba3e7ba318039e771"
+    },
+    {
+      "path": "current-entry.js",
+      "bytes": 2558,
+      "sha256": "de479f52c121be08528d5ca247f1f65fc613b53531e6e97732b3cfdb6085caa4"
+    },
+    {
+      "path": "src/driver.js",
+      "bytes": 11905,
+      "sha256": "8d8325926d90a3371e00397ca0bea98e4011a42fd58f5573bf33b4e3a5171b6b"
+    },
+    {
+      "path": "src/gate.js",
+      "bytes": 1884,
+      "sha256": "7e2000b3020e5cc0e52754672e802d6bb0739b8d73e26dd0f7859b2a1398bd0c"
+    },
+    {
+      "path": "src/host-adapter.js",
+      "bytes": 2844,
+      "sha256": "c43530d55cff68c5877d65b9f13ede5db213d4ed17d040c0a06ca0b32feadb27"
+    },
+    {
+      "path": "src/host-support.js",
+      "bytes": 4269,
+      "sha256": "d86f1a84f62a73ff3169c593af5d8e9ff0203cac3ca2affc4d14274912967585"
+    },
+    {
+      "path": "src/host.js",
+      "bytes": 3496,
+      "sha256": "af2eaae456a1003711a76e06a6602a2ed4c9ac9c0824fe1306b767c3c0e1a18b"
+    },
+    {
+      "path": "index.js",
+      "bytes": 656,
+      "sha256": "c18b6aee784a94caed6e765f74929589bbb4f937ba13f8a8be03f409f5b700dc"
+    },
+    {
+      "path": "src/launcher-board.js",
+      "bytes": 9210,
+      "sha256": "93f100064f3173e0512a170ab04837cfb22ee99e3dca9f45f55c812e66d95144"
+    },
+    {
+      "path": "src/launcher-config.js",
+      "bytes": 7843,
+      "sha256": "8877c91ee51f981f44685fe1aa60fab49f251e60138a8962fb86ca7d6a59c29d"
+    },
+    {
+      "path": "src/launcher-current.js",
+      "bytes": 16222,
+      "sha256": "ee013d63130f0fbb8b36d4fb9065e4c102654ba7e3e82f52f3f7f40cd9439f9d"
+    },
+    {
+      "path": "src/launcher-driver.js",
+      "bytes": 49393,
+      "sha256": "a87ce4b579c5234137c9cff41fb1b6ce67a2caf312628ba1590425040aa77c65"
+    },
+    {
+      "path": "launcher-entry.js",
+      "bytes": 761,
+      "sha256": "66405c62ae2793d1eb3baea4be3fe4f96913823f55553bb3bba09a470a27f298"
+    },
+    {
+      "path": "src/launcher-native.js",
+      "bytes": 11029,
+      "sha256": "e55ab55a7afceb8db321ce194e239a2c7827133668392bd94d7ea5e19b65cb1b"
+    },
+    {
+      "path": "src/launcher-plan.js",
+      "bytes": 5435,
+      "sha256": "3ab9267babc9cef5a3a2b670dd889b8c350889f2e6de4c764d52cbdb4eed1842"
+    },
+    {
+      "path": "src/launcher-prepare.js",
+      "bytes": 14571,
+      "sha256": "54e1beda4d98b74328376e990191ac5309c17845a5277c102cd889fccc421656"
+    },
+    {
+      "path": "src/launcher-replace.js",
+      "bytes": 24402,
+      "sha256": "772f43f258cc7a3e82375842fc3087941691151555dc6bffbdace1404e01846f"
+    },
+    {
+      "path": "launcher-role.js",
+      "bytes": 14168,
+      "sha256": "119f40740db0c227cddbd2b327d9cb295eb4624e8bad90376d4009bc2da83be7"
+    },
+    {
+      "path": "src/launcher-template.js",
+      "bytes": 9760,
+      "sha256": "ff7712763e1e0ea3f66060b3e82081d80f4f57192b9a1b1ba8d8256b57567fb9"
+    },
+    {
+      "path": "src/member-replacement.js",
+      "bytes": 33876,
+      "sha256": "870c30b844922d475fe43e39ef553aae72cdac0f8e727216558c4bcd24025a64"
+    },
+    {
+      "path": "src/member-roster-native.js",
+      "bytes": 12149,
+      "sha256": "a9c2f6749b3b40fa07beb0d767fb46f28d0169bc4647ae4081064a45cca84475"
+    },
+    {
+      "path": "src/member-roster.js",
+      "bytes": 5446,
+      "sha256": "9fc1703616a9c67e748d2fad34a5021db002f0edc0b8725d26572197ddfbc768"
+    },
+    {
+      "path": "src/owned.js",
+      "bytes": 1694,
+      "sha256": "82d19a0be35f882a5a21a4048ed22b56f371a613c7706b10f50496d93841de23"
+    },
+    {
+      "path": "src/replacement-native.js",
+      "bytes": 27697,
+      "sha256": "a4e97b737221c2c1c62f5e648699b38671d9d76e8e485534c9b9996669a1f00d"
+    },
+    {
+      "path": "src/replacement-store.js",
+      "bytes": 3689,
+      "sha256": "66add1dff2c3083cfd03b41069c5c16afe6e30f2d5a8b7e43111019407e29608"
+    },
+    {
+      "path": "role-control.js",
+      "bytes": 1347,
+      "sha256": "9e612b0e0f301fd67ae89445a6164b052cd3168bbb45bcf948f8f1293259695e"
+    },
+    {
+      "path": "src/role-templates.js",
+      "bytes": 7811,
+      "sha256": "b822be451f8f13143f1af236d4db3aebeff75310ccfea9c58ab9272e2b36b97d"
+    },
+    {
+      "path": "src/role-tools.js",
+      "bytes": 6175,
+      "sha256": "4079c837b4cf845d2a40af8c0d93e810ae25e55322868f51da45412d2d800b89"
+    },
+    {
+      "path": "role.js",
+      "bytes": 2919,
+      "sha256": "dfa0ffa373a73644d5ca27e9920f68de7e621c19c842c1985005e5b021f61e6b"
+    },
+    {
+      "path": "src/team-addressing.js",
+      "bytes": 31911,
+      "sha256": "c40e6e0c96554d93078822b7b7d20bc4d3e703c7723ad3c73bd2f9b497c4db08"
+    },
+    {
+      "path": "src/team-config.js",
+      "bytes": 4249,
+      "sha256": "cc4f20998cbbe512db43fe7dbba1e77c44caa6bcb9e537e0c1d104a81f69eb62"
+    },
+    {
+      "path": "src/team-configure.js",
+      "bytes": 22711,
+      "sha256": "d3d666d98e36031b98fb892d00015c7f509169132052e22e2a985f2e0aff9788"
+    },
+    {
+      "path": "src/team-driver.js",
+      "bytes": 42356,
+      "sha256": "06abaa3112ce4d5d8618b32f4e5424637ae72c1f9bf71f645a642ac5c42c3b48"
+    },
+    {
+      "path": "team-entry.js",
+      "bytes": 736,
+      "sha256": "9673fb12cde9c4662ed5db63b631a96b30d4707ac167e8aac3fb6f248b268e70"
+    },
+    {
+      "path": "src/team-gate.js",
+      "bytes": 7207,
+      "sha256": "35155d9e9dfd761ecbfe0e1def041d53ed6dfad171d737a8b054b53f6daaa825"
+    },
+    {
+      "path": "src/team-host.js",
+      "bytes": 3955,
+      "sha256": "c2898ac05427070b0b66e948d731e3b486d7f3e82719e92ca5b345cd943dd822"
+    },
+    {
+      "path": "src/team-replace.js",
+      "bytes": 5753,
+      "sha256": "5be3dffb05b9bf415aacfcee42358b0c8abf2a06a5fbebe6277a2a5fe5936b7b"
+    },
+    {
+      "path": "team-role.js",
+      "bytes": 2089,
+      "sha256": "0252854e6ebf2189e553dad8aa1b93ca9ce7872dbd1bb916ea6c8d81da5af61b"
+    },
+    {
+      "path": "package.json",
+      "bytes": 1285,
+      "sha256": "c3d0a27b8513c05bed34b7181459d5f78559eae9b089a7fe8a977be427e51672"
+    },
+    {
+      "path": "examples/team-template.json",
+      "bytes": 3310,
+      "sha256": "a71679ac5b7d8e1de8ed0ada4ff328bea61cd4ad6f56cd0b611f30e5767899ab"
+    },
+    {
+      "path": "docs/ACCEPTANCE.md",
+      "bytes": 20344,
+      "sha256": "1e6c6838708fb13be330d105e488efc3cee7d6d23caf747e60b25ede9562f038"
+    },
+    {
+      "path": "docs/HOST-COMPATIBILITY.md",
+      "bytes": 6345,
+      "sha256": "d4d6f0385d9b9a737db87a2cbda36e7d945e910dfae1fc06f40d3dc12f7bc1a4"
+    },
+    {
+      "path": "docs/LEGACY-BOUND-INSTALL.md",
+      "bytes": 5221,
+      "sha256": "ae478af10eda7571096eae37f3dafb911d6c00369e089ffe37cd5e46ed9719ca"
+    },
+    {
+      "path": "docs/MODELS-AND-PROMPTS.md",
+      "bytes": 15729,
+      "sha256": "94b022f8332253810bd5acc529b23a521c24527110caa52ae7398afa3c751628"
+    },
+    {
+      "path": "README.md",
+      "bytes": 19596,
+      "sha256": "60f5d3e392afea71b738edd3804f0cd9ba1fa979e76d528760c6e574d9b7b976"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "bytes": 18279,
+      "sha256": "a1fc4f8f4c285f8f581b6fb1132f92063bdbd96515e701ea15c32bc501a884ff"
+    },
+    {
+      "path": "skills/dsh-team-configure/SKILL.md",
+      "bytes": 9679,
+      "sha256": "1400fa2a46e00eb188418f2bb1c31dff0e1f62746ee01bd6eb4fbb035c60c9f2"
+    },
+    {
+      "path": "skills/dsh-team-replace/SKILL.md",
+      "bytes": 4584,
+      "sha256": "5076c0dda746c48c5f7bf22795182ddc89dc5be60c3bdbbf67c9dc683c2de590"
+    },
+    {
+      "path": "THIRD_PARTY_NOTICES.md",
+      "bytes": 993,
+      "sha256": "ccf7838f758642462e8554748cab786d1416d32e82f145ae4d35e5094439c168"
+    },
+    {
+      "path": "docs/UPSTREAM-COMPATIBILITY.md",
+      "bytes": 8834,
+      "sha256": "1103562c6d7887f14f5961e5db1e03ac468aadf20b701c08874262015f629719"
+    },
+    {
+      "path": "docs/WINDOWS.md",
+      "bytes": 10305,
+      "sha256": "304ae6f85712482c2c069f2f90494bfbe26c5ae5e7ffb612463f8e5b6d36d555"
+    },
+    {
+      "path": "scripts/accept-native-admission.mjs",
+      "bytes": 15024,
+      "sha256": "90b52cc4cf23dee0881779aeee00afb3793d63a7b35bbc77d6e765d3744f2994"
+    },
+    {
+      "path": "scripts/accept-native-multi-role.mjs",
+      "bytes": 45123,
+      "sha256": "9f537365bb84afd9ecc4fdfdaca90a5f045c71b1d1f4d5dcaef37d0099a4de58"
+    },
+    {
+      "path": "scripts/accept-native-replacement-store.mjs",
+      "bytes": 6465,
+      "sha256": "206a5b1fddb1367ac17a0173e6106be4e064675aae4788c2172659cb7bb519c2"
+    },
+    {
+      "path": "scripts/accept-native-replacement.mjs",
+      "bytes": 35285,
+      "sha256": "d722eb91b6f3db0e7291864c1dd17abce1a81b41aeb97e065c4a667535432d4c"
+    },
+    {
+      "path": "scripts/accept-windows-host.mjs",
+      "bytes": 28853,
+      "sha256": "6593f4b698ea3811ade9d9ad0204e919610583fc5f2dffd47a14a7937275e4c3"
+    },
+    {
+      "path": "scripts/check-host-compat.mjs",
+      "bytes": 2848,
+      "sha256": "ad1bcef19e1f275ad8cce17eea5e459e5616a1c1b76fdedc8a05311a1d0c7d24"
+    },
+    {
+      "path": "scripts/native-admission-check.mjs",
+      "bytes": 483,
+      "sha256": "7c6478e9e602a435e35a21ee42e457bc700b3bcc1c2fca90e2229d19be9e55cf"
+    },
+    {
+      "path": "scripts/native-error.mjs",
+      "bytes": 1190,
+      "sha256": "bc87dfa7039eda87ec579bd44547d60e7ba6e3157a5f3d85be137f3d2ec0add9"
+    },
+    {
+      "path": "scripts/native-host-contract.mjs",
+      "bytes": 1697,
+      "sha256": "a860d2b57c396f4bf7746cbf7a3eeeadbc200cc2a3e44a576e07cdca02495639"
+    },
+    {
+      "path": "scripts/native-legacy-seed.mjs",
+      "bytes": 2736,
+      "sha256": "19969388256fd315e54eee32be0daae69c64aab5086cd953f52342e4aa513604"
+    },
+    {
+      "path": "scripts/prepare-launcher.mjs",
+      "bytes": 2198,
+      "sha256": "bf5f552e4a27f7fe46bf91c25a7dd347616bb95f28955e0a528ebe788681ba12"
+    },
+    {
+      "path": "scripts/probe-native-role-tools.mjs",
+      "bytes": 23329,
+      "sha256": "b054c2ad7c344fa9ae52c8358c8871e8c0662a43ce2790d11844fc0e175d168b"
+    },
+    {
+      "path": "scripts/probe-native-team-addressing.mjs",
+      "bytes": 38088,
+      "sha256": "de324a3e7f7d8d110f49f7538d34a11d6aab7604c0baf334ecf26165a00597ec"
+    },
+    {
+      "path": "scripts/accept-windows.ps1",
+      "bytes": 5493,
+      "sha256": "83e97525358bbd66071fd52d1da2a13dccf8516c5dc9cb92f6690aa1d58d0376"
+    },
+    {
+      "path": "licenses/DeepSeek-MIT.txt",
+      "bytes": 1065,
+      "sha256": "ebb4f09972aee8608be255debaf78451a68e95c290f55c240dec2ecfa16ea6be"
+    },
+    {
+      "path": "cordis.patch.yml",
+      "bytes": 194,
+      "sha256": "bb149b5230f595af74aa0629393abe17368bcd37c714352593a7d7ccb5ade6c6"
+    },
+    {
+      "path": "docs/examples/windows-team-config.patch.yml",
+      "bytes": 3735,
+      "sha256": "d1e0280881634a81b44690322335c38e8bdfa6506d322a5bff1529dbbb0f1d01"
+    }
+  ]
+}

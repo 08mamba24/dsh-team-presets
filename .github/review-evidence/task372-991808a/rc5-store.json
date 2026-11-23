@@ -1,0 +1,29 @@
+{
+  "sourceHead": "tgz-sha256:1b2e35d751899590f337870d5a0b6bd0462004f91fa152e9b3d8f13e433f99e9",
+  "runtime": "/Applications/DeepSeek Harness.app/Contents/Resources/app.asar/dsh",
+  "isolatedProfileRemoved": true,
+  "passed": true,
+  "checks": [
+    {
+      "name": "real volatile root mutation persists without remount and updates the stable frozen projection",
+      "passed": true
+    },
+    {
+      "name": "whole-entry CAS detects other-root edits and preserves both roots and template",
+      "passed": true
+    },
+    {
+      "name": "template edits share the same native CAS revision",
+      "passed": true
+    },
+    {
+      "name": "real ConfigEditor writes the root record to the isolated profile patch",
+      "passed": true,
+      "patchSha256": "411a6e8c518d7adee202921ec309430c4f4f1d4f33c438b9e4d8f79e96b474b8"
+    },
+    {
+      "name": "a fresh Context and Loader reload the same retirement and template from disk",
+      "passed": true
+    }
+  ]
+}
