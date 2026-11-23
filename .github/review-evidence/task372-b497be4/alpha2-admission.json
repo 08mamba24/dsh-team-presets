@@ -1,0 +1,114 @@
+{
+  "sourceHead": "tgz-sha256:ace01850ae1341bb75135d0f42c6ffb13a73859080a29b05458937448143f60d",
+  "plugin": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-b497be4/package",
+  "runtime": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh",
+  "node": "24.22.3",
+  "sourceHashes": {
+    "launcher-role.js": "119f40740db0c227cddbd2b327d9cb295eb4624e8bad90376d4009bc2da83be7",
+    "src/launcher-native.js": "e55ab55a7afceb8db321ce194e239a2c7827133668392bd94d7ea5e19b65cb1b",
+    "src/member-replacement.js": "870c30b844922d475fe43e39ef553aae72cdac0f8e727216558c4bcd24025a64",
+    "src/role-tools.js": "4079c837b4cf845d2a40af8c0d93e810ae25e55322868f51da45412d2d800b89"
+  },
+  "checks": [
+    {
+      "stats": {
+        "prepare": 1,
+        "stream": 1,
+        "approval": 0,
+        "bodies": {
+          "write": 1
+        },
+        "agentErrors": [
+          {
+            "code": null,
+            "message": "ISOLATED_PROVIDER_CONTROL_REACHED",
+            "stack": "Error: ISOLATED_PROVIDER_CONTROL_REACHED\n    at Object.stream (file:///Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-b497be4/package/scripts/accept-native-admission.mjs:91:15)\n    at ReactLoopAgent.step (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:797:34)\n    at async ReactLoopAgent.turn (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:692:23)\n    at async ReactLoopAgent.kick (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:587:11)",
+            "name": "Error"
+          }
+        ]
+      },
+      "composedPreset": "native-admission-role-a340ce33-d230-45de-aa6a-baef6e25b0ac",
+      "name": "real-preset-normal-role-reaches-provider",
+      "passed": true
+    },
+    {
+      "stats": {
+        "prepare": 0,
+        "stream": 0,
+        "approval": 0,
+        "bodies": {},
+        "agentErrors": []
+      },
+      "turnEnd": {
+        "turn": 1,
+        "reason": {
+          "kind": "blocked"
+        }
+      },
+      "historyCount": 4,
+      "name": "real-preset-frozen-old-blocks-direct-tool-and-ui-input",
+      "passed": true
+    },
+    {
+      "stats": {
+        "prepare": 1,
+        "stream": 1,
+        "approval": 0,
+        "bodies": {
+          "team_task_get": 1,
+          "send_message": 1
+        },
+        "agentErrors": [
+          {
+            "code": null,
+            "message": "ISOLATED_PROVIDER_CONTROL_REACHED",
+            "stack": "Error: ISOLATED_PROVIDER_CONTROL_REACHED\n    at Object.stream (file:///Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-b497be4/package/scripts/accept-native-admission.mjs:91:15)\n    at ReactLoopAgent.step (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:797:34)\n    at async ReactLoopAgent.turn (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:692:23)\n    at async ReactLoopAgent.kick (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:587:11)",
+            "name": "Error"
+          }
+        ]
+      },
+      "schemas": [
+        "send_message",
+        "team_task_get",
+        "write"
+      ],
+      "name": "real-preset-born-standby-has-bounded-transport-before-child-binding",
+      "passed": true
+    },
+    {
+      "stats": {
+        "prepare": 0,
+        "stream": 0,
+        "approval": 0,
+        "bodies": {
+          "write": 1
+        },
+        "agentErrors": []
+      },
+      "name": "activation-grants-exact-requested-work-authority",
+      "passed": true
+    },
+    {
+      "stats": {
+        "prepare": 0,
+        "stream": 0,
+        "approval": 0,
+        "bodies": {},
+        "agentErrors": []
+      },
+      "turnEnd": {
+        "turn": 2,
+        "reason": {
+          "kind": "blocked"
+        }
+      },
+      "beforeHistoryCount": 4,
+      "afterHistoryCount": 9,
+      "source": "resume",
+      "name": "cold-resume-remounts-admission-before-execution-and-preserves-history",
+      "passed": true
+    }
+  ],
+  "passed": true,
+  "boundary": "Physical pinned Host Cordis Loader, AgentPresetRegistry composition, AgentRegistry, AgentLoop, native executor and temporary JSONL cold resume. Provider, approval and tool bodies are isolated local fixtures. No Host daemon, network provider, account, daily profile or user Session."
+}

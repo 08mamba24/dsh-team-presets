@@ -1,0 +1,9 @@
+{
+  "passed": true,
+  "sourceHead": "b497be495dd57fcb4491d2bf0e81aade172206cb",
+  "errors": [],
+  "hostVersion": "0.2.3-alpha.2",
+  "authentication": "native desktop-auth IPC and cookie, fresh parent credential",
+  "sessionCreated": true,
+  "gracefulShutdown": true
+}

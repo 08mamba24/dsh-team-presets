@@ -1,0 +1,84 @@
+{
+  "sourceHead": "tgz-sha256:019c23424f834dd70d4b9c0f8d23c6f341eb8374f052067e902a0e04260d0dd6",
+  "runtime": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/Resources/app.asar/dsh",
+  "platform": "darwin",
+  "passed": false,
+  "checks": [],
+  "errors": [
+    {
+      "code": "ERR_ASSERTION",
+      "message": "{\"refused\":{\"code\":\"CURRENT_SESSION_BINDING_CHANGED\",\"mode\":\"launch\",\"members\":[{\"name\":\"reviewer\",\"id\":\"9996648c-2147-449f-88c5-6fc7d3561bb1\",\"runId\":\"8ffebe15-c42c-483e-bc4c-a854c37e7c0f\",\"callId\":\"dsh-team-launcher-99311301-bc05-4bed-9924-d0d9f06f131e\",\"agentPreset\":\"dsh-current-fe1b53d5d4d8193a89e137ec-reviewer\",\"route\":{\"provider\":\"isolated-provider\",\"model\":\"reviewer-model\",\"reasoningEffort\":\"max\",\"maxTokens\":1024},\"tools\":[\"team_task_get\"],\"ended\":true,\"scopeDenials\":[],\"turnStarts\":[1],\"additionalTurns\":0,\"additionalDriverPhases\":0,\"settlement\":\"disposed\",\"additionalRuns\":[]}],\"gate\":{\"roles\":{\"frontend\":{\"admissions\":0,\"streams\":[],\"denials\":[],\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"},\"backend\":{\"admissions\":0,\"streams\":[],\"denials\":[],\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"},\"tester\":{\"admissions\":0,\"streams\":[],\"denials\":[],\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"},\"reviewer\":{\"admissions\":1,\"streams\":[{\"index\":1,\"toolResultIds\":[],\"completed\":true,\"usage\":{\"inputTokens\":10,\"outputTokens\":5,\"totalTokens\":15},\"finish\":{\"kind\":\"stop\"}}],\"denials\":[],\"childId\":\"9996648c-2147-449f-88c5-6fc7d3561bb1\",\"toolNames\":[\"team_task_get\"],\"requiredToolsPresent\":true,\"finish\":{\"kind\":\"stop\"},\"usage\":{\"inputTokens\":10,\"outputTokens\":5,\"totalTokens\":15},\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"}},\"denials\":[{\"code\":\"ROOT_QUARANTINED\",\"sessionId\":\"session-3005db37-7721-409b-b819-5291a50cab89\",\"purpose\":null}],\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"},\"taskIds\":[\"task-1\"],\"operationFailure\":\"CURRENT_SESSION_BINDING_CHANGED\",\"delegationFailure\":null,\"plan\":{\"blocked\":false,\"members\":[{\"name\":\"frontend\",\"action\":\"create\",\"driftFields\":[],\"unverifiableFields\":[]},{\"name\":\"backend\",\"action\":\"create\",\"driftFields\":[],\"unverifiableFields\":[]},{\"name\":\"tester\",\"action\":\"create\",\"driftFields\":[],\"unverifiableFields\":[]},{\"name\":\"reviewer\",\"action\":\"create\",\"driftFields\":[],\"unverifiableFields\":[]}],\"foreignMembers\":[],\"reasons\":[]},\"catalogReason\":\"NATIVE_CATALOG_COMPLETE\",\"persistenceUnconfirmed\":false,\"reconciliationRequired\":false,\"reconciliationReasons\":[],\"teamModeRestored\":true,\"interruptFailed\":false,\"stopFurtherMutation\":true,\"noAutomaticRetry\":true,\"commandKind\":\"error\"},\"publications\":[{\"id\":\"9996648c-2147-449f-88c5-6fc7d3561bb1\",\"runId\":\"8ffebe15-c42c-483e-bc4c-a854c37e7c0f\",\"parentSessionId\":\"session-3005db37-7721-409b-b819-5291a50cab89\",\"parentCwd\":\"/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/parent617-red-r2/tmp/dsh-native-multi-role-xxMHPn/workspace/parent-only-change\",\"childCwd\":\"/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/parent617-red-r2/tmp/dsh-native-multi-role-xxMHPn/workspace\"}],\"endings\":[{\"id\":\"9996648c-2147-449f-88c5-6fc7d3561bb1\",\"runId\":\"8ffebe15-c42c-483e-bc4c-a854c37e7c0f\",\"parentSessionId\":\"session-3005db37-7721-409b-b819-5291a50cab89\",\"reason\":\"completed\"}]}\n\n1 !== 0\n",
+      "stack": "AssertionError [ERR_ASSERTION]: {\"refused\":{\"code\":\"CURRENT_SESSION_BINDING_CHANGED\",\"mode\":\"launch\",\"members\":[{\"name\":\"reviewer\",\"id\":\"9996648c-2147-449f-88c5-6fc7d3561bb1\",\"runId\":\"8ffebe15-c42c-483e-bc4c-a854c37e7c0f\",\"callId\":\"dsh-team-launcher-99311301-bc05-4bed-9924-d0d9f06f131e\",\"agentPreset\":\"dsh-current-fe1b53d5d4d8193a89e137ec-reviewer\",\"route\":{\"provider\":\"isolated-provider\",\"model\":\"reviewer-model\",\"reasoningEffort\":\"max\",\"maxTokens\":1024},\"tools\":[\"team_task_get\"],\"ended\":true,\"scopeDenials\":[],\"turnStarts\":[1],\"additionalTurns\":0,\"additionalDriverPhases\":0,\"settlement\":\"disposed\",\"additionalRuns\":[]}],\"gate\":{\"roles\":{\"frontend\":{\"admissions\":0,\"streams\":[],\"denials\":[],\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"},\"backend\":{\"admissions\":0,\"streams\":[],\"denials\":[],\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"},\"tester\":{\"admissions\":0,\"streams\":[],\"denials\":[],\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"},\"reviewer\":{\"admissions\":1,\"streams\":[{\"index\":1,\"toolResultIds\":[],\"completed\":true,\"usage\":{\"inputTokens\":10,\"outputTokens\":5,\"totalTokens\":15},\"finish\":{\"kind\":\"stop\"}}],\"denials\":[],\"childId\":\"9996648c-2147-449f-88c5-6fc7d3561bb1\",\"toolNames\":[\"team_task_get\"],\"requiredToolsPresent\":true,\"finish\":{\"kind\":\"stop\"},\"usage\":{\"inputTokens\":10,\"outputTokens\":5,\"totalTokens\":15},\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"}},\"denials\":[{\"code\":\"ROOT_QUARANTINED\",\"sessionId\":\"session-3005db37-7721-409b-b819-5291a50cab89\",\"purpose\":null}],\"closed\":true,\"closeReason\":\"CURRENT_SESSION_BINDING_CHANGED\"},\"taskIds\":[\"task-1\"],\"operationFailure\":\"CURRENT_SESSION_BINDING_CHANGED\",\"delegationFailure\":null,\"plan\":{\"blocked\":false,\"members\":[{\"name\":\"frontend\",\"action\":\"create\",\"driftFields\":[],\"unverifiableFields\":[]},{\"name\":\"backend\",\"action\":\"create\",\"driftFields\":[],\"unverifiableFields\":[]},{\"name\":\"tester\",\"action\":\"create\",\"driftFields\":[],\"unverifiableFields\":[]},{\"name\":\"reviewer\",\"action\":\"create\",\"driftFields\":[],\"unverifiableFields\":[]}],\"foreignMembers\":[],\"reasons\":[]},\"catalogReason\":\"NATIVE_CATALOG_COMPLETE\",\"persistenceUnconfirmed\":false,\"reconciliationRequired\":false,\"reconciliationReasons\":[],\"teamModeRestored\":true,\"interruptFailed\":false,\"stopFurtherMutation\":true,\"noAutomaticRetry\":true,\"commandKind\":\"error\"},\"publications\":[{\"id\":\"9996648c-2147-449f-88c5-6fc7d3561bb1\",\"runId\":\"8ffebe15-c42c-483e-bc4c-a854c37e7c0f\",\"parentSessionId\":\"session-3005db37-7721-409b-b819-5291a50cab89\",\"parentCwd\":\"/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/parent617-red-r2/tmp/dsh-native-multi-role-xxMHPn/workspace/parent-only-change\",\"childCwd\":\"/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/parent617-red-r2/tmp/dsh-native-multi-role-xxMHPn/workspace\"}],\"endings\":[{\"id\":\"9996648c-2147-449f-88c5-6fc7d3561bb1\",\"runId\":\"8ffebe15-c42c-483e-bc4c-a854c37e7c0f\",\"parentSessionId\":\"session-3005db37-7721-409b-b819-5291a50cab89\",\"reason\":\"completed\"}]}\n\n1 !== 0\n\n    at verifyLauncherParentPublication (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/scripts/accept-native-multi-role.mjs:411:12)\n    at async file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/scripts/accept-native-multi-role.mjs:668:29",
+      "name": "AssertionError"
+    },
+    {
+      "message": "Acceptance child exited with code 1."
+    }
+  ],
+  "expectedErrors": [
+    {
+      "code": "ROOT_QUARANTINED",
+      "message": "ROOT_QUARANTINED",
+      "stack": "Error: ROOT_QUARANTINED\n    at fail (file:///Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/package/src/config.js:6:37)\n    at reject (file:///Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/package/src/team-gate.js:40:5)\n    at Proxy.hook (file:///Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/package/src/team-gate.js:66:56)\n    at hook.next (<anonymous>)\n    at file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-session-checkpoint-policy/lib/index.js:29:10\n    at async ReactLoopAgent.step (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:801:22)\n    at async ReactLoopAgent.turn (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:692:23)\n    at async ReactLoopAgent.kick (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:587:11)",
+      "name": "Error"
+    }
+  ],
+  "hostVersion": "0.2.3-alpha.2",
+  "legacyPlugin": false,
+  "approvalRequests": [],
+  "providerCalls": [
+    {
+      "childId": "9996648c-2147-449f-88c5-6fc7d3561bb1",
+      "model": "reviewer-model",
+      "phase": "launch"
+    }
+  ],
+  "parentPublicationEvidence": {
+    "injection": {
+      "boundary": "native manager has captured child cwd; entering AgentManager.create",
+      "stack": "Error: native child materialization boundary\n    at ctx.agents.create (file:///Users/yuhan/codespace/dsh-team-alpha2-adaptation/scripts/accept-native-multi-role.mjs:389:16)\n    at Object.apply (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/cordis/lib/index.js:124:36)\n    at SubagentManager.materializeTracked (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-subagent/lib/index.js:1970:36)\n    at SubagentManager.materialize (file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-subagent/lib/index.js:1842:15)\n    at file:///Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-subagent/lib/index.js:1531:35"
+    },
+    "publications": [
+      {
+        "id": "9996648c-2147-449f-88c5-6fc7d3561bb1",
+        "runId": "8ffebe15-c42c-483e-bc4c-a854c37e7c0f",
+        "parentSessionId": "session-3005db37-7721-409b-b819-5291a50cab89",
+        "parentCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/parent617-red-r2/tmp/dsh-native-multi-role-xxMHPn/workspace/parent-only-change",
+        "childCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/parent617-red-r2/tmp/dsh-native-multi-role-xxMHPn/workspace"
+      }
+    ],
+    "endings": [
+      {
+        "id": "9996648c-2147-449f-88c5-6fc7d3561bb1",
+        "runId": "8ffebe15-c42c-483e-bc4c-a854c37e7c0f",
+        "parentSessionId": "session-3005db37-7721-409b-b819-5291a50cab89",
+        "reason": "completed"
+      }
+    ],
+    "providerStreams": 1
+  },
+  "observedToolSets": [
+    {
+      "childId": "9996648c-2147-449f-88c5-6fc7d3561bb1",
+      "tools": [
+        "team_task_get"
+      ]
+    }
+  ],
+  "observableBodies": [],
+  "nativeStarts": [
+    {
+      "childId": "9996648c-2147-449f-88c5-6fc7d3561bb1",
+      "parent": "session-3005db37-7721-409b-b819-5291a50cab89",
+      "preset": "dsh-current-fe1b53d5d4d8193a89e137ec-reviewer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "reviewer-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    }
+  ],
+  "accountEnvironmentInherited": false,
+  "isolatedDataRemoved": true
+}

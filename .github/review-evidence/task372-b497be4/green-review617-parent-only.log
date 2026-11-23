@@ -1,0 +1,22 @@
+TAP version 13
+# Subtest: current launcher blocks parent-only directory drift at publication before provider execution
+ok 1 - current launcher blocks parent-only directory drift at publication before provider execution
+  ---
+  duration_ms: 28.965916
+  type: 'test'
+  ...
+# Subtest: bound launcher blocks parent-only directory drift at publication before provider execution
+ok 2 - bound launcher blocks parent-only directory drift at publication before provider execution
+  ---
+  duration_ms: 28.457375
+  type: 'test'
+  ...
+1..2
+# tests 2
+# suites 0
+# pass 2
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 114.687292
