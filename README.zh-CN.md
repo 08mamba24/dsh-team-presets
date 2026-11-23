@@ -144,10 +144,10 @@ Agent 先调用 `dsh_team_replace action: inspect`，在 `inspect.roles` 中选�
 每次 Harness 升级后，在源码包目录执行：
 
 ```sh
-npm run check:compat -- --upstream
+npm run check:compat -- --app-executable "/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" --upstream
 ```
 
-该按需只读命令检查物理 App 指纹、安装声明和官方 release feed；未知 RC 或归档需要重新审查。它不订阅后台监控，也不安装、改 profile 或调用模型。当前支持范围及指纹见 [HOST-COMPATIBILITY.md](docs/HOST-COMPATIBILITY.md)。
+显式传入目标 App 的可执行文件；非默认位置请替换示例路径，Windows 路径见 [HOST-COMPATIBILITY.md](docs/HOST-COMPATIBILITY.md)。该按需只读命令检查所选 App 的物理指纹、安装声明和官方 release feed；未知 RC 或归档需要重新审查。它不订阅后台监控，也不安装、改 profile 或调用模型。
 
 源码检查和打包需要 Node.js 22 或更新版本与 npm；仓库没有额外 npm 运行依赖：
 

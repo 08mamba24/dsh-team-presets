@@ -2,10 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import moduleApi, { syncBuiltinESMExports } from 'node:module';
 import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import crypto from 'node:crypto';
 import { mkdtemp, writeFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, posix, win32 } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { nativeHostFromApp, nativeSubagentFromHost } from '../src/host.js';
 
 const archive = '/Applications/DeepSeek Harness.app/Contents/Resources/app.asar';
@@ -19,26 +21,48 @@ const alphaWindowsPin = 'dbd860998178fb23fe5802704fa1cf919f5b6957e4b3cc2c1b778ef
 async function hostFixture(t, { platform = 'darwin',
   executable = '/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness',
   digest = platform === 'win32' ? windowsPin : pin, version = platform === 'win32' ? '0.2.2-rc.5' : '0.2.2-rc.2',
-  runtimeVersion, cliVersion } = {}) {
+  runtimeVersion, cliVersion, cordisVersion = '4.2.0-alpha.1', outside, canonicalOutside } = {}) {
   const hostPath = platform === 'win32' ? win32 : posix;
   const fixtureArchive = platform === 'win32' ? win32.join(win32.dirname(executable), 'resources', 'app.asar') : archive;
   const dir = await mkdtemp(join(tmpdir(), 'dsh-native-host-'));
   const metadata = join(dir, 'package.json'), entry = join(dir, 'subagent.mjs');
   const runtimeMetadata = join(dir, 'runtime.json'), cliMetadata = join(dir, 'cli.json');
   const cordisEntry = join(dir, 'cordis.mjs');
+  const cordisMetadata = join(dir, 'cordis.json');
   const pinnedVersion = [alphaPin, alphaWindowsPin].includes(digest) ? '0.2.3-alpha.2'
     : digest === windowsPin || digest === rc5Pin ? '0.2.2-rc.5' : '0.2.2-rc.2';
   await writeFile(runtimeMetadata, JSON.stringify({ name: '@deepseek-ai/dsh-desktop-runtime', version: runtimeVersion ?? pinnedVersion }));
   await writeFile(cliMetadata, JSON.stringify({ name: '@deepseek-ai/dsh', version: cliVersion ?? pinnedVersion }));
   await writeFile(cordisEntry, 'export class Context { static root = Symbol("root"); }');
-  await writeFile(metadata, JSON.stringify({ version }));
+  await writeFile(metadata, JSON.stringify({ name: '@deepseek-ai/dsh-tool-subagent', version }));
+  await writeFile(cordisMetadata, JSON.stringify({ name: '@deepseek-ai/cordis', version: cordisVersion }));
   await writeFile(entry, 'export function apply() {}');
+  const virtual = {
+    runtimeMetadata: hostPath.join(fixtureArchive, 'dsh/package.json'),
+    cliMetadata: hostPath.join(fixtureArchive, 'dsh/node_modules/@deepseek-ai/dsh/package.json'),
+    subagentMetadata: hostPath.join(fixtureArchive, 'dsh/node_modules/@deepseek-ai/dsh-tool-subagent/package.json'),
+    subagentEntry: hostPath.join(fixtureArchive, 'dsh/node_modules/@deepseek-ai/dsh-tool-subagent/lib/index.js'),
+    cordisMetadata: hostPath.join(fixtureArchive, 'dsh/node_modules/@deepseek-ai/cordis/package.json'),
+    cordisEntry: hostPath.join(fixtureArchive, 'dsh/node_modules/@deepseek-ai/cordis/lib/index.js'),
+  };
+  const files = { runtimeMetadata, cliMetadata, subagentMetadata: metadata, subagentEntry: entry, cordisMetadata, cordisEntry };
+  const readPaths = new Map(Object.keys(virtual).map(key => [virtual[key], files[key]]));
+  const importPaths = new Map(['subagentEntry', 'cordisEntry'].map(key => [
+    pathToFileURL(virtual[key], { windows: platform === 'win32' }).href, pathToFileURL(files[key]).href,
+  ]));
+  const hooks = moduleApi.registerHooks({ resolve(specifier, context, next) {
+    return importPaths.has(specifier) ? { url: importPaths.get(specifier), shortCircuit: true } : next(specifier, context);
+  } });
+  const read = fsp.readFile;
+  t.mock.method(fsp, 'readFile', (path, ...args) => read(readPaths.get(path) ?? path, ...args));
+  t.mock.method(fsp, 'realpath', async path => canonicalOutside && path === virtual[canonicalOutside] ? dir : path);
   const execPath = Object.getOwnPropertyDescriptor(process, 'execPath');
   const processPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
   const createHash = crypto.createHash, bytes = Buffer.from('owned synthetic ASAR archive');
   const fixtureDigest = createHash('sha256').update(bytes).digest('hex');
   let virtualReads = 0, rawReads = 0, metadataResolutions = 0, entryResolutions = 0;
   t.after(async () => {
+    hooks.deregister();
     t.mock.restoreAll();syncBuiltinESMExports();
     Object.defineProperty(process, 'execPath', execPath);
     Object.defineProperty(process, 'platform', processPlatform);
@@ -64,11 +88,13 @@ async function hostFixture(t, { platform = 'darwin',
     };
     require.resolve = name => {
       assert.equal(anchor, hostPath.join(fixtureArchive, 'dsh', 'package.json'));
-      if (name === './package.json') return runtimeMetadata;
-      if (name === '@deepseek-ai/dsh/package.json') return cliMetadata;
-      if (name === '@deepseek-ai/cordis') return cordisEntry;
-      if (name === '@deepseek-ai/dsh-tool-subagent/package.json') { metadataResolutions++;return metadata; }
-      assert.equal(name, '@deepseek-ai/dsh-tool-subagent');entryResolutions++;return entry;
+      const resolved = key => outside === key ? files[key] : virtual[key];
+      if (name === './package.json') return resolved('runtimeMetadata');
+      if (name === '@deepseek-ai/dsh/package.json') return resolved('cliMetadata');
+      if (name === '@deepseek-ai/cordis') return resolved('cordisEntry');
+      if (name === '@deepseek-ai/cordis/package.json') return resolved('cordisMetadata');
+      if (name === '@deepseek-ai/dsh-tool-subagent/package.json') { metadataResolutions++;return resolved('subagentMetadata'); }
+      assert.equal(name, '@deepseek-ai/dsh-tool-subagent');entryResolutions++;return resolved('subagentEntry');
     };
     return require;
   });
@@ -144,4 +170,21 @@ test('a Windows Host cannot borrow a reviewed macOS archive digest', async t => 
   const stats = await hostFixture(t, { platform: 'win32', executable: String.raw`C:\Program Files\DeepSeek Harness\DeepSeek Harness.exe`, digest: rc5Pin });
   await assert.rejects(nativeSubagentFromHost(), /HOST_ARCHIVE_CHANGED/);
   assert.deepEqual(stats(), { virtualReads: 0, rawReads: 1, metadataResolutions: 0, entryResolutions: 0 });
+});
+
+for (const outside of ['runtimeMetadata', 'cliMetadata', 'subagentMetadata', 'subagentEntry', 'cordisMetadata', 'cordisEntry']) {
+  test(`a same-version ${outside} resolved outside the pinned archive is refused`, async t => {
+    await hostFixture(t, { digest: alphaPin, version: '0.2.3-alpha.2', outside });
+    await assert.rejects(nativeHostFromApp(), { code: 'HOST_MODULE_OUTSIDE_PINNED_ARCHIVE' });
+  });
+}
+
+test('a Cordis entry whose real path escapes the archive is refused', async t => {
+  await hostFixture(t, { digest: alphaPin, version: '0.2.3-alpha.2', canonicalOutside: 'cordisEntry' });
+  await assert.rejects(nativeHostFromApp(), { code: 'HOST_MODULE_OUTSIDE_PINNED_ARCHIVE' });
+});
+
+test('the alpha.2 Cordis package must match its separately inspected version', async t => {
+  await hostFixture(t, { digest: alphaPin, version: '0.2.3-alpha.2', cordisVersion: '4.2.0-alpha.2' });
+  await assert.rejects(nativeHostFromApp(), { code: 'WRONG_HOST_VERSION' });
 });

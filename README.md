@@ -130,10 +130,10 @@ The explicit bound `/dsh-team-launcher` export and offline preparation CLI remai
 After each Harness update, run this read-only check from the source package:
 
 ```sh
-npm run check:compat -- --upstream
+npm run check:compat -- --app-executable "/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness" --upstream
 ```
 
-It checks the physical App archive, package declaration, and official release feed. Unknown archives/RCs require review. This is an on-demand check, not background monitoring; it installs nothing and makes no model call. See [the host matrix](docs/HOST-COMPATIBILITY.md).
+Supply the executable of the intended App; replace the example path for a relocated installation. Windows paths are shown in [the host matrix](docs/HOST-COMPATIBILITY.md). It checks that physical App archive, package declaration, and official release feed. Unknown archives/RCs require review. This is an on-demand check, not background monitoring; it installs nothing and makes no model call.
 
 Source validation needs Node.js 22+ and npm, with no additional npm runtime dependencies:
 

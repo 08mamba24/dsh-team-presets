@@ -29,9 +29,19 @@ async function fixture(t, options = {}) {
   const pinnedVersion = options.archiveDigest === rc5Pin || platform === 'win32' ? '0.2.2-rc.5' : defaultVersion;
   await fsp.writeFile(runtimeMetadata, JSON.stringify({ name: '@deepseek-ai/dsh-desktop-runtime', version: pinnedVersion }));
   await fsp.writeFile(cliMetadata, JSON.stringify({ name: '@deepseek-ai/dsh', version: pinnedVersion }));
-  await fsp.writeFile(subagentMetadata, JSON.stringify({ version: options.subagentVersion ?? defaultVersion }));
+  await fsp.writeFile(subagentMetadata, JSON.stringify({ name: '@deepseek-ai/dsh-tool-subagent', version: options.subagentVersion ?? defaultVersion }));
   await fsp.writeFile(subagentEntry, 'export function apply() {}');
   const originalRead = fsp.readFile, originalHash = crypto.createHash;
+  const virtualRuntime = hostPath.join(fixtureArchive, 'dsh/package.json');
+  const virtualCli = hostPath.join(fixtureArchive, 'dsh/node_modules/@deepseek-ai/dsh/package.json');
+  const virtualMetadata = hostPath.join(fixtureArchive, 'dsh/node_modules/@deepseek-ai/dsh-tool-subagent/package.json');
+  const virtualEntry = hostPath.join(fixtureArchive, 'dsh/node_modules/@deepseek-ai/dsh-tool-subagent/lib/index.js');
+  const readPaths = new Map([[virtualRuntime, runtimeMetadata], [virtualCli, cliMetadata], [virtualMetadata, subagentMetadata]]);
+  const hooks = moduleApi.registerHooks({ resolve(specifier, context, next) {
+    return specifier === pathToFileURL(virtualEntry, { windows: platform === 'win32' }).href
+      ? { url: pathToFileURL(subagentEntry).href, shortCircuit: true } : next(specifier, context);
+  } });
+  t.mock.method(fsp, 'realpath', async path => path);
   const execPath = Object.getOwnPropertyDescriptor(process, 'execPath');
   const processPlatform = Object.getOwnPropertyDescriptor(process, 'platform');
   const bytes = Buffer.from('synthetic owned archive for team Host boundary');
@@ -39,6 +49,7 @@ async function fixture(t, options = {}) {
   const stats = { rawReads: 0, subagentMetadataResolutions: 0, subagentEntryResolutions: 0,
     controlMetadataResolutions: 0, controlEntryResolutions: 0, controlMetadataReads: 0 };
   t.after(async () => {
+    hooks.deregister();
     t.mock.restoreAll(); syncBuiltinESMExports();
     Object.defineProperty(process, 'execPath', execPath);
     Object.defineProperty(process, 'platform', processPlatform);
@@ -60,8 +71,8 @@ async function fixture(t, options = {}) {
       stats.controlMetadataReads++;
       return options.metadataText ?? JSON.stringify({ name: options.controlName ?? control, version: options.controlVersion ?? defaultVersion });
     }
-    assert.ok([subagentMetadata, runtimeMetadata, cliMetadata].includes(path), 'fixture must never read an installed App/profile');
-    return originalRead(path, ...args);
+    assert.ok(readPaths.has(path), 'fixture must never read an installed App/profile');
+    return originalRead(readPaths.get(path), ...args);
   });
   t.mock.method(moduleApi, 'createRequire', anchor => {
     const require = name => {
@@ -70,10 +81,10 @@ async function fixture(t, options = {}) {
     };
     require.resolve = name => {
       assert.equal(anchor, hostPath.join(fixtureArchive, 'dsh', 'package.json'));
-      if (name === './package.json') return runtimeMetadata;
-      if (name === '@deepseek-ai/dsh/package.json') return cliMetadata;
-      if (name === '@deepseek-ai/dsh-tool-subagent/package.json') { stats.subagentMetadataResolutions++; return subagentMetadata; }
-      if (name === '@deepseek-ai/dsh-tool-subagent') { stats.subagentEntryResolutions++; return subagentEntry; }
+      if (name === './package.json') return virtualRuntime;
+      if (name === '@deepseek-ai/dsh/package.json') return virtualCli;
+      if (name === '@deepseek-ai/dsh-tool-subagent/package.json') { stats.subagentMetadataResolutions++; return virtualMetadata; }
+      if (name === '@deepseek-ai/dsh-tool-subagent') { stats.subagentEntryResolutions++; return virtualEntry; }
       if (name === `${control}/package.json`) { stats.controlMetadataResolutions++; return options.metadataPath ?? hostPath.join(fixtureControlRoot, 'package.json'); }
       assert.equal(name, control); stats.controlEntryResolutions++;
       if (options.missingExport) throw Object.assign(new Error('public control export unavailable'), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });

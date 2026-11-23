@@ -5,15 +5,15 @@ import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { resolve } from 'node:path';
-import { MAC_HOST_ARCHIVE, REVIEWED_HOSTS, hostArchiveForExecutable, hostVersionForArchive } from '../src/host-support.js';
+import { REVIEWED_HOSTS, assertHostExecutable, hostVersionForArchive } from '../src/host-support.js';
 
 const options = process.argv.slice(2);
-let archive = process.platform === 'darwin' ? MAC_HOST_ARCHIVE : undefined;
+let archive;
 for (let i = 0; i < options.length; i++) {
-  if (options[i] === '--app-executable' && options[i + 1]) archive = hostArchiveForExecutable(resolve(options[++i]));
+  if (options[i] === '--app-executable' && options[i + 1]) archive = assertHostExecutable(resolve(options[++i]));
   else if (options[i] !== '--upstream') throw new Error('Usage: check-host-compat.mjs [--app-executable <Harness executable>] [--upstream]');
 }
-if (!archive) throw new Error('On Windows, pass --app-executable with the installed DeepSeek Harness.exe path.');
+if (!archive) throw new Error('Pass --app-executable with the intended DeepSeek Harness executable path.');
 const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
 const hash = createHash('sha256');
 for await (const chunk of createReadStream(archive)) hash.update(chunk);
