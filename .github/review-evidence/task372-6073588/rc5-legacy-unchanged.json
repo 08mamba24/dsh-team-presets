@@ -1,0 +1,631 @@
+{
+  "sourceHead": "tgz-sha256:f0f9f64420e05c29d5f8d06cfb49f5dac009c068387aed68954a16127c0b50ed",
+  "runtime": "/Applications/DeepSeek Harness.app/Contents/Resources/app.asar/dsh",
+  "hostVersion": "0.2.2-rc.5",
+  "isolatedDataRemoved": true,
+  "passed": true,
+  "profile": {
+    "bundles": [
+      "@deepseek-ai/dsh-base",
+      "@deepseek-ai/dsh-web-app",
+      "dsh-subagent-live-rc2-local"
+    ],
+    "standard": "official-unmodified-web",
+    "accountCredentialsInherited": false,
+    "scriptedModel": true
+  },
+  "hashes": {
+    "current-entry.js": "de479f52c121be08528d5ca247f1f65fc613b53531e6e97732b3cfdb6085caa4",
+    "src/team-addressing.js": "c40e6e0c96554d93078822b7b7d20bc4d3e703c7723ad3c73bd2f9b497c4db08",
+    "role-control.js": "9e612b0e0f301fd67ae89445a6164b052cd3168bbb45bcf948f8f1293259695e",
+    "src/launcher-current.js": "ee013d63130f0fbb8b36d4fb9065e4c102654ba7e3e82f52f3f7f40cd9439f9d",
+    "src/launcher-driver.js": "a87ce4b579c5234137c9cff41fb1b6ce67a2caf312628ba1590425040aa77c65",
+    "src/launcher-replace.js": "772f43f258cc7a3e82375842fc3087941691151555dc6bffbdace1404e01846f",
+    "src/member-replacement.js": "870c30b844922d475fe43e39ef553aae72cdac0f8e727216558c4bcd24025a64",
+    "src/replacement-native.js": "a4e97b737221c2c1c62f5e648699b38671d9d76e8e485534c9b9996669a1f00d",
+    "src/replacement-store.js": "66add1dff2c3083cfd03b41069c5c16afe6e30f2d5a8b7e43111019407e29608",
+    "launcher-role.js": "119f40740db0c227cddbd2b327d9cb295eb4624e8bad90376d4009bc2da83be7",
+    "src/team-replace.js": "5be3dffb05b9bf415aacfcee42358b0c8abf2a06a5fbebe6277a2a5fe5936b7b"
+  },
+  "checks": [
+    {
+      "name": "published rc.6 creates the legacy Settings/JSONL with the exact rc.5 Host before upgrade",
+      "passed": true
+    },
+    {
+      "name": "an actual rc.6 team automatically bootstraps an unchanged original binding before managed Presets",
+      "passed": true
+    },
+    {
+      "name": "a real native old member has a durable unfinished task and is naturally cold after settlement",
+      "passed": true
+    },
+    {
+      "name": "a completed cold old turn between observation and frozen CAS keeps the plan frozen and creates no candidate or owner transfer",
+      "passed": true
+    },
+    {
+      "name": "a failed accepted activation resumes the same candidate Session and does not spawn a duplicate",
+      "passed": true
+    },
+    {
+      "name": "the native root tool completes Standby, real owner CAS, candidate continuation and a JSONL task-write proof",
+      "passed": true,
+      "result": {
+        "ok": true,
+        "operationId": "replace-7f684ec6-25ae-4f36-b281-1f8986622845",
+        "phase": "active",
+        "role": "implementer",
+        "instanceName": "implementer-r2",
+        "oldChildId": "fc112de6-6429-41ea-9643-fe711df34827",
+        "newChildId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+        "handoffDigest": "37aca283aeb97d3eb181b765be04f3eba4e401a756cbab457cf996fa0b7481ba",
+        "transferred": [
+          {
+            "taskId": "task-4",
+            "kind": "transferred",
+            "revision": 3,
+            "at": 1795456990256
+          }
+        ],
+        "skipped": [],
+        "takeoverProof": {
+          "kind": "task-write",
+          "success": true,
+          "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+          "operationId": "replace-7f684ec6-25ae-4f36-b281-1f8986622845",
+          "handoffDigest": "37aca283aeb97d3eb181b765be04f3eba4e401a756cbab457cf996fa0b7481ba",
+          "taskId": "task-4",
+          "expectedRevision": 3,
+          "revision": 4,
+          "callId": "call-db8969ac-1b1e-4e36-9b19-21e65342b1ef",
+          "callSeq": 61,
+          "resultSeq": 62,
+          "action": "edit",
+          "at": 1795456991523
+        },
+        "stopFurtherMutation": false,
+        "noAutomaticRetry": true
+      }
+    },
+    {
+      "name": "business tool bodies run only after activation while task identity, dependency, progress and write scopes survive",
+      "passed": true,
+      "writes": [
+        {
+          "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+          "phase": "activating"
+        },
+        {
+          "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+          "phase": "activating"
+        },
+        {
+          "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+          "phase": "active"
+        }
+      ]
+    },
+    {
+      "name": "a real cold continuation of the retired member reaches no provider or business tool and produces no Agent exception",
+      "passed": true
+    },
+    {
+      "name": "real native root send/list/task-owner addressing follows the first replacement",
+      "passed": true,
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845"
+    },
+    {
+      "name": "a second replacement recovers a real partial multi-task transfer using the same candidate and preserves native dependencies",
+      "passed": true,
+      "faults": [
+        {
+          "code": "ISOLATED_CANDIDATE_MODEL_FAILURE",
+          "operationId": "replace-7f684ec6-25ae-4f36-b281-1f8986622845"
+        },
+        {
+          "code": "ISOLATED_TASK_READ_FAILURE",
+          "taskId": "task-5",
+          "operationId": "replace-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d"
+        }
+      ]
+    },
+    {
+      "name": "real native root send/list/task-owner addressing follows the second replacement",
+      "passed": true,
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d"
+    },
+    {
+      "name": "explicit native cancellation safely exits an unspawned frozen plan while post-owner cancellation is refused",
+      "passed": true
+    },
+    {
+      "name": "native reassign dependency constraints refuse a blocked owned task before any frozen record or candidate",
+      "passed": true
+    },
+    {
+      "name": "fresh Loader/profile/JSONL reload mounts the original and candidate Presets before continuation, retains the current mapping, blocks old and permits new",
+      "passed": true
+    },
+    {
+      "name": "real native root send/list/task-owner addressing follows the retained replacement after full reload",
+      "passed": true,
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d"
+    }
+  ],
+  "errors": [],
+  "expectedErrors": [
+    {
+      "code": "ISOLATED_CANDIDATE_MODEL_FAILURE",
+      "message": "ISOLATED_CANDIDATE_MODEL_FAILURE",
+      "stack": "Error: ISOLATED_CANDIDATE_MODEL_FAILURE\n    at stream (file:///Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-6073588/package/scripts/accept-native-replacement.mjs:128:27)\n    at stream.next (<anonymous>)\n    at file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-session-checkpoint-policy/lib/index.js:29:10\n    at async ReactLoopAgent.step (file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:894:22)\n    at async ReactLoopAgent.turn (file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:780:23)\n    at async ReactLoopAgent.kick (file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:666:11)",
+      "name": "Error"
+    }
+  ],
+  "providerCalls": [
+    {
+      "childId": "eabdeebc-1978-4fa3-a66f-0b0b2ef25cbb",
+      "phase": "original"
+    },
+    {
+      "childId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "phase": "original"
+    },
+    {
+      "childId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "phase": "original"
+    },
+    {
+      "childId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "phase": "original"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "active"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "active"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "active"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "active"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "active"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "active"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "active"
+    },
+    {
+      "childId": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "phase": "original"
+    }
+  ],
+  "writes": [
+    {
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "phase": "active"
+    }
+  ],
+  "originalWrites": [
+    {
+      "childId": "fc112de6-6429-41ea-9643-fe711df34827"
+    }
+  ],
+  "faults": [
+    {
+      "code": "ISOLATED_CANDIDATE_MODEL_FAILURE",
+      "operationId": "replace-7f684ec6-25ae-4f36-b281-1f8986622845"
+    },
+    {
+      "code": "ISOLATED_TASK_READ_FAILURE",
+      "taskId": "task-5",
+      "operationId": "replace-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d"
+    }
+  ],
+  "nativeStarts": [
+    {
+      "id": "eabdeebc-1978-4fa3-a66f-0b0b2ef25cbb",
+      "childId": "eabdeebc-1978-4fa3-a66f-0b0b2ef25cbb",
+      "sessionId": "eabdeebc-1978-4fa3-a66f-0b0b2ef25cbb",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-current-4498be37029081e896dfed59-reviewer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024,
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "fc112de6-6429-41ea-9643-fe711df34827",
+      "childId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "sessionId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-current-4498be37029081e896dfed59-implementer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024,
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "fc112de6-6429-41ea-9643-fe711df34827",
+      "childId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "sessionId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-current-4498be37029081e896dfed59-implementer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "sessionId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "sessionId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "sessionId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "fc112de6-6429-41ea-9643-fe711df34827",
+      "childId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "sessionId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-current-4498be37029081e896dfed59-implementer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "childId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "sessionId": "session-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-7f684ec6-25ae-4f36-b281-1f8986622845",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "sessionId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "sessionId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "sessionId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "fc112de6-6429-41ea-9643-fe711df34827",
+      "childId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "sessionId": "fc112de6-6429-41ea-9643-fe711df34827",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-current-4498be37029081e896dfed59-implementer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "sessionId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    },
+    {
+      "id": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "childId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "sessionId": "session-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "present": true,
+      "origin": "subagent",
+      "rootCwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "parent": "session-ccccc242-35cc-4dfa-84c0-7a75ec352e7a",
+      "cwd": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/mac-package-6073588-rc5-legacy-unchanged/tmp/dsh-native-replacement-iI7Ydm/workspace",
+      "preset": "dsh-replace-71ada50e-5bba-4344-bbbc-fc0fdee1ce2d",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "scripted-model",
+        "reasoningEffort": "max"
+      },
+      "idleHook": "function",
+      "eventHook": "function",
+      "toolGuard": "function"
+    }
+  ]
+}

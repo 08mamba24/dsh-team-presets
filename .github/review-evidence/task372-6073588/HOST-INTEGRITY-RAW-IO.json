@@ -1,0 +1,17 @@
+{
+  "passed": true,
+  "processExecutable": "/Users/yuhan/codespace/dsh-team-alpha2-compat/lab/app/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness",
+  "plugin": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-6073588/package",
+  "sourceArchiveSha256": "55961db6dafe1091408409e57da60832e8330230355eaf4f325f3aab9f8ffc8d",
+  "rawIoFaultInjection": true,
+  "bytesChanged": 1,
+  "offset": 215113993,
+  "errors": [],
+  "mutatedArchiveSha256": "500d64a213331d46886e2ef987d376c10abfbfdc8d85425af2267fc8e918e90e",
+  "positiveVersion": "0.2.3-alpha.2",
+  "negativeCode": "HOST_ARCHIVE_CHANGED",
+  "redirectedReads": 1,
+  "sourceUnchanged": true,
+  "boundary": "Actual pinned Electron and exact TGZ nativeHostFromApp; only original-fs.createReadStream redirects the derived archive to a real one-byte-mutated file. Canonical paths, SHA computation, allowlist, metadata and product source are unchanged. This is not a successful launch of a tampered signed App.",
+  "mutatedFileRemoved": true
+}

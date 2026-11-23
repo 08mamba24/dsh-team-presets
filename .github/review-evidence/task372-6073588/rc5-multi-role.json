@@ -1,0 +1,1538 @@
+{
+  "sourceHead": "tgz-sha256:f0f9f64420e05c29d5f8d06cfb49f5dac009c068387aed68954a16127c0b50ed",
+  "runtime": "/Applications/DeepSeek Harness.app/Contents/Resources/app.asar/dsh",
+  "platform": "darwin",
+  "passed": true,
+  "checks": [
+    {
+      "name": "official initProfile/runProfile loads real current-entry Schema.dict and unmodified Web Standard",
+      "passed": true
+    },
+    {
+      "name": "Agent configuration starts from the installed factory defaults, queries six templates, explicitly reassigns seed responsibility and saves the exact four-member roster/custom copy through native approval",
+      "passed": true
+    },
+    {
+      "name": "Lead plus frontend/backend from one implementer template, tester and reviewer launch with independent native Sessions, models and Presets",
+      "passed": true,
+      "ids": {
+        "reviewer": "d5a78fdd-ada5-4bf0-bf7c-30fca9aad58b",
+        "frontend": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+        "backend": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+        "tester": "f6eacda8-da9a-4217-a23c-d0ea4894385c"
+      }
+    },
+    {
+      "name": "an unclaimed seed owner cannot be silently removed",
+      "passed": true
+    },
+    {
+      "name": "saving custom catalog and future persona defaults in a bound team does not remount the entry or change existing Sessions, tasks, tools or baseBinding",
+      "passed": true
+    },
+    {
+      "name": "same-template members execute their own exact tool subset; a forged foreign tool call executes no body",
+      "passed": true
+    },
+    {
+      "name": "explicit mid-run add persists pending before activation, bounds the readiness turn and enables work only after active",
+      "passed": true,
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526"
+    },
+    {
+      "name": "duplicate member names are refused without record, task or model side effects",
+      "passed": true
+    },
+    {
+      "name": "failed addition retains existing team/tasks and its Session cannot regain execution on a direct native prompt",
+      "passed": true
+    },
+    {
+      "name": "an arbitrary named member replaces through native Standby ACK, owner transfer and actual candidate task-write proof",
+      "passed": true,
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387"
+    },
+    {
+      "name": "an explicitly added member can later use the same native replacement protocol",
+      "passed": true,
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d"
+    },
+    {
+      "name": "full Loader/profile/JSONL reload restores every bound Preset, member, task and stable replacement address",
+      "passed": true
+    },
+    {
+      "name": "safe remove requires task reassignment, preserves native tasks and rejects both logical and direct Session continuation",
+      "passed": true
+    },
+    {
+      "name": "safe removal preserves the real native id of an original UUID member, without requiring replacement first",
+      "passed": true,
+      "childId": "d5a78fdd-ada5-4bf0-bf7c-30fca9aad58b"
+    },
+    {
+      "name": "removed original and replacement members remain fenced and hidden after a fresh Loader/registry/JSONL reload",
+      "passed": true
+    },
+    {
+      "name": "a separate fresh factory profile preserves both seed tasks, explicitly reassigns their responsibilities and launches one independent member",
+      "passed": true
+    },
+    {
+      "name": "published rc.7 creates the legacy Settings/JSONL with the exact rc.5 Host before upgrade",
+      "passed": true
+    },
+    {
+      "name": "an actual published rc.7 two-member team migrates from its original Settings/JSONL and expands only by explicit add",
+      "passed": true,
+      "oldIds": [
+        "270458d1-aff8-459e-aa43-9c8d66c4974f",
+        "b9270520-520b-4bb0-91e5-068b9d3db99f"
+      ],
+      "newChildId": "session-720f2ed9-060c-4a2e-9df4-b85ed02c38e9"
+    }
+  ],
+  "errors": [],
+  "expectedErrors": [
+    {
+      "code": "ISOLATED_ADDITION_FAILURE",
+      "message": "ISOLATED_ADDITION_FAILURE",
+      "stack": "Error: ISOLATED_ADDITION_FAILURE\n    at stream (file:///Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-6073588/package/scripts/accept-native-multi-role.mjs:132:25)\n    at stream.next (<anonymous>)\n    at file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-session-checkpoint-policy/lib/index.js:29:10\n    at async ReactLoopAgent.step (file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:894:22)\n    at async ReactLoopAgent.turn (file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:780:23)\n    at async ReactLoopAgent.kick (file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-agent-loop/lib/index.js:666:11)",
+      "name": "Error"
+    }
+  ],
+  "hostVersion": "0.2.2-rc.5",
+  "legacyPlugin": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-22-dsh-multi-role-731/legacy-rc7/package",
+  "approvalRequests": [
+    {
+      "toolName": "dsh_team_configure",
+      "sessionId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "outcome": "rejected"
+    },
+    {
+      "toolName": "dsh_team_configure",
+      "sessionId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "outcome": "allowed-once"
+    },
+    {
+      "toolName": "dsh_team_configure",
+      "sessionId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "outcome": "allowed-once"
+    },
+    {
+      "toolName": "dsh_team_configure",
+      "sessionId": "session-5d391340-06d4-4671-8375-e81f9bc68e99",
+      "outcome": "allowed-once"
+    }
+  ],
+  "providerCalls": [
+    {
+      "childId": "f6eacda8-da9a-4217-a23c-d0ea4894385c",
+      "model": "tester-model",
+      "phase": "launch"
+    },
+    {
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "model": "backend-model",
+      "phase": "launch"
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "model": "frontend-model",
+      "phase": "launch"
+    },
+    {
+      "childId": "d5a78fdd-ada5-4bf0-bf7c-30fca9aad58b",
+      "model": "reviewer-model",
+      "phase": "launch"
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "model": "frontend-model",
+      "phase": "work"
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "model": "frontend-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "model": "backend-model",
+      "phase": "work"
+    },
+    {
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "model": "backend-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "model": "frontend-model",
+      "phase": "work"
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "model": "frontend-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "model": "researcher-model",
+      "phase": "spawning"
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "model": "researcher-model",
+      "phase": "spawning"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "model": "researcher-model",
+      "phase": "active"
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "model": "researcher-model",
+      "phase": "active"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-cbdc0b66-0d99-4dd6-b76f-4ac1ac08018b",
+      "model": "designer-model",
+      "phase": "spawning"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": "frontend-model",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": "frontend-model",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": "frontend-model",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": "frontend-model",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": "frontend-model",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": "frontend-model",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": "frontend-model",
+      "phase": "activating"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "model": "researcher-model",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "model": "researcher-model",
+      "phase": "standby"
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "model": "researcher-model",
+      "phase": "active"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "model": "researcher-model",
+      "phase": "active"
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": "frontend-model",
+      "phase": "active"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "model": "root-model",
+      "phase": "work"
+    },
+    {
+      "childId": "5d0fdfb6-98a5-496c-b5d2-a38221355baa",
+      "model": "frontend-model",
+      "phase": "solo-launch"
+    },
+    {
+      "childId": "270458d1-aff8-459e-aa43-9c8d66c4974f",
+      "model": "implementer-model",
+      "phase": "legacy-launch"
+    },
+    {
+      "childId": "b9270520-520b-4bb0-91e5-068b9d3db99f",
+      "model": "reviewer-model",
+      "phase": "legacy-launch"
+    },
+    {
+      "childId": "session-720f2ed9-060c-4a2e-9df4-b85ed02c38e9",
+      "model": "researcher-model",
+      "phase": "spawning"
+    },
+    {
+      "childId": "session-720f2ed9-060c-4a2e-9df4-b85ed02c38e9",
+      "model": "researcher-model",
+      "phase": "spawning"
+    },
+    {
+      "childId": "session-cac54a7b-e780-4fff-b1ad-8f125f8f816f",
+      "model": "root-model",
+      "phase": "legacy-launch"
+    }
+  ],
+  "observedToolSets": [
+    {
+      "childId": "f6eacda8-da9a-4217-a23c-d0ea4894385c",
+      "tools": [
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "tools": [
+        "multi_backend_write",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "d5a78fdd-ada5-4bf0-bf7c-30fca9aad58b",
+      "tools": [
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "phase": "frontend-work",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "phase": "frontend-work",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "phase": "backend-work",
+      "tools": [
+        "multi_backend_write",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "phase": "backend-work",
+      "tools": [
+        "multi_backend_write",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "phase": "foreign-tool",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "phase": "foreign-tool",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "phase": "addition-ready",
+      "tools": [
+        "multi_research_write",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "phase": "addition-ready",
+      "tools": [
+        "multi_research_write",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "phase": "research-work",
+      "tools": [
+        "multi_research_write",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "phase": "research-work",
+      "tools": [
+        "multi_research_write",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "standby",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "standby",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "standby",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "takeover",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "takeover",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "takeover",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "takeover",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "phase": "standby",
+      "tools": [
+        "multi_research_write",
+        "send_message",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "phase": "standby",
+      "tools": [
+        "multi_research_write",
+        "send_message",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "phase": "takeover",
+      "tools": [
+        "multi_research_write",
+        "send_message",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "phase": "takeover",
+      "tools": [
+        "multi_research_write",
+        "send_message",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "takeover",
+      "tools": [
+        "multi_frontend_write",
+        "send_message",
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    },
+    {
+      "childId": "5d0fdfb6-98a5-496c-b5d2-a38221355baa",
+      "tools": [
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "270458d1-aff8-459e-aa43-9c8d66c4974f",
+      "tools": [
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "b9270520-520b-4bb0-91e5-068b9d3db99f",
+      "tools": [
+        "team_task_get",
+        "team_task_update"
+      ]
+    },
+    {
+      "childId": "session-720f2ed9-060c-4a2e-9df4-b85ed02c38e9",
+      "phase": "addition-ready",
+      "tools": [
+        "multi_research_write",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-720f2ed9-060c-4a2e-9df4-b85ed02c38e9",
+      "phase": "addition-ready",
+      "tools": [
+        "multi_research_write",
+        "team_task_get"
+      ]
+    },
+    {
+      "childId": "session-cac54a7b-e780-4fff-b1ad-8f125f8f816f",
+      "tools": [
+        "ask_user_question",
+        "bash",
+        "create_goal",
+        "dsh_team_configure",
+        "dsh_team_replace",
+        "edit",
+        "get_goal",
+        "glob",
+        "grep",
+        "interrupt_agent",
+        "job_kill",
+        "job_list",
+        "job_output",
+        "list_agents",
+        "list_subagent_models",
+        "multi_backend_write",
+        "multi_frontend_write",
+        "multi_research_write",
+        "plugin_manager",
+        "present",
+        "read",
+        "read_image",
+        "schedule_create",
+        "schedule_edit",
+        "schedule_list",
+        "schedule_view",
+        "send_message",
+        "skill",
+        "subagent",
+        "subagent_fork",
+        "team_task_create",
+        "team_task_get",
+        "team_task_list",
+        "team_task_update",
+        "todo_write",
+        "update_goal",
+        "wait_agent",
+        "web_fetch",
+        "workflow",
+        "working_directory",
+        "write"
+      ]
+    }
+  ],
+  "observableBodies": [
+    {
+      "tool": "multi_frontend_write",
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "phase": "work"
+    },
+    {
+      "tool": "multi_backend_write",
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "phase": "work"
+    },
+    {
+      "tool": "multi_research_write",
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "phase": "active"
+    },
+    {
+      "tool": "multi_frontend_write",
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "phase": "activating"
+    },
+    {
+      "tool": "multi_research_write",
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "phase": "active"
+    }
+  ],
+  "nativeStarts": [
+    {
+      "childId": "f6eacda8-da9a-4217-a23c-d0ea4894385c",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-tester",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "tester-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-backend",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "backend-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-frontend",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "frontend-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "d5a78fdd-ada5-4bf0-bf7c-30fca9aad58b",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-reviewer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "reviewer-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-frontend",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "frontend-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "5d0a96e0-7ac7-45c9-bbd7-05f1e194e22c",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-backend",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "backend-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "cb68a97b-048d-4790-823c-8da7d7d8734a",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-frontend",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "frontend-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-researcher",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "researcher-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "session-5f844cf7-f6d5-4d1e-8809-c8df4d8ce526",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-researcher",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "researcher-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "session-cbdc0b66-0d99-4dd6-b76f-4ac1ac08018b",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-designer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "designer-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "session-cbdc0b66-0d99-4dd6-b76f-4ac1ac08018b",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-designer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "designer-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-replace-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "frontend-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-replace-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "frontend-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-replace-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "researcher-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "session-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-replace-b8ff07a2-ddc3-49a7-9986-3ee6cd389a3d",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "researcher-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-replace-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "frontend-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "session-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-replace-d3b735e4-a189-4870-8f15-57ef54eb1387",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "frontend-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "d5a78fdd-ada5-4bf0-bf7c-30fca9aad58b",
+      "parent": "session-ff0ffddb-9d82-4a4c-a639-568684261aec",
+      "preset": "dsh-current-73b4bfdc21a56e481086ce1f-reviewer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "reviewer-model",
+        "reasoningEffort": "max"
+      }
+    },
+    {
+      "childId": "5d0fdfb6-98a5-496c-b5d2-a38221355baa",
+      "parent": "session-5d391340-06d4-4671-8375-e81f9bc68e99",
+      "preset": "dsh-current-da0341db397916a289addf2e-solo",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "frontend-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "b9270520-520b-4bb0-91e5-068b9d3db99f",
+      "parent": "session-cac54a7b-e780-4fff-b1ad-8f125f8f816f",
+      "preset": "dsh-current-7c327d1a3999611a707202b4-reviewer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "reviewer-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "270458d1-aff8-459e-aa43-9c8d66c4974f",
+      "parent": "session-cac54a7b-e780-4fff-b1ad-8f125f8f816f",
+      "preset": "dsh-current-7c327d1a3999611a707202b4-implementer",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "implementer-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    },
+    {
+      "childId": "session-720f2ed9-060c-4a2e-9df4-b85ed02c38e9",
+      "parent": "session-cac54a7b-e780-4fff-b1ad-8f125f8f816f",
+      "preset": "dsh-current-7c327d1a3999611a707202b4-researcher",
+      "model": {
+        "provider": "isolated-provider",
+        "model": "researcher-model",
+        "reasoningEffort": "max"
+      },
+      "maxTokens": 1024
+    }
+  ],
+  "accountEnvironmentInherited": false,
+  "isolatedDataRemoved": true
+}
