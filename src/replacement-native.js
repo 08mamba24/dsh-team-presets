@@ -254,6 +254,12 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
           || root.session?.id !== root.id || root.session.header?.origin === 'subagent') fail('WRONG_AGENT');
       };
       const assertCurrent = () => { assertRoot(); signal.throwIfAborted(); if (closing) fail('UNLOADING'); };
+      const assertRequestAdmission = request => {
+        assertCurrent();
+        const policy = readAuthorizedRoutes(ctx, root.session);
+        if (!policy.some(route => route.provider === request.provider && route.model === request.model)) fail('REPLACEMENT_ROUTE_UNAUTHORIZED');
+        assertRoleToolsAvailable(ctx, root, [request.tools]);
+      };
       const operationNow = id => {
         assertRoot();
         const operation = readReplacementRecord(store.read({ requirePartition: true }).value).operations.find(item => item.id === id);
@@ -298,13 +304,10 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
         readRecord: () => { assertRoot(); return store.read({ requirePartition: true }); },
         writeRecord: (_rootId, value, revision) => { assertRoot(); return store.write(value, revision); },
         async preflight(request) {
-          assertCurrent();
-          const policy = readAuthorizedRoutes(ctx, root.session);
-          if (!Array.isArray(policy) || !policy.some(route => route.provider === request.provider && route.model === request.model)) fail('REPLACEMENT_ROUTE_UNAUTHORIZED');
-          assertRoleToolsAvailable(ctx, root, [request.tools]);
+          assertRequestAdmission(request);
           const route = { provider: request.provider, model: request.model, reasoningEffort: request.reasoningEffort };
           const resolved = await ctx.llm.resolveCallConfig(route, signal);
-          assertCurrent();
+          assertRequestAdmission(request);
           if (!['provider', 'model', 'reasoningEffort'].every(key => resolved[key] === route[key])) fail('RESOLVED_CONTROLS_CHANGED');
           const provider = ctx.subagents.getProvider('spawn');
           if (typeof ctx.subagents.startActivation !== 'function' || !provider?.capabilities?.agentOptions
@@ -370,6 +373,7 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
           if ((await restore(operation)).found) fail('REPLACEMENT_CANDIDATE_ALREADY_EXISTS');
           const ack = { ready: true, operation: operation.id, handoff: operation.handoffDigest, config: operation.configDigest };
           const prompt = `${request.prompt}\n\n${operation.handoffText}\n\nStandby operation ${operation.id}. Read every handoff task with team_task_get. Send exactly ${JSON.stringify(ack)} to lead with send_message, then end this turn. Do not modify work before activation.`;
+          assertRequestAdmission(request);
           const activation = await ctx.subagents.startActivation({ provider: 'spawn', parent: root,
             childId: reserveId(operation), name: operation.instanceName, label: `Replacement ${operation.role}`,
             cwd: config.workspace, agentPreset: operation.presetId,

@@ -356,13 +356,13 @@ async function verifySoloFactory() {
 async function verifyAlpha2Contracts() {
   if (boot.getDshRuntimeVersion() !== '0.2.3-alpha.2') return;
   ROOT = 'session-' + randomUUID(); profileDir = undefined; profileCase = 'alpha2-live-policy';
-  await startFixture();
+  await startFixture({ initialTemplate: multiTemplate() });
   // A retained rc.5 event must never override the live setting on alpha.2.
   rootHandle.agent.session.append('subagent/model-selection-policy', { allowedModels });
   await ctx.agentTeams.setEnabled(rootHandle.agent, true, signal);
   const before = taskSnapshot(), calls = providerCalls.length;
   await setNativeModelRoutes(ctx, rootHandle.agent.session, boot.getDshRuntimeVersion(),
-    allowedModels.filter(route => route.model !== 'implementer-model'));
+    allowedModels.filter(route => route.model !== 'frontend-model'));
   const revoked = await command('launch');
   assert.equal(revoked.code, 'SESSION_ROUTE_NOT_AUTHORIZED', JSON.stringify(revoked));
   assert.deepEqual(taskSnapshot(), before); assert.equal(providerCalls.length, calls);
@@ -372,6 +372,29 @@ async function verifyAlpha2Contracts() {
   assert.equal((await command('launch')).code, 'SESSION_ROUTE_NOT_AUTHORIZED');
   assert.deepEqual(taskSnapshot(), before); assert.equal(providerCalls.length, calls);
   check('disabled live model selection grants no route and never falls back to Session history');
+  await setNativeModelRoutes(ctx, rootHandle.agent.session, boot.getDshRuntimeVersion(), allowedModels);
+  const authorizedLaunch = await command('launch');
+  assert.equal(authorizedLaunch.ok, true, JSON.stringify(authorizedLaunch));
+  const inspectedRoles = await membership({ action: 'inspect' });
+  const target = inspectedRoles.roles.find(row => row.role === 'frontend');
+  assert.ok(target?.currentChildId);
+  const retainedRecord = structuredClone(record()), retainedTasks = taskSnapshot(), priorReplacementCalls = providerCalls.length;
+  const resolveMetadata = ctx.llm.resolveCallConfig;
+  ctx.llm.resolveCallConfig = async function(config, ...args) {
+    await setNativeModelRoutes(ctx, rootHandle.agent.session, boot.getDshRuntimeVersion(),
+      allowedModels.filter(route => route.model !== 'frontend-model'));
+    return Reflect.apply(resolveMetadata, this, [config, ...args]);
+  };
+  let revokedReplacement;
+  try {
+    revokedReplacement = await membership({ action: 'replace', role: target.role, expectedOldChildId: target.currentChildId,
+      ...routeOf('frontend'), personaPrompt: 'Continue implementation.', prompt: 'Continue.',
+      tools: ['team_task_get', 'team_task_update', 'send_message'], progressFacts: 'No replacement work has started.' });
+  } finally { ctx.llm.resolveCallConfig = resolveMetadata; }
+  assert.equal(revokedReplacement.code, 'REPLACEMENT_ROUTE_UNAUTHORIZED', JSON.stringify(revokedReplacement));
+  assert.deepEqual(record(), retainedRecord); assert.deepEqual(taskSnapshot(), retainedTasks);
+  assert.equal(providerCalls.length, priorReplacementCalls);
+  check('native Settings revocation during awaited replacement model metadata rejects before freezing, spawning or task transfer');
   await stopFixture();
 
   const saved = multiTemplate(); saved.members[0].native_tool_allowlist.push('working_directory');
