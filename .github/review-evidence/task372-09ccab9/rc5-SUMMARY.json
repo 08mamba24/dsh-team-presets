@@ -1,0 +1,96 @@
+{
+  "sourceHead": "09ccab976b0c4524af29fd2048ed3f9071706155",
+  "pluginSha256": "019c23424f834dd70d4b9c0f8d23c6f341eb8374f052067e902a0e04260d0dd6",
+  "hostLabel": "rc5",
+  "passed": true,
+  "results": [
+    {
+      "label": "rc5",
+      "name": "admission",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-admission.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 5,
+      "errors": []
+    },
+    {
+      "label": "rc5",
+      "name": "store",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-store.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 5,
+      "errors": []
+    },
+    {
+      "label": "rc5",
+      "name": "addressing",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-addressing.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 14,
+      "errors": []
+    },
+    {
+      "label": "rc5",
+      "name": "replacement",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-replacement.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 13,
+      "errors": []
+    },
+    {
+      "label": "rc5",
+      "name": "multi-role",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-multi-role.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 18,
+      "errors": []
+    },
+    {
+      "label": "rc5",
+      "name": "legacy-changed",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-legacy-changed.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 15,
+      "errors": []
+    },
+    {
+      "label": "rc5",
+      "name": "legacy-unchanged",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-legacy-unchanged.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 15,
+      "errors": []
+    },
+    {
+      "label": "rc5",
+      "name": "inner-workspace",
+      "passed": true,
+      "receipt": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-inner-workspace.json",
+      "code": 0,
+      "signal": null,
+      "timedOut": false,
+      "checks": 2,
+      "errors": []
+    }
+  ]
+}

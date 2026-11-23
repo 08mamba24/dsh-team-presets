@@ -1,0 +1,184 @@
+{
+  "runtimeSourceHead": "09ccab976b0c4524af29fd2048ed3f9071706155",
+  "runtimeSourceTree": "8a31929829c79fb7a49ca79077d1559d8db5bdcf",
+  "pluginSha256": "019c23424f834dd70d4b9c0f8d23c6f341eb8374f052067e902a0e04260d0dd6",
+  "packageFiles": 70,
+  "rawFiles": [
+    {
+      "path": "rc5-SUMMARY.json",
+      "bytes": 2785,
+      "sha256": "ad4267c7da714c540800fcf311fec83f7847c19d50b43fa9ddbd99462fa5dd01",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-SUMMARY.json"
+    },
+    {
+      "path": "rc5-admission.json",
+      "bytes": 4722,
+      "sha256": "09d22fbf64917605388bf6592433a505b98bd21c08e38b924db15895fc3dc4c7",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-admission.json"
+    },
+    {
+      "path": "rc5-store.json",
+      "bytes": 966,
+      "sha256": "1530b96985b33ffa5adad19c20577f09e84135671cdf61828ebc2a5624bb2ef8",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-store.json"
+    },
+    {
+      "path": "rc5-addressing.json",
+      "bytes": 3082,
+      "sha256": "8fbae6e54999e38a1449ffc1039ad6c51af6c1a7320a13102d1c1028868c9f77",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-addressing.json"
+    },
+    {
+      "path": "rc5-replacement.json",
+      "bytes": 24555,
+      "sha256": "786fa79b34210b3eadccfc6f85466f5d267001d1ce058112ed54d601b35ca887",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-replacement.json"
+    },
+    {
+      "path": "rc5-multi-role.json",
+      "bytes": 41623,
+      "sha256": "eb1b1334e81ddbaeb9668f9b23ab7c99cdf8d93883595e730bed155f353dab2a",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-multi-role.json"
+    },
+    {
+      "path": "rc5-legacy-changed.json",
+      "bytes": 25804,
+      "sha256": "2fe93fc9ca2063c2a7083495005753626483564f5b5684406c4ec8db2a244830",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-legacy-changed.json"
+    },
+    {
+      "path": "rc5-legacy-unchanged.json",
+      "bytes": 25821,
+      "sha256": "4583315dc8bb787e0db767d8dda5a4ea1a23947d3c9caf2826471e59e7037d0a",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-legacy-unchanged.json"
+    },
+    {
+      "path": "rc5-inner-workspace.json",
+      "bytes": 5891,
+      "sha256": "9eb72979b8364f7aebd85fbda9ea9e85b133619fc4ecb22a52971af6a1d082ce",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/rc5-inner-workspace.json"
+    },
+    {
+      "path": "alpha2-SUMMARY.json",
+      "bytes": 3165,
+      "sha256": "65b38d5f52959da1e6ea8c3a2a940b2c58c291ddb0773643350fc05f780012b1",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-SUMMARY.json"
+    },
+    {
+      "path": "alpha2-admission.json",
+      "bytes": 5002,
+      "sha256": "6c9502006d174ff5ea06e8448bfebe5acf423ee7fc0889a9aa3a662c93003a3b",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-admission.json"
+    },
+    {
+      "path": "alpha2-store.json",
+      "bytes": 1006,
+      "sha256": "fb298ec35cb0ad584f669c4d238b861c9ecc1cdc1fa7ac050a843362445a82d7",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-store.json"
+    },
+    {
+      "path": "alpha2-addressing.json",
+      "bytes": 3122,
+      "sha256": "07c8c3d5a6b9cb08d93f39c0fd9acbf35a72f895f04adc07bcd906f9adc2dce0",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-addressing.json"
+    },
+    {
+      "path": "alpha2-replacement.json",
+      "bytes": 24836,
+      "sha256": "7c8e310da484f2f413cb6e3eaa396fe136355d374239cf01ab70400571c6e5bf",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-replacement.json"
+    },
+    {
+      "path": "alpha2-multi-role.json",
+      "bytes": 50234,
+      "sha256": "94ea3bb97f8d076e819fda3169824ef2262a58d7c8f89a114ce401801761102c",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-multi-role.json"
+    },
+    {
+      "path": "alpha2-legacy-changed.json",
+      "bytes": 32620,
+      "sha256": "2d5767910297c46ccdd16fd071ac5f10c356cf90740fbf55196fdec45f53e465",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-legacy-changed.json"
+    },
+    {
+      "path": "alpha2-legacy-unchanged.json",
+      "bytes": 32641,
+      "sha256": "f1400e9d8580d4c65d59f5798bb28c3a3bb96890d9491546e39a4a79181b3bf7",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-legacy-unchanged.json"
+    },
+    {
+      "path": "alpha2-inner-workspace.json",
+      "bytes": 6663,
+      "sha256": "93da8e3579014338250ffde58015d1a96f617b2ec11b50902a98c65f7e772d0e",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-inner-workspace.json"
+    },
+    {
+      "path": "alpha2-inner-policy.json",
+      "bytes": 6594,
+      "sha256": "7387420e268f9517b5b7b61bd6ea08a9a1ccc07b7953782662cbd69b0abe9e14",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/alpha2-inner-policy.json"
+    },
+    {
+      "path": "PAYLOAD-PROOF.json",
+      "bytes": 11303,
+      "sha256": "36fa9d4dcdd0a75915bdab4ac404bd17775e22e7a82314738fbe4c400d2456d3",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/PAYLOAD-PROOF.json"
+    },
+    {
+      "path": "DESKTOP-IPC.json",
+      "bytes": 268,
+      "sha256": "8deb8cb60810598a04b1a3d9c5027ceb2923da7cf66cc24a3cfab3717243c9f4",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/DESKTOP-IPC.json"
+    },
+    {
+      "path": "HOST-INTEGRITY-RAW-IO.json",
+      "bytes": 1024,
+      "sha256": "04c87fdee4d2ce12238712b66b316cdbb165dd2b9d568e559103493960b0a15b",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/HOST-INTEGRITY-RAW-IO.json"
+    },
+    {
+      "path": "AUXILIARY-CLEANUP.json",
+      "bytes": 684,
+      "sha256": "bc813d4ddbd4572d7b33e52d7b676a2383fbc35d2c892b2004b0ca39ed653456",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/AUXILIARY-CLEANUP.json"
+    },
+    {
+      "path": "MAC-HOST-PINS.json",
+      "bytes": 476,
+      "sha256": "38c20336240903720e87b93596af3e12b4044f377d3f19c31f718537ddc828a6",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/candidate-09ccab9/MAC-HOST-PINS.json"
+    },
+    {
+      "path": "RED-NATIVE-INNER-POLICY.json",
+      "bytes": 7216,
+      "sha256": "2b93b8acabe501a1742f6e42fde5367d7000fcda4274acf1c9273a96c09c59f1",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/RED-NATIVE-INNER-POLICY.json"
+    },
+    {
+      "path": "red-inner-policy-publication-r2.log",
+      "bytes": 5375,
+      "sha256": "228207466d49f784d9b8541911cc25e75b935a166fd33a734c52f39ee18fde7f",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/red-inner-policy-publication-r2.log"
+    },
+    {
+      "path": "green-inner-policy-publication-r2.log",
+      "bytes": 867,
+      "sha256": "6d82fe2b959044588660b443b26cd281855a55eec53c5972d8d4684a0c74acd5",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/green-inner-policy-publication-r2.log"
+    },
+    {
+      "path": "unit-inner-policy-final-r2.log",
+      "bytes": 110162,
+      "sha256": "590028d505cb5bdf8c5c083a13efc3bc2f2f81175de5ade4abd710038d7ca2df",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/unit-inner-policy-final-r2.log"
+    },
+    {
+      "path": "RED-NATIVE-INNER-577-r3.json",
+      "bytes": 8769,
+      "sha256": "76cfe43ffffc724c183d37a8eebe72a4d5d2240be9aceed4ff03244392bcbe8c",
+      "rawSource": "/Users/yuhan/.cat-cafe/acceptance-receipts/2026-11-23-dsh-team-alpha2-372/RED-NATIVE-INNER-577-r3.json"
+    }
+  ],
+  "excludedFromTgz": true,
+  "scope": "Final Mac acceptance for the unchanged 70-file payload; Windows must be verified independently at final evidence head."
+}
