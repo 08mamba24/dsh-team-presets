@@ -1,4 +1,4 @@
-/** Legacy macOS delegation: change the live directory inside the native tool preflight. */
+/** Legacy macOS delegation: change live directory or policy inside native tool preflight. */
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -6,7 +6,8 @@ import { mkdir, readFile, realpath, rm, symlink, writeFile } from 'node:fs/promi
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { setNativeModelRoutes } from './native-host-contract.mjs';
-const [runtime, selected, output, sourceHead = 'working-tree'] = process.argv.slice(2);
+const [runtime, selected, output, sourceHead = 'working-tree', scenario = 'workspace'] = process.argv.slice(2);
+assert.ok(['workspace', 'policy'].includes(scenario));
 assert.equal(process.platform, 'darwin', 'the legacy file-bound entries are macOS only');
 const plugin = resolve(selected), workspace = await realpath(process.cwd());
 const lab = dirname(workspace);
@@ -19,13 +20,14 @@ const load = name => import(pathToFileURL(require.resolve('@deepseek-ai/' + name
 const [boot, { PROFILE_TEMPLATES }, { runProfile }, { createLaunchEnvironmentSnapshot }] = await Promise.all([
   load('dsh-app-boot'), load('dsh-official-bundles'), load('dsh/profile-boot'), load('dsh-launch-environment'),
 ]);
+if (scenario === 'policy') assert.equal(boot.getDshRuntimeVersion(), '0.2.3-alpha.2', 'live policy probe targets alpha.2');
 const fromPlugin = name => import(pathToFileURL(join(plugin, name)).href);
 const [{ nativeHostFromApp }, { applyLive }, { applyTeam }, { nativeTeamFromHost }, { bindHostContext }] = await Promise.all([
   fromPlugin('src/host.js'), fromPlugin('src/driver.js'), fromPlugin('src/team-driver.js'),
   fromPlugin('src/team-host.js'), fromPlugin('src/host-adapter.js'),
 ]);
 const packageName = JSON.parse(await readFile(join(plugin, 'package.json'), 'utf8')).name;
-const result = { sourceHead, plugin, runtime, passed: false, checks: [], errors: [] };
+const result = { sourceHead, plugin, runtime, scenario, passed: false, checks: [], errors: [] };
 for (const mode of ['one', 'team']) {
   let ctx, handle, driver;
   const stats = { metadataCalls: 0, providerPrepares: 0, providerStreams: 0, starts: [], ends: [] };
@@ -65,7 +67,9 @@ for (const mode of ['one', 'team']) {
       const stack = new Error('native metadata boundary').stack;
       if (!stats.innerPreflight && stack.includes('/dsh-tool-subagent/')) {
         stats.innerPreflight = { call: stats.metadataCalls, stack };
-        await Promise.resolve(); await ctx.workingDirectory.set(handle.agent, changedDirectory);
+        await Promise.resolve();
+        if (scenario === 'workspace') await ctx.workingDirectory.set(handle.agent, changedDirectory);
+        else await setNativeModelRoutes(ctx, handle.agent.session, boot.getDshRuntimeVersion(), undefined);
       }
       return { ...config };
     };
@@ -106,12 +110,14 @@ for (const mode of ['one', 'team']) {
       rawInput: mode === 'one' ? 'run-one' : 'run-pair', attachments: [], signal: AbortSignal.timeout(20000) });
     assert.equal(answer.kind, 'error', answer.text);
     assert.ok(stats.innerPreflight, 'the real native tool metadata await must be reached');
-    assert.match(answer.text, /CHILD_CONFIGURATION_CHANGED/, JSON.stringify(stats));
+    const expectedCode = scenario === 'workspace' ? 'CHILD_CONFIGURATION_CHANGED' : 'SESSION_ROUTE_NOT_AUTHORIZED';
+    assert.ok(answer.text.includes(expectedCode), JSON.stringify({ answer, stats }));
     assert.equal(stats.providerStreams, 0);
-    assert.equal(stats.starts.length, 1); assert.equal(stats.starts[0].cwd, changedDirectory);
-    assert.equal(stats.starts[0].parentCwd, changedDirectory);
+    const expectedDirectory = scenario === 'workspace' ? changedDirectory : workspace;
+    assert.equal(stats.starts.length, 1); assert.equal(stats.starts[0].cwd, expectedDirectory);
+    assert.equal(stats.starts[0].parentCwd, expectedDirectory);
     assert.equal(stats.ends.length, 1); assert.equal(stats.ends[0].id, stats.starts[0].id);
-    result.checks.push({ name: mode + '-native-inner-preflight-directory-race', passed: true, stats, code: 'CHILD_CONFIGURATION_CHANGED' });
+    result.checks.push({ name: mode + '-native-inner-preflight-' + scenario + '-race', passed: true, stats, code: expectedCode });
   } catch (error) {
     result.errors.push({ mode, code: error.code, message: error.message, stack: error.stack, stats });
     break;
@@ -127,6 +133,6 @@ for (const directory of [process.env.DSH_HOME, process.env.DSH_AGENTS_HOME, proc
   await rm(directory, { recursive: true, force: true });
 }
 result.isolatedDataRemoved = true;
-result.boundary = 'Official exact Mac Host, Web profile, Standard preset, unmodified native delegation tool/manager, real Settings and working-directory service. Only model metadata resolution and provider output are local controls; the directory changes during the native tool metadata await. No account or paid provider.';
+result.boundary = 'Official exact Mac Host, Web profile, Standard preset, unmodified native delegation tool/manager, real Settings and working-directory service. Only model metadata resolution and provider output are local controls; the directory or live model policy changes during the native tool metadata await. No account or paid provider.';
 await writeFile(output, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
 console.log(JSON.stringify(result)); process.exitCode = result.passed ? 0 : 1;

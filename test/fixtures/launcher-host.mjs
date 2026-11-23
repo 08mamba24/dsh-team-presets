@@ -332,6 +332,8 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     assert.ok(template.members.every(member => preflights.some(route => route.provider === member.provider
       && route.model === member.model && route.reasoningEffort === member.reasoning_effort)));
     if (options.unauthorized) throw nativeError('SESSION_ROUTE_NOT_AUTHORIZED');
+    // The native tool awaits model metadata after checking its Session policy.
+    await options.nativePreflight?.();
     spawnAttempts++; order.push(`spawn:${member.name}`);
     if (options.failSecondCreate && spawnAttempts === 2) return { results: [{ callId: call.id,
       result: { isError: true, content: [{ type: 'text', text: 'Native creation failed' }], error: { message: 'Native creation failed', info: { name: 'NativeFixtureError', code: 'FIXTURE_CREATE_FAILED' } } } }], additionalContexts: [], concluded: false };

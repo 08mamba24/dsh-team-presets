@@ -577,6 +577,11 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
         gate.blockChild(info.id); stopAdmission(op, 'CANCELLED'); interrupt(op, record); return;
       }
       gate.track(role, info.id);
+      try { authorizeTeam(config, readAuthorizedRoutes(ctx, op.agent.session)); }
+      catch (error) {
+        op.failure ??= error?.code ?? 'SESSION_ROUTE_NOT_AUTHORIZED';
+        gate.blockChild(info.id); stopAdmission(op, op.failure); interrupt(op, record); return;
+      }
       const child = ctx.agents.get(info.id), binding = config.roles[role];
       if (!child || child.session.header.parentSession !== config.ownedSessionId
         || !childWorkingDirectoryMatches(ctx, config, op.agent, child)

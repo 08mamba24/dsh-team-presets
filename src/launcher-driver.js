@@ -369,6 +369,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
       const child = record.agent, member = op.members[role], route = op.controls.roles[role].route;
       try {
         op.gate.track(role, info.id);
+        authorizeTeam(op.controls, readAuthorizedRoutes(ctx, op.agent.session));
         if (!child || child.id !== info.id || child.session?.id !== info.id
           || child.session.header?.origin !== 'subagent' || child.session.header.parentSession !== config.ownedSessionId
           || ctx.workingDirectory.get(child.session) !== config.workspace

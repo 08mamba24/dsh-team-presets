@@ -132,14 +132,17 @@ test('one-child entry rechecks live workspace after asynchronous tool resolution
   assert.equal(h.stats().disposed, 1); await h.dispose();
 });
 
-for (const scenario of ['inner-preflight', 'child-directory', 'directory-error']) {
+for (const scenario of ['inner-preflight', 'child-directory', 'directory-error', 'route-revocation']) {
   test(`one-child entry blocks ${scenario} at native child publication before model execution`, async t => {
-    const h = await fixture(t, { childDirectory: scenario === 'child-directory', childDirectoryError: scenario === 'directory-error',
-      nativePreflight: scenario === 'inner-preflight' ? async () => {
-        await Promise.resolve(); h.setWorkingDirectory('/outside-owned-workspace');
-      } : undefined });
+    const options = { childDirectory: scenario === 'child-directory', childDirectoryError: scenario === 'directory-error' };
+    options.nativePreflight = async () => {
+      await Promise.resolve();
+      if (scenario === 'inner-preflight') h.setWorkingDirectory('/outside-owned-workspace');
+      if (scenario === 'route-revocation') options.unauthorized = true;
+    };
+    const h = await fixture(t, options);
     const result = await h.invoke();
-    assert.match(result.text, /CHILD_CONFIGURATION_CHANGED/);
+    assert.match(result.text, scenario === 'route-revocation' ? /SESSION_ROUTE_NOT_AUTHORIZED/ : /CHILD_CONFIGURATION_CHANGED/);
     assert.equal(h.stats().providerCalls, 0); assert.ok(h.stats().interruptions >= 1);
     assert.equal(h.stats().disposed, 1); await h.dispose();
   });

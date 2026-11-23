@@ -41,6 +41,14 @@ test('bound launcher rechecks live workspace across model preflight before any w
   assert.equal(host.counts().spawnAttempts, 0); assert.deepEqual(host.writes, []);
 });
 
+test('launcher rejects route revocation during the native tool preflight before provider execution', async t => {
+  const options = { nativePreflight: async () => { await Promise.resolve(); options.unauthorized = true; } };
+  const host = await launcherHost(t, applyLauncher, options);
+  const result = await host.invoke('launch');
+  assert.match(result.text, /SESSION_ROUTE_NOT_AUTHORIZED/);
+  assert.equal(host.counts().providerCalls, 0);
+});
+
 test('fresh disabled root creates two native routes, presets, task dependencies and exact startup tool masks', async t => {
   const host = await launcherHost(t, applyLauncher, { rawEnabledMissing: true });
   assert.throws(() => host.board.listTasks(host.root), { code: 'TEAM_DISABLED' });

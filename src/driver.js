@@ -173,6 +173,11 @@ export async function applyLive(ctx, raw, nativeSubagent) {
       }
       const child = ctx.agents.get(info.id);
       op.childId = info.id;op.runId = info.runId;gate.track(info.id);
+      try { authorize(config, readPolicy(op.agent)); }
+      catch (error) {
+        op.failure = error?.code ?? 'SESSION_ROUTE_NOT_AUTHORIZED';
+        gate.blockChild(info.id); interrupt(op); return;
+      }
       if (!child || child.session.header.parentSession !== config.ownedSessionId
         || !childWorkingDirectoryMatches(ctx, config, op.agent, child)
         || ctx.agentPresets.composedPreset(child.ctx) !== config.presetId
