@@ -11,7 +11,7 @@
  */
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { mkdir, readFile, readdir, realpath, stat, writeFile } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -206,9 +206,17 @@ async function accept(paths) {
   }
 
   async function startHost(label, hostPaths = paths) {
+    // alpha.2's official Desktop parent supplies an in-memory per-Host credential
+    // over IPC. Reproduce that protocol in this owned lab, without user secrets.
+    const secret = hostPaths === paths && report.host.version === '0.2.3-alpha.2' ? randomBytes(32).toString('base64url') : undefined;
+    let sentCredential = false;
     const handle = childProcess(label, [hostPaths.host, hostPaths.runtime, paths.profile, hostPaths.primary, hostPaths.pnpm, hostPaths.nodeBin], true, hostPaths);
     const ready = new Promise((done, reject) => {
       handle.child.on('message', message => {
+        if (message?.type === 'starting' && secret !== undefined && !sentCredential) {
+          sentCredential = true;
+          handle.child.send({ type: 'desktop-auth', secret });
+        }
         if (message?.type === 'ready') done(message);
         if (message?.type === 'shutdown-complete') handle.shutdownComplete = true;
         if (message?.type === 'fatal') reject(new Error(`Host fatal: ${scrub(message.diagnostic ?? message.message)}`));
@@ -219,8 +227,11 @@ async function accept(paths) {
     const url = new URL(message.url);
     assert.equal(url.protocol, 'http:');
     assert.equal(url.hostname, '127.0.0.1');
-    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(30_000) });
-    const cookie = response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
+    const credential = secret === undefined ? undefined : `dsh-desktop-session=${secret}`;
+    const response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(30_000),
+      ...(credential ? { headers: { cookie: credential } } : {}) });
+    assert.equal(response.status, 200, 'native Host authentication must accept the owned startup credential');
+    const cookie = credential ?? response.headers.getSetCookie().map(value => value.split(';')[0]).join('; ');
     assert.ok(cookie, 'Host bootstrap did not issue an authentication cookie');
     const base = url.origin;
     handle.rpc = async (endpoint, args) => {
