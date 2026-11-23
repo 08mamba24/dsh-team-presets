@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { applyTeam } from '../src/team-driver.js';
 import { TEAM_ROLE_TOOLS } from '../src/team-config.js';
-const CONTROL_ENTRY = 'file:///Applications/DeepSeek%20Harness.app/Contents/Resources/app.asar/dsh/node_modules/@deepseek-ai/dsh-tool-subagent-control/lib/index.js';
+import { CONTROL_ENTRY } from './fixtures/control-entry.mjs';
 
 // Synthetic native Host, task CAS and event contracts; this does not start Desktop or a provider.
 async function fixture(t, options = {}) {

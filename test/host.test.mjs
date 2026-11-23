@@ -12,15 +12,25 @@ const archive = '/Applications/DeepSeek Harness.app/Contents/Resources/app.asar'
 const pin = '1535941c163698d68a0cf45dd06e1ce1a18a308108d9b84076074f35a6e9c39d';
 const rc5Pin = '6f019878f523428f452957dbaad601c6468051df4093eda8af751ec65226f88e';
 const windowsPin = '5ec8acd9e72b93b6680c953c1be44a729fd3a5170e472e8025690a1713d20f69';
+const alphaPin = '55961db6dafe1091408409e57da60832e8330230355eaf4f325f3aab9f8ffc8d';
+const alphaWindowsPin = 'dbd860998178fb23fe5802704fa1cf919f5b6957e4b3cc2c1b778efdb61297ab';
 
 // Synthetic Electron filesystem contract; never starts Electron or reads the installed App.
 async function hostFixture(t, { platform = 'darwin',
-  executable = '/Applications/DeepSeek Harness.app/Contents/Frameworks/fixture-host',
-  digest = platform === 'win32' ? windowsPin : pin, version = platform === 'win32' ? '0.2.2-rc.5' : '0.2.2-rc.2' } = {}) {
+  executable = '/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness',
+  digest = platform === 'win32' ? windowsPin : pin, version = platform === 'win32' ? '0.2.2-rc.5' : '0.2.2-rc.2',
+  runtimeVersion, cliVersion } = {}) {
   const hostPath = platform === 'win32' ? win32 : posix;
   const fixtureArchive = platform === 'win32' ? win32.join(win32.dirname(executable), 'resources', 'app.asar') : archive;
   const dir = await mkdtemp(join(tmpdir(), 'dsh-native-host-'));
   const metadata = join(dir, 'package.json'), entry = join(dir, 'subagent.mjs');
+  const runtimeMetadata = join(dir, 'runtime.json'), cliMetadata = join(dir, 'cli.json');
+  const cordisEntry = join(dir, 'cordis.mjs');
+  const pinnedVersion = [alphaPin, alphaWindowsPin].includes(digest) ? '0.2.3-alpha.2'
+    : digest === windowsPin || digest === rc5Pin ? '0.2.2-rc.5' : '0.2.2-rc.2';
+  await writeFile(runtimeMetadata, JSON.stringify({ name: '@deepseek-ai/dsh-desktop-runtime', version: runtimeVersion ?? pinnedVersion }));
+  await writeFile(cliMetadata, JSON.stringify({ name: '@deepseek-ai/dsh', version: cliVersion ?? pinnedVersion }));
+  await writeFile(cordisEntry, 'export class Context { static root = Symbol("root"); }');
   await writeFile(metadata, JSON.stringify({ version }));
   await writeFile(entry, 'export function apply() {}');
   const execPath = Object.getOwnPropertyDescriptor(process, 'execPath');
@@ -50,10 +60,13 @@ async function hostFixture(t, { platform = 'darwin',
   t.mock.method(moduleApi, 'createRequire', anchor => {
     const require = name => {
       assert.equal(name, 'original-fs');
-      return { async *createReadStream(path) { assert.equal(path, fixtureArchive);rawReads++;yield bytes; } };
+      return { realpathSync: file => file, async *createReadStream(path) { assert.equal(path, fixtureArchive);rawReads++;yield bytes; } };
     };
     require.resolve = name => {
       assert.equal(anchor, hostPath.join(fixtureArchive, 'dsh', 'package.json'));
+      if (name === './package.json') return runtimeMetadata;
+      if (name === '@deepseek-ai/dsh/package.json') return cliMetadata;
+      if (name === '@deepseek-ai/cordis') return cordisEntry;
       if (name === '@deepseek-ai/dsh-tool-subagent/package.json') { metadataResolutions++;return metadata; }
       assert.equal(name, '@deepseek-ai/dsh-tool-subagent');entryResolutions++;return entry;
     };
@@ -85,6 +98,22 @@ test('the reviewed rc.5 archive loads its matching native package', async t => {
   const stats = await hostFixture(t, { digest: rc5Pin, version: '0.2.2-rc.5' });
   assert.equal(typeof (await nativeSubagentFromHost()).apply, 'function');
   assert.equal(stats().entryResolutions, 1);
+});
+
+for (const platform of ['darwin', 'win32']) test(`alpha.2 ${platform} binds its matching root-symbol contract`, async t => {
+  await hostFixture(t, { platform, executable: platform === 'win32' ? 'C:\\DeepSeek Harness\\DeepSeek Harness.exe'
+    : '/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness',
+    digest: platform === 'win32' ? alphaWindowsPin : alphaPin, version: '0.2.3-alpha.2' });
+  const host = await nativeHostFromApp();
+  assert.equal(host.adapter.version, '0.2.3-alpha.2');
+  assert.equal(typeof host.nativeSubagent.apply, 'function');
+});
+
+for (const key of ['runtimeVersion', 'cliVersion']) test(`mismatched ${key} refuses before native module resolution`, async t => {
+  const stats = await hostFixture(t, { [key]: '0.2.3-alpha.2' });
+  await assert.rejects(nativeHostFromApp(), { code: 'WRONG_HOST_VERSION' });
+  assert.equal(stats().metadataResolutions, 0);
+  assert.equal(stats().entryResolutions, 0);
 });
 
 test('an rc.5 version cannot borrow the reviewed rc.2 archive identity', async t => {
