@@ -1,5 +1,7 @@
 /** Official Web profile replacement with a local scripted provider and temporary data. */
 import assert from 'node:assert/strict';
+import { nativeAgentRows, setNativeModelRoutes } from './native-host-contract.mjs';
+import { seedNativeLegacy } from './native-legacy-seed.mjs';
 import { describeNativeError } from './native-error.mjs';
 import { spawn } from 'node:child_process';
 import { randomUUID, createHash } from 'node:crypto';
@@ -15,6 +17,8 @@ const receipt = resolve(process.argv[4] ?? 'native-replacement.json');
 const sourceHead = process.argv[5] ?? 'working-tree';
 const legacyPlugin = process.argv[6] && resolve(process.argv[6]);
 const unchangedLegacyDefaults = process.argv[7] === 'unchanged';
+const legacyHostExecutable = process.argv[8] && resolve(process.argv[8]);
+const seedOnly = process.argv.includes('--seed-legacy');
 
 // Profile boot resolves home paths and environment-backed providers during
 // import. Relaunch before importing runtime modules, with only laboratory
@@ -45,7 +49,8 @@ if (process.env.DSH_REPLACEMENT_ACCEPT_LAB === undefined) {
     const childReceipt = join(lab, 'native-result.json');
     const args = [runtime, plugin, childReceipt, sourceHead];
     if (legacyPlugin) args.push(legacyPlugin);
-    if (unchangedLegacyDefaults) args.push('unchanged');
+    if (legacyPlugin) args.push(unchangedLegacyDefaults ? 'unchanged' : 'changed');
+    if (legacyHostExecutable) args.push(legacyHostExecutable);
     const child = spawn(process.execPath, ['--expose-internals', fileURLToPath(import.meta.url), ...args],
       { cwd: join(lab, 'workspace'), env: environment, stdio: 'inherit', windowsHide: true });
     code = await new Promise((done, reject) => {
@@ -92,7 +97,7 @@ assert.equal(process.env.DSH_HOME, join(lab, 'harness'));
 const workspace = join(lab, 'workspace');
 let profileDir, patchPath;
 const packageName = JSON.parse(await readFile(join(plugin, 'package.json'), 'utf8')).name;
-const ROOT = 'session-' + randomUUID();
+let ROOT = 'session-' + randomUUID(), legacySeed;
 let OLD = 'session-' + randomUUID(), legacyStarting = false, simulateOldWrite = false, raceOnFreeze = false;
 const route = { provider: 'isolated-provider', model: 'scripted-model', reasoningEffort: 'max' };
 const timeoutMs = 5000, signal = AbortSignal.timeout(60000);
@@ -197,9 +202,6 @@ async function startFixture(resumeRoot = false, legacy = false) {
     }
     return Reflect.apply(nativeGetTask, this, [caller, id]);
   };
-  const nativeStateOf = ctx.sessionProjections.stateOf.bind(ctx.sessionProjections);
-  ctx.sessionProjections.stateOf = (session, key) => key === 'subagentModelSelectionPolicy'
-    ? [{ provider: route.provider, model: route.model }] : nativeStateOf(session, key);
   ctx.tools.register(defineTool({ name: 'replacement_probe_write', description: 'Write one file in the isolated acceptance workspace.',
     parameters: { content: { type: 'string', required: true } },
     output: { schema: { type: 'string' }, render: (_args, value) => [{ type: 'text', text: value }] },
@@ -226,6 +228,8 @@ async function startFixture(resumeRoot = false, legacy = false) {
   rootHandle = resumeRoot
     ? await ctx.agents.resume({ resumeSessionId: ROOT, agentOptions: route, setup })
     : await ctx.agents.create({ sessionId: ROOT, meta: { cwd: workspace }, agentOptions: route, setup });
+  await setNativeModelRoutes(ctx, rootHandle.agent.session, boot.getDshRuntimeVersion(),
+    [{ provider: route.provider, model: route.model }]);
   return selected;
 }
 
@@ -254,8 +258,8 @@ async function invokeReplacement(args) {
 async function assertNativeAddressing(childId, label) {
   const listed = await invokeRootTool('list_agents', {});
   assert.equal(listed.isError, false, JSON.stringify(listed));
-  assert.equal(listed.value.filter(member => member.name === 'implementer').length, 1);
-  assert.equal(listed.value.some(member => /^implementer-r\d+(?:\/|$)/.test(member.name)), false);
+  assert.equal(nativeAgentRows(listed.value).filter(member => member.name === 'implementer').length, 1);
+  assert.equal(nativeAgentRows(listed.value).some(member => /^implementer-r\d+(?:\/|$)/.test(member.name)), false);
   const owned = await invokeRootTool('team_task_list', { owner: 'implementer' });
   assert.equal(owned.isError, false, JSON.stringify(owned));
   assert.ok(owned.value.tasks.some(task => task.id === taskId && task.owner === 'implementer'));
@@ -273,20 +277,36 @@ async function assertNativeAddressing(childId, label) {
   check(`real native root send/list/task-owner addressing follows ${label}`, { childId });
 }
 
-try {
-  const template = await startFixture(false, Boolean(legacyPlugin));
+async function seedLegacyFixture() {
+  const template = await startFixture(false, true);
+  legacyStarting = true;
+  const launch = await ctx.commands.execute(rootHandle.agent, '/dsh-team launch', [], signal);
+  assert.equal(launch.result.kind, 'success', launch.result.text);
+  const original = JSON.parse(launch.result.text);
+  OLD = original.members.find(member => member.name === 'implementer').id;
+  legacyStarting = false;
+  assert.equal(Object.hasOwn(profileRecords.get(), ROOT), false, 'old release did not retain a root binding');
+  const changed = structuredClone(template); changed.members[0].persona_prompt += '\nFUTURE DEFAULT ONLY';
+  const row = ctx.settings.describe({ redactSecrets: true }).find(row => row.ns === REPLACEMENT_OWNER);
+  if (!unchangedLegacyDefaults) await ctx.settings.update(REPLACEMENT_OWNER, { template: changed }, row.revision);
+  const seed = { rootId: ROOT, oldId: OLD, template, profileDir, patchPath };
+  await stopFixture();
+  check('published rc.6 creates the legacy Settings/JSONL with the exact rc.5 Host before upgrade');
+  return seed;
+}
+async function runChecks() {
+  let template;
   if (legacyPlugin) {
-    legacyStarting = true;
-    const launch = await ctx.commands.execute(rootHandle.agent, '/dsh-team launch', [], signal);
-    assert.equal(launch.result.kind, 'success', launch.result.text);
-    const original = JSON.parse(launch.result.text);
-    OLD = original.members.find(member => member.name === 'implementer').id;
-    legacyStarting = false;
-    assert.equal(Object.hasOwn(profileRecords.get(), ROOT), false, 'old release did not retain a root binding');
+    let seed;
+    if (boot.getDshRuntimeVersion() === '0.2.3-alpha.2') {
+      legacySeed = await seedNativeLegacy({ executable: legacyHostExecutable, script: fileURLToPath(import.meta.url),
+        plugin, legacyPlugin, sourceHead, lab, mode: unchangedLegacyDefaults ? 'unchanged' : 'changed' });
+      seed = legacySeed.seed;
+    } else seed = await seedLegacyFixture();
+    ROOT = seed.rootId; OLD = seed.oldId; template = seed.template;
+    profileDir = seed.profileDir; patchPath = seed.patchPath;
     const changed = structuredClone(template); changed.members[0].persona_prompt += '\nFUTURE DEFAULT ONLY';
-    const row = ctx.settings.describe({ redactSecrets: true }).find(row => row.ns === REPLACEMENT_OWNER);
-    if (!unchangedLegacyDefaults) await ctx.settings.update(REPLACEMENT_OWNER, { template: changed }, row.revision);
-    await stopFixture(); await startFixture(true);
+    await startFixture(true);
     const before = providerCalls.length;
     if (unchangedLegacyDefaults) {
       const planned = await ctx.commands.execute(rootHandle.agent, '/dsh-team plan', [], signal);
@@ -305,7 +325,7 @@ try {
     assert.equal(providerCalls.length, before, 'bootstrap neither resumes a member nor invokes its model');
     check(unchangedLegacyDefaults ? 'an actual rc.6 team automatically bootstraps an unchanged original binding before managed Presets'
       : 'an actual rc.6 team with changed defaults adopts its original template only after authenticating native launch history and child headers');
-  }
+  } else template = await startFixture();
   const plan = (await ctx.commands.execute(rootHandle.agent, '/dsh-team plan', [], signal)).result;
   assert.equal(plan.kind, 'success', plan.text);
   const roster = await ctx.agentPresets.list();
@@ -445,6 +465,10 @@ try {
   check('fresh Loader/profile/JSONL reload mounts the original and candidate Presets before continuation, retains the current mapping, blocks old and permits new');
   await assertNativeAddressing(activeId, 'the retained replacement after full reload');
 
+}
+try {
+  if (seedOnly) legacySeed = { seed: await seedLegacyFixture() };
+  else await runChecks();
 } catch (error) {
   checks.push({ name: 'native replacement failure', passed: false, error: describeNativeError(error), errors });
 } finally {
@@ -455,7 +479,8 @@ for (const name of ['current-entry.js', 'src/team-addressing.js', 'role-control.
   'src/replacement-native.js', 'src/replacement-store.js', 'launcher-role.js', 'src/team-replace.js']) {
   hashes[name] = createHash('sha256').update(await readFile(join(plugin, name))).digest('hex');
 }
-const result = { sourceHead, runtime, isolatedDataRemoved: false, passed: checks.length > 0 && checks.every(check => check.passed) && errors.length === 0,
+const result = { sourceHead, runtime, hostVersion: boot.getDshRuntimeVersion(),
+  seed: seedOnly ? legacySeed?.seed : undefined, legacySeed: seedOnly ? undefined : legacySeed, isolatedDataRemoved: false, passed: checks.length > 0 && checks.every(check => check.passed) && errors.length === 0,
   profile: { bundles: [...PROFILE_TEMPLATES.web.bundles, packageName], standard: 'official-unmodified-web',
     accountCredentialsInherited: false, scriptedModel: true },
   hashes, checks, errors, expectedErrors, providerCalls, writes, originalWrites, faults, nativeStarts };

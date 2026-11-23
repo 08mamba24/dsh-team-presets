@@ -26,7 +26,7 @@ export const Config = Schema.object({
 });
 
 export const name = 'native-current-team';
-export const inject = { required: ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections', 'agentTeams', 'workingDirectory', 'skills', 'settings', 'sandboxPolicy', 'sessionQuery', 'sessions'], optional: ['subagentModelSelection'] };
+export const inject = ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections', 'agentTeams', 'workingDirectory', 'skills', 'settings', 'sandboxPolicy', 'sessionQuery', 'sessions'];
 
 export async function apply(ctx, raw) {
   bindHostContext(ctx, nativeConfiguration.adapter);

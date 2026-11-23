@@ -11,6 +11,7 @@ import { launcherTemplateFingerprint } from './launcher-template.js';
 import { readReplacementRecord, eligibilityOf } from './member-replacement.js';
 import { observeLauncherMembers } from './launcher-native.js';
 import { installRootAddressing } from './team-addressing.js';
+import { inheritHostContext } from './host-adapter.js';
 import { rosterOf } from './member-roster.js';
 
 const MEMBER_COMMANDS = ['replace ', 'recover ', 'cancel ', 'add ', 'remove '];
@@ -115,6 +116,7 @@ export async function applyCurrentLauncher(ctx, raw, nativeSubagent, controlEntr
       const module = { name: `current-team-${suffix}`,
         inject: ['commands', 'tools', 'agents', 'llm', 'subagents', 'agentPresets', 'sessionProjections',
           'agentTeams', 'workingDirectory', 'settings', 'sessionQuery', 'sessions'], async apply(inner) {
+        inheritHostContext(ctx, inner);
         await applyLauncher(inner, bound, nativeSubagent, controlEntry, {
           template: scoped, assertOwned: caller => assertRoot(ctx, caller, bound),
           replacementOwner: REPLACEMENT_OWNER, replacementRecord: record,

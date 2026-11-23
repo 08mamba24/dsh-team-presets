@@ -58,3 +58,10 @@ export function readAuthorizedRoutes(ctx, session) {
   if (adapter === undefined) fail('HOST_MODEL_POLICY_UNBOUND');
   return adapter.allowedRoutes(ctx, session);
 }
+
+/** Carry the verified contract into an explicitly owned child plugin context. */
+export function inheritHostContext(parent, child) {
+  const adapter = contexts.get(parent);
+  if (adapter === undefined) fail('HOST_MODEL_POLICY_UNBOUND');
+  bindHostContext(child, adapter);
+}

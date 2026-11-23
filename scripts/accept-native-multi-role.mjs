@@ -1,5 +1,7 @@
 /** Official Web profile multi-member acceptance with a local scripted provider and temporary data. */
 import assert from 'node:assert/strict';
+import { nativeAgentRows, setNativeModelRoutes } from './native-host-contract.mjs';
+import { seedNativeLegacy } from './native-legacy-seed.mjs';
 import { describeNativeError } from './native-error.mjs';
 import { spawn } from 'node:child_process';
 import { randomUUID, createHash } from 'node:crypto';
@@ -15,6 +17,8 @@ const receipt = resolve(process.argv[4] ?? 'native-multi-role.json');
 const sourceHead = process.argv[5] ?? 'working-tree';
 const legacyPlugin = process.argv[6] && resolve(process.argv[6]);
 const unchangedLegacyDefaults = process.argv[7] === 'unchanged';
+const legacyHostExecutable = process.argv[8] && resolve(process.argv[8]);
+const seedOnly = process.argv.includes('--seed-legacy');
 
 // Profile boot resolves home paths and environment-backed providers during
 // import. Relaunch before importing runtime modules, with only laboratory
@@ -45,7 +49,8 @@ if (process.env.DSH_MULTI_ROLE_ACCEPT_LAB === undefined) {
     const childReceipt = join(lab, 'native-result.json');
     const args = [runtime, plugin, childReceipt, sourceHead];
     if (legacyPlugin) args.push(legacyPlugin);
-    if (unchangedLegacyDefaults) args.push('unchanged');
+    if (legacyPlugin) args.push(unchangedLegacyDefaults ? 'unchanged' : 'changed');
+    if (legacyHostExecutable) args.push(legacyHostExecutable);
     const child = spawn(process.execPath, ['--expose-internals', fileURLToPath(import.meta.url), ...args],
       { cwd: join(lab, 'workspace'), env: environment, stdio: 'inherit', windowsHide: true });
     code = await new Promise((done, reject) => {
@@ -89,10 +94,13 @@ assert.equal(process.env.DSH_HOME, join(lab, 'harness'));
 const packageName = JSON.parse(await readFile(join(plugin, 'package.json'), 'utf8')).name;
 const timeoutMs = 10000, signal = AbortSignal.timeout(180000);
 const routeOf = name => ({ provider: 'isolated-provider', model: name + '-model', reasoningEffort: 'max' });
+const allowedModels = ['root', 'frontend', 'backend', 'tester', 'reviewer', 'researcher', 'designer', 'implementer']
+  .map(name => ({ provider: 'isolated-provider', model: name + '-model' }));
 const checks = [], errors = [], expectedErrors = [], providerCalls = [], bodies = [], visible = [], starts = [];
 const steps = new Map(), behavior = new Map(), approvalRequests = [];
 let approvalOutcome = 'allowed-once', forceConfigApproval = false;
 let ROOT = 'session-' + randomUUID(), ctx, rootHandle, profileDir, patchPath, records, workTaskId;
+let legacySeed;
 let scenario = 'launch', profileCase = 'multi-role-current';
 const check = (name, evidence = {}) => checks.push({ name, passed: true, ...evidence });
 const record = () => records?.()[ROOT];
@@ -191,16 +199,13 @@ async function startFixture({ resume = false, legacy = false, initialTemplate } 
   ctx.on('subagent/start', info => { if (info.parentSessionId === ROOT) {
     const child = ctx.agents.get(info.id); starts.push({ childId: info.id, parent: child?.session.header.parentSession,
       preset: child && ctx.agentPresets.composedPreset(child.ctx), model: child?.model.current(), maxTokens: child?.options.maxTokens });
+    assert.equal(ctx.workingDirectory.get(child.session), ctx.workingDirectory.get(rootHandle.agent.session),
+      'every initial/add/replacement child must inherit the effective parent workspace');
   } });
   const setup = async agentCtx => { await ctx.agentPresets.mount(agentCtx, 'standard'); };
   rootHandle = resume ? await ctx.agents.resume({ resumeSessionId: ROOT, agentOptions: routeOf('root'), setup })
     : await ctx.agents.create({ sessionId: ROOT, meta: { cwd: workspace }, agentOptions: routeOf('root'), setup });
-  const allowedModels = ['root', 'frontend', 'backend', 'tester', 'reviewer', 'researcher', 'designer', 'implementer']
-    .map(name => ({ provider: 'isolated-provider', model: name + '-model' }));
-  if (!rootHandle.agent.session.snapshotEvents().some(event => event.type === 'subagent/model-selection-policy')) {
-    rootHandle.agent.session.append('subagent/model-selection-policy', { allowedModels });
-  }
-  assert.deepEqual(ctx.sessionProjections.stateOf(rootHandle.agent.session, 'subagentModelSelectionPolicy'), allowedModels);
+  await setNativeModelRoutes(ctx, rootHandle.agent.session, boot.getDshRuntimeVersion(), allowedModels);
   const approval = ctx.get('approval');
   assert.equal(typeof approval?.request, 'function', 'the official profile must compose the native approval service');
   const nativeRequest = approval.request;
@@ -348,6 +353,42 @@ async function verifySoloFactory() {
   check('a separate fresh factory profile preserves both seed tasks, explicitly reassigns their responsibilities and launches one independent member');
   await stopFixture();
 }
+async function verifyAlpha2Contracts() {
+  if (boot.getDshRuntimeVersion() !== '0.2.3-alpha.2') return;
+  ROOT = 'session-' + randomUUID(); profileDir = undefined; profileCase = 'alpha2-live-policy';
+  await startFixture();
+  // A retained rc.5 event must never override the live setting on alpha.2.
+  rootHandle.agent.session.append('subagent/model-selection-policy', { allowedModels });
+  await ctx.agentTeams.setEnabled(rootHandle.agent, true, signal);
+  const before = taskSnapshot(), calls = providerCalls.length;
+  await setNativeModelRoutes(ctx, rootHandle.agent.session, boot.getDshRuntimeVersion(),
+    allowedModels.filter(route => route.model !== 'implementer-model'));
+  const revoked = await command('launch');
+  assert.equal(revoked.code, 'SESSION_ROUTE_NOT_AUTHORIZED', JSON.stringify(revoked));
+  assert.deepEqual(taskSnapshot(), before); assert.equal(providerCalls.length, calls);
+  assert.deepEqual(await ctx.subagents.listDescendants(ROOT, signal), []);
+  check('live model-route revocation rejects delegation despite retained rc.5 authorization events, with zero child/task/model side effects');
+  await setNativeModelRoutes(ctx, rootHandle.agent.session, boot.getDshRuntimeVersion(), undefined);
+  assert.equal((await command('launch')).code, 'SESSION_ROUTE_NOT_AUTHORIZED');
+  assert.deepEqual(taskSnapshot(), before); assert.equal(providerCalls.length, calls);
+  check('disabled live model selection grants no route and never falls back to Session history');
+  await stopFixture();
+
+  const saved = multiTemplate(); saved.members[0].native_tool_allowlist.push('working_directory');
+  ROOT = 'session-' + randomUUID(); profileDir = undefined; profileCase = 'alpha2-removed-tool';
+  await startFixture({ initialTemplate: saved });
+  await ctx.agentTeams.setEnabled(rootHandle.agent, true, signal);
+  const inspected = await configure({ action: 'inspect' });
+  assert.deepEqual(inspected.template.members[0].native_tool_allowlist, saved.members[0].native_tool_allowlist);
+  const priorCalls = providerCalls.length, priorTasks = taskSnapshot();
+  const unavailable = await command('launch');
+  assert.equal(unavailable.code, 'TEAM_TOOL_UNAVAILABLE', JSON.stringify(unavailable));
+  assert.deepEqual((await configure({ action: 'inspect' })).template.members[0].native_tool_allowlist,
+    saved.members[0].native_tool_allowlist);
+  assert.equal(providerCalls.length, priorCalls); assert.deepEqual(taskSnapshot(), priorTasks);
+  check('a saved working_directory capability is preserved exactly and explicitly refused when absent from the new Host catalog');
+  await stopFixture();
+}
 async function saveBoundDefaults() {
   const before = await configure({ action: 'inspect' }), retained = structuredClone(record()), tasks = taskSnapshot();
   const childIds = (await ctx.subagents.listDescendants(ROOT, signal)).map(row => row.id).sort();
@@ -373,7 +414,21 @@ async function reassign(id, owner) {
   const task = ctx.agentTeams.getTask(rootHandle.agent, id);
   return ctx.agentTeams.updateTask(rootHandle.agent, { taskId: id, expectedRevision: task.revision, action: 'reassign', owner }, signal);
 }
-try {
+async function seedLegacyFixture() {
+  profileCase = 'multi-role-upgraded-rc7';
+  ROOT = 'session-' + randomUUID(); profileDir = undefined; scenario = 'legacy-launch';
+  const legacy = JSON.parse(await readFile(join(legacyPlugin, 'examples/team-template.json'), 'utf8'));
+  for (const m of legacy.members) Object.assign(m, { provider: 'isolated-provider', model: m.name + '-model', reasoning_effort: 'max',
+    native_tool_allowlist: ['team_task_get', 'team_task_update'], prompt: 'Confirm ready and stop.' });
+  await startFixture({ legacy: true, initialTemplate: legacy });
+  const oldLaunch = await command('launch'); assert.equal(oldLaunch.ok, true, JSON.stringify(oldLaunch));
+  const seed = { rootId: ROOT, oldIds: oldLaunch.members.map(row => row.id), oldTasks: taskSnapshot(),
+    oldBinding: record().baseBinding, profileDir, patchPath };
+  await stopFixture();
+  check('published rc.7 creates the legacy Settings/JSONL with the exact rc.5 Host before upgrade');
+  return seed;
+}
+async function runChecks() {
   const template = multiTemplate();
   await startFixture();
   check('official initProfile/runProfile loads real current-entry Schema.dict and unmodified Web Standard');
@@ -449,7 +504,7 @@ try {
   assert.ok((await configure({ action: 'inspect' })).customs.some(row => row.id === 'bound-research'));
   const listed = await rootTool('list_agents', {});
   assert.notEqual(listed.isError, true, JSON.stringify(listed));
-  assert.ok(listed.value.some(row => row.name === 'frontend')); assert.ok(listed.value.some(row => row.name === 'researcher'));
+  assert.ok(nativeAgentRows(listed.value).some(row => row.name === 'frontend')); assert.ok(nativeAgentRows(listed.value).some(row => row.name === 'researcher'));
   const nativeBefore = providerCalls.length;
   const coldSeq = (await ownSessionEvents(ctx, ids.frontend, signal)).at(-1)?.seq ?? -1;
   const delivered = await rootTool('send_message', { agent: 'frontend', message: 'Cold logical frontend continuation.' });
@@ -490,20 +545,22 @@ try {
   assert.equal(providerCalls.filter(call => call.childId === ids.reviewer).length, removedCalls);
   const afterRemovedReload = await rootTool('list_agents', {});
   assert.equal(afterRemovedReload.isError, false, JSON.stringify(afterRemovedReload));
-  assert.equal(afterRemovedReload.value.some(row => ['frontend', 'reviewer'].includes(row.name)), false);
+  assert.equal(nativeAgentRows(afterRemovedReload.value).some(row => ['frontend', 'reviewer'].includes(row.name)), false);
   check('removed original and replacement members remain fenced and hidden after a fresh Loader/registry/JSONL reload');
   await stopFixture();
   await verifySoloFactory();
+  await verifyAlpha2Contracts();
   if (legacyPlugin) {
+    let seed;
+    if (boot.getDshRuntimeVersion() === '0.2.3-alpha.2') {
+      legacySeed = await seedNativeLegacy({ executable: legacyHostExecutable, script: fileURLToPath(import.meta.url),
+        plugin, legacyPlugin, sourceHead, lab });
+      seed = legacySeed.seed;
+    } else seed = await seedLegacyFixture();
     profileCase = 'multi-role-upgraded-rc7';
-    ROOT = 'session-' + randomUUID(); profileDir = undefined; scenario = 'legacy-launch';
-    const legacy = JSON.parse(await readFile(join(legacyPlugin, 'examples/team-template.json'), 'utf8'));
-    for (const m of legacy.members) Object.assign(m, { provider: 'isolated-provider', model: m.name + '-model', reasoning_effort: 'max',
-      native_tool_allowlist: ['team_task_get', 'team_task_update'], prompt: 'Confirm ready and stop.' });
-    await startFixture({ legacy: true, initialTemplate: legacy });
-    const oldLaunch = await command('launch'); assert.equal(oldLaunch.ok, true, JSON.stringify(oldLaunch));
-    const oldIds = oldLaunch.members.map(row => row.id), oldTasks = taskSnapshot(), oldBinding = record().baseBinding;
-    await stopFixture(); await startFixture({ resume: true });
+    ROOT = seed.rootId; profileDir = seed.profileDir; patchPath = seed.patchPath;
+    const { oldIds, oldTasks, oldBinding } = seed;
+    await startFixture({ resume: true });
     assert.equal(record().baseBinding, oldBinding); assert.deepEqual(taskSnapshot(), oldTasks);
     const oldNames = (await ctx.subagents.listDescendants(ROOT, signal)).filter(row => row.depth === 1).map(row => row.id);
     assert.deepEqual(oldNames.sort(), oldIds.sort());
@@ -513,10 +570,15 @@ try {
     await stopFixture();
   }
   assert.deepEqual(errors, []);
+}
+try {
+  if (seedOnly) legacySeed = { seed: await seedLegacyFixture() };
+  else await runChecks();
 } catch (error) { errors.push(describeNativeError(error)); }
 finally {
   try { await boundedCleanup(); } catch (error) { errors.push(describeNativeError(error)); }
   const result = { sourceHead, runtime, platform: process.platform, passed: errors.length === 0, checks, errors, expectedErrors,
+    hostVersion: boot.getDshRuntimeVersion(), seed: seedOnly ? legacySeed?.seed : undefined, legacySeed: seedOnly ? undefined : legacySeed,
     legacyPlugin: legacyPlugin ?? null, approvalRequests, providerCalls, observedToolSets: visible, observableBodies: bodies, nativeStarts: starts, accountEnvironmentInherited: false };
   await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
   process.exit(result.passed ? 0 : 1);

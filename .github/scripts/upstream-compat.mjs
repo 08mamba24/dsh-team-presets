@@ -9,7 +9,8 @@ export const UPSTREAM = 'deepseek-ai/deepseek-harness';
 export const BASELINE = { version: '0.2.2-rc.5', commit: '9c2670d3bce5275e0d1610272958121af87787bb' };
 // Source-review attestations complement, rather than replace, archive admission.
 // Extend only in the reviewed support-update PR.
-export const REVIEWED_SOURCE_COMMITS = { [BASELINE.version]: BASELINE.commit };
+export const REVIEWED_SOURCE_COMMITS = { [BASELINE.version]: BASELINE.commit,
+  '0.2.3-alpha.2': '4b399c39a6d1479cd84ca591b4d7c88e24d38a96' };
 export const TARGETS = ['mac-arm64', 'win-x64'];
 // Original reviewed distributions are separate regression controls.
 export const REVIEWED_INSTALLERS = {
@@ -94,6 +95,7 @@ async function validationDigest() {
   const files = ['.github/scripts/upstream-compat.mjs', '.github/scripts/upstream-contract.mjs',
     '.github/scripts/accept-upstream-host.mjs', '.github/scripts/inspect-upstream-runtime.mjs',
     'scripts/accept-native-admission.mjs', 'scripts/native-admission-check.mjs', 'scripts/native-error.mjs',
+    'scripts/native-host-contract.mjs', 'scripts/native-legacy-seed.mjs',
     'scripts/accept-native-replacement-store.mjs', 'scripts/probe-native-team-addressing.mjs',
     'scripts/accept-native-replacement.mjs'];
   return digest(await Promise.all(files.map(async path => [path, digest(await readFile(join(root, path), 'utf8'))])));

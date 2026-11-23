@@ -9,6 +9,8 @@ import { spawn } from 'node:child_process';
 import { Readable, Transform } from 'node:stream';
 import { pipeline } from 'node:stream/promises';
 import { classifyProbe, failureAssertions, CLASSIFICATION_PROBES } from './upstream-contract.mjs';
+import { REVIEWED_INSTALLERS } from './upstream-compat.mjs';
+import { REVIEWED_HOSTS } from '../../src/host-support.js';
 
 export function isolatedEnvironment(lab, resources, platform = process.platform, source = process.env) {
   const home = join(lab, 'home'), temporary = join(lab, 'tmp');
@@ -117,7 +119,8 @@ async function main() {
     for (const dir of ['home', 'tmp', 'harness', 'agents', 'workspace', 'install', 'payload', 'plugin', 'legacy']) await mkdir(join(lab, dir));
     await writeFile(join(lab, 'npmrc'), '', { flag: 'wx' });
     await writeFile(join(lab, 'global-npmrc'), '', { flag: 'wx' });
-    let resources = process.platform === 'darwin' ? '/Applications/DeepSeek Harness.app/Contents/Resources' : join(install, 'resources');
+    const selectedMac = c.version === '0.2.3-alpha.2' ? join(install, 'DeepSeek Harness.app') : '/Applications/DeepSeek Harness.app';
+    let resources = process.platform === 'darwin' ? join(selectedMac, 'Contents', 'Resources') : join(install, 'resources');
     let env = isolatedEnvironment(lab, resources);
     stage = 'download';
     const installer = join(lab, c.artifact.format === 'dmg' ? 'official.dmg' : process.platform === 'darwin' ? 'official.zip' : 'official.exe');
@@ -126,7 +129,7 @@ async function main() {
     result.installerSha512 = await hashFile(installer, 'sha512', 'base64');
     stage = 'extract';
     if (process.platform === 'darwin') {
-      try { await access('/Applications/DeepSeek Harness.app'); throw new Error('Refusing to replace an existing Host'); }
+      try { await access(selectedMac); throw new Error('Refusing to replace an existing Host'); }
       catch (error) { if (error.code !== 'ENOENT') throw error; }
       let appRoot = payload;
       if (c.artifact.format === 'dmg') {
@@ -136,8 +139,8 @@ async function main() {
       } else await run('/usr/bin/ditto', ['-x', '-k', installer, payload], { env, cwd: lab });
       const apps = (await readdir(appRoot)).filter(name => name.endsWith('.app'));
       assert.deepEqual(apps, ['DeepSeek Harness.app']);
-      installedMac = true;
-      await cp(join(appRoot, apps[0]), '/Applications/DeepSeek Harness.app',
+      installedMac = selectedMac === '/Applications/DeepSeek Harness.app';
+      await cp(join(appRoot, apps[0]), selectedMac,
         { recursive: true, errorOnExist: true, force: false, verbatimSymlinks: true });
       if (mounted) { await run('/usr/bin/hdiutil', ['detach', appRoot], { env, cwd: lab }); mounted = false; }
     } else {
@@ -146,7 +149,38 @@ async function main() {
       await run(sevenZip, ['x', installer, '-o' + payload, '-y', '$PLUGINSDIR/app-64.7z'], { env, cwd: lab });
       await run(sevenZip, ['x', join(payload, '$PLUGINSDIR', 'app-64.7z'), '-o' + install, '-y'], { env, cwd: lab });
     }
-    const exe = process.platform === 'darwin' ? '/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness' : join(install, 'DeepSeek Harness.exe');
+    const exe = process.platform === 'darwin' ? join(selectedMac, 'Contents', 'MacOS', 'DeepSeek Harness') : join(install, 'DeepSeek Harness.exe');
+    let legacyHostExecutable;
+    if (c.version === '0.2.3-alpha.2') {
+      const legacy = REVIEWED_INSTALLERS[c.target];
+      const legacyInstaller = join(lab, 'legacy-host.' + legacy.format);
+      const installerSha256 = await download(legacy.url, legacyInstaller, legacy.sha256);
+      let legacyResources;
+      if (process.platform === 'darwin') {
+        // Old immutable plugins require this path, on the disposable CI runner only.
+        try { await access('/Applications/DeepSeek Harness.app'); throw new Error('Refusing to replace an existing legacy Host'); }
+        catch (error) { if (error.code !== 'ENOENT') throw error; }
+        const mount = join(lab, 'mount'); await mkdir(mount);
+        await run('/usr/bin/hdiutil', ['attach', legacyInstaller, '-readonly', '-nobrowse', '-mountpoint', mount], { env, cwd: lab });
+        mounted = true;
+        assert.deepEqual((await readdir(mount)).filter(name => name.endsWith('.app')), ['DeepSeek Harness.app']);
+        installedMac = true;
+        await cp(join(mount, 'DeepSeek Harness.app'), '/Applications/DeepSeek Harness.app',
+          { recursive: true, errorOnExist: true, force: false, verbatimSymlinks: true });
+        await run('/usr/bin/hdiutil', ['detach', mount], { env, cwd: lab }); mounted = false;
+        legacyResources = '/Applications/DeepSeek Harness.app/Contents/Resources';
+        legacyHostExecutable = '/Applications/DeepSeek Harness.app/Contents/MacOS/DeepSeek Harness';
+      } else {
+        const sevenZip = 'C:\\Program Files\\7-Zip\\7z.exe';
+        const payload = join(lab, 'legacy-host-payload'), install = join(lab, 'legacy-host-install');
+        await run(sevenZip, ['x', legacyInstaller, '-o' + payload, '-y', '$PLUGINSDIR/app-64.7z'], { env, cwd: lab });
+        await run(sevenZip, ['x', join(payload, '$PLUGINSDIR', 'app-64.7z'), '-o' + install, '-y'], { env, cwd: lab });
+        legacyResources = join(install, 'resources'); legacyHostExecutable = join(install, 'DeepSeek Harness.exe');
+      }
+      const archiveSha256 = await hashFile(join(legacyResources, 'app.asar'));
+      assert.equal(archiveSha256, REVIEWED_HOSTS[process.platform]['0.2.2-rc.5']);
+      result.legacyHost = { version: '0.2.2-rc.5', installerSha256, archiveSha256 };
+    }
     result.archiveSha256 = await hashFile(join(resources, 'app.asar'));
     const runtime = join(resources, 'app.asar', 'dsh');
     const pluginDirectory = join(lab, 'plugin');
@@ -213,8 +247,8 @@ async function main() {
     stage = 'native';
     const suites = [ ['admission', 'accept-native-admission.mjs'], ['store', 'accept-native-replacement-store.mjs'],
       ['addressing', 'probe-native-team-addressing.mjs'], ['replacement', 'accept-native-replacement.mjs'],
-      ['legacy-changed', 'accept-native-replacement.mjs', join(lab, 'legacy', 'package')],
-      ['legacy-unchanged', 'accept-native-replacement.mjs', join(lab, 'legacy', 'package'), 'unchanged'] ];
+      ['legacy-changed', 'accept-native-replacement.mjs', join(lab, 'legacy', 'package'), 'changed', ...(legacyHostExecutable ? [legacyHostExecutable] : [])],
+      ['legacy-unchanged', 'accept-native-replacement.mjs', join(lab, 'legacy', 'package'), 'unchanged', ...(legacyHostExecutable ? [legacyHostExecutable] : [])] ];
     for (const [name, script, ...extra] of suites) {
       const receipt = join(output, name + '.json');
       const harness = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', 'scripts', script);

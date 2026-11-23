@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { bindHostContext, createHostAdapter, readAuthorizedRoutes } from '../src/host-adapter.js';
+import { bindHostContext, createHostAdapter, inheritHostContext, readAuthorizedRoutes } from '../src/host-adapter.js';
 
 const route = { provider: 'p', model: 'm' };
 const root = Symbol('actual-pinned-host-root');
@@ -54,4 +54,12 @@ test('an unbound context or unverified replacement adapter cannot choose legacy 
   const adapter = live(); bindHostContext(ctx, adapter); bindHostContext(ctx, adapter);
   assert.throws(() => bindHostContext(ctx, live()), { code: 'HOST_ADAPTER_CHANGED' });
   assert.throws(() => createHostAdapter({ version: 'next' }), { code: 'HOST_ADAPTER_VERSION_UNSUPPORTED' });
+});
+
+test('a per-root child plugin inherits only an explicitly bound Host contract', () => {
+  const parent = {}, child = { get: () => ({ allowedRoutes: () => [route] }) };
+  assert.throws(() => inheritHostContext(parent, child), { code: 'HOST_MODEL_POLICY_UNBOUND' });
+  bindHostContext(parent, live()); inheritHostContext(parent, child);
+  assert.deepEqual(readAuthorizedRoutes(child, {}), [route]);
+  assert.throws(() => readAuthorizedRoutes(Object.create(child), {}), { code: 'HOST_MODEL_POLICY_UNBOUND' });
 });
