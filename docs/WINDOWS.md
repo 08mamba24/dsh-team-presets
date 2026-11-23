@@ -1,5 +1,13 @@
 # Windows 安装与验收
 
+## 0.6.0-rc.2 适配候选
+
+[PR #11](https://github.com/08mamba24/dsh-team-presets/pull/11) 同时验收官方 rc.5 与 0.2.3-alpha.2 Windows x64。Actions 两个独立 job 下载各自固定摘要的 NSIS，解出原始 `app.asar`，安装本次打包的 TGZ，再走原生 Profile、成员替换、冷恢复、配置与卸载。alpha.2 job 另外解出精确 rc.5，用旧版插件实际创建迁移数据，进程退出后再交 alpha.2 恢复。安装器与归档摘要均先校验，不运行安装器 GUI，不使用账号或付费模型。
+
+候选尚未发行；从对应成功 run 的 `windows-plugin-<Host版本>-<SHA>` 取 TGZ，并在同 run 的 `windows-host-<Host版本>-<SHA>` 核对 `acceptance.json` 与原始子回执。Mac 结果或某个旧 run 不能代替本次 Windows 包门。已发布 rc.1 仅适用于下文的 rc.5，不支持 alpha.2。alpha.2 的模型授权由原生实时设置控制，保存与撤销从下一次操作生效；团队模板仍按工具提示使用未绑定根。
+
+## 已发布 0.6.0-rc.1（rc.5）
+
 `0.6.0-rc.1` 候选支持 1–8 个独立成员、六种内置职责模板和自定义模板，同一职责模板可用于多个成员。每个成员有独立模型、提示词、工具集、Preset 和 Session，并保留 rc.7 的 Standby 替换及持久退役。目标宿主为官方 **DeepSeek Harness 0.2.2-rc.5 Windows x64**；effort 默认 `max`。macOS 既有支持继续保留，本次没有新增 Ubuntu 支持。当前候选的安装验收以对应提交的 Actions 回执为准，历史 rc.7 结果不替代它。
 
 ## 安装候选

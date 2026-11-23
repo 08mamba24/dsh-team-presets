@@ -20,7 +20,7 @@ description: 在 DSH Agent 会话中查看可用模型、工具与角色模板�
 
 该 skill 随插件打包、注册和卸载。升级插件并完成重新加载后，下一次调用会读取新版 skill，无需另装全局副本。旧对话中已注入的内容不会被改写；需要新版指导时重新调用此 skill。
 
-配置不会扩大模型授权。若 currentSessionAuthorization 有 false，需要用户在原生子智能体模型选择中授权所需路由，保存后创建新根会话。若 currentSessionNeedsNewRoot 为 true，旧根已固定模板，也应使用新根。全局选项不会追溯修改旧会话 policy。
+配置不会扩大模型授权。若 currentSessionAuthorization 有 false，需要用户在原生子智能体模型选择中授权所需路由。rc.5 在创建根时持久化 policy，保存授权后须新建根；alpha.2 每次操作读取原生实时设置，保存或撤销从下一次操作生效，不回退旧 Session 事件。若 currentSessionNeedsNewRoot 为 true，旧根已固定团队模板，仍应使用新根。
 
 已绑定根继续使用原模板。rc.7 启动的团队将原绑定与替换记录持久保留，重载后按该记录恢复 Preset；历史团队仍须保留原组件与 Preset。不要用重复 plan/launch 迁移旧团队，也不要删除 replacementRecords。
 

@@ -1,5 +1,13 @@
 # Acceptance and release scope
 
+## 0.6.0-rc.2 alpha.2 compatibility candidate
+
+[PR #11](https://github.com/08mamba24/dsh-team-presets/pull/11) proposes exact macOS arm64 and Windows x64 Harness 0.2.3-alpha.2 support, retaining the separately tested rc.5 contract. The current published rc.1 TGZ is not an alpha.2 installation target. Final package digest, source/tree identity, independent verdict and platform receipts are recorded together in that candidate PR; a draft or offline test pass does not establish release approval.
+
+Acceptance retains the admission, durable store, native addressing, complete replacement and multi-member scenarios. On alpha.2 it additionally verifies the real capacity envelope against the Host manager, inherited parent/child working directories, live route revocation and disabled policy despite old Session authorization events, and explicit refusal of a saved `working_directory` capability without editing the list. Native SettingsForms, AgentPresets, AgentLoop, tools, Team Board, Session persistence and official Web Standard are used; model output and approval answers are local fixtures.
+
+Legacy rc.6 changed/unchanged defaults and rc.7 team migration create their original Settings/JSONL under the exact official rc.5 Host, shut that process down, then resume under alpha.2. Both operating systems execute their own official distributions. Each installed TGZ receipt must have `passed=true`, no errors, verified isolation cleanup and its exact `tgz-sha256:` source identity. GUI behavior, account entitlement and paid-provider collaboration are outside this candidate's no-account acceptance.
+
 ## 0.6.0-rc.1 multi-member candidate
 
 [Published prerelease](https://github.com/08mamba24/dsh-team-presets/releases/tag/v0.6.0-rc.1) from merged commit `bf505197a2a4d95847fe17283dc0ed88e91ad6ad`. The release TGZ is byte-identical to the package installed by [post-merge Windows run45040445737](https://github.com/08mamba24/dsh-team-presets/actions/runs/45040445737): outer lifecycle 44/44 and multi-member 17/17. The same TGZ passed the independent macOS private augmented verifier 19/19, retaining all 17 shipped scenarios and adding two real inspect-to-replacement mapping checks. Source, package and receipt digests are in the release acceptance summary.

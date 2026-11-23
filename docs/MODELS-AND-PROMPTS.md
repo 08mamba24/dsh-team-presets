@@ -16,7 +16,7 @@ skill 先读取模板、provider、当前会话授权和设置版本，然后只
 
 用户已明确要求保存时，Agent 可在预览成功后直接保存同一修改；仅询问方案则停在预览。审批拒绝、取消或结果不确定时停止，不退回手改文件绕过。保存失败不代表一定未写入，应先读取现状核对。
 
-保存范围是当前 profile 的默认模板，不扩大旧会话的授权，也不修改已有成员。当前 Host 中已执行 plan/launch 的根保持原模板；未绑定的根使用新默认值。工具会告知是否需要新根。若所选路由不在当前会话 policy，先在原生子智能体模型选择中授权，保存后再建新根。配置成功不会自动 launch。
+保存范围是当前 profile 的默认模板，不扩大旧会话的授权，也不修改已有成员。当前 Host 中已执行 plan/launch 的根保持原模板；未绑定的根使用新默认值。工具会告知是否需要新根。若所选路由未授权，先保存原生子智能体模型选择：rc.5 须再建新根，alpha.2 的实时设置从下一次操作生效。配置成功不会自动 launch。
 
 rc.7 将已启动团队的原绑定与替换记录持久保留，重载时先恢复原 Preset；历史团队若没有记录，仍需原组件和 Preset。已有成员的变更使用 `dsh-team-replace` skill，不用重复 launch。手工编辑 config 时须保留 replacementRecords 以及其他既有选项。
 
@@ -51,7 +51,7 @@ skill 文件随插件升级并在重新加载时注册。无需另复制到全�
 1. 按 `Win + R`，输入 `%USERPROFILE%\.dsh\profiles\desktop`。先备份，再用记事本打开其中的 `cordis.patch.yml`。如果使用了自定义 `DSH_HOME` 或其他 profile，以实际运行路径为准。
 2. 打开 [完整用户配置补丁](examples/windows-team-config.patch.yml)，将两个 `REPLACE_*_MODEL_ID` 替换为实际模型 ID。示例中的 provider 是 `codeagent`，可改为本机实际配置的 provider ID；两角色的 effort 默认都是 `max`。示例保留了原模板的角色提示词、工具和任务，并非已应用到本机的配置。
 3. 将示例的顶层列表项加入原文件的列表，保留其他配置项。如果原文件只有 `[]`，用该列表项替换空列表。如果已有 `id: dsh-native-current-team`，更新该项的 `config.template`，保留 `mode: current-session`、完整 `replacementRecords` 以及已有的 `timeoutMs`、`maxStreams` 等设置。宿主按组件 ID 替换整个 `config`，不会逐层合并其中的字段。
-4. 保存并确认插件加载正常。在“插件 → 官方 → 子智能体 → 模型选择”开启 Agent 选择模型，并勾选模板中使用的 provider/model 路由。保存后创建新根会话，全局设置不会追溯授权旧会话。
+4. 保存并确认插件加载正常。在“插件 → 官方 → 子智能体 → 模型选择”开启 Agent 选择模型，并勾选模板中使用的 provider/model 路由。rc.5 保存授权后创建新根，旧会话保持原 policy；alpha.2 每次操作读取实时设置，保存或撤销均立即影响下一次操作。
 5. 在新根会话中先执行 `/dsh-team plan`，核对成员创建／冲突计划；再执行 `/dsh-team launch`。plan 不验证模型授权或 effort；launch 执行原生准入检查并会调用模型。已有成员不会通过重复 launch 更新配置。
 
 每名成员可独立修改以下字段：
@@ -65,7 +65,7 @@ skill 文件随插件升级并在重新加载时注册。无需另复制到全�
 | 首次启动输入 | `prompt` | 创建成员后发送的一次性输入 |
 | 职责模板 | `role` | 可选；记录内置或自定义模板 id 的职责来源。手写模板中成员字段仍须完整，`role` 只在 configure 增员新成员时解析并填充未显式给出的非路由字段 |
 
-`max` 是否可用取决于目标模型的原生 adapter，不取决于 Windows 或 macOS。若 plan 成功而 launch 返回 `SESSION_ROUTE_NOT_AUTHORIZED`，检查模板中的 provider/model 是否属于该根会话的授权路由；`codeagent/<model>` 与 `deepseek-account/<model>` 是不同路由。对齐配置和授权后使用新根会话，不通过降低 effort 或重复旧会话 launch 来修复授权不匹配。
+`max` 是否可用取决于目标模型的原生 adapter，不取决于 Windows 或 macOS。若 plan 成功而 launch 返回 `SESSION_ROUTE_NOT_AUTHORIZED`，检查模板中的 provider/model 是否属于该根会话的授权路由；`codeagent/<model>` 与 `deepseek-account/<model>` 是不同路由。对齐配置和授权；rc.5 还须使用新根，alpha.2 则在下一次操作重读实时授权。不通过降低 effort 或向已有成员重复 launch 来更新配置。
 
 ## 使用实际配置的 provider/model
 
@@ -82,9 +82,9 @@ skill 文件随插件升级并在重新加载时注册。无需另复制到全�
    ```
 
 3. 将修改后的**完整模板对象**放入当前会话插件组件配置的 `template` 字段。这个字段接收对象，不是文件路径；不是把成员片段直接作为整个配置，也不是改 DSH 的日常主模型。省略 template 才使用包内默认模板。当前没有专用模板编辑表单。
-4. 在原生子智能体模型选择中允许所选路由，保存后再建新根会话，并在该会话首次 plan/launch 前加载配置。全局选项不会追溯授权旧会话。不要拿已经有成员的会话重复 launch 来应用新配置。
+4. 在原生子智能体模型选择中允许所选路由，rc.5 保存授权后再建新根，alpha.2 的实时授权从下一次操作生效；团队默认配置须在未绑定根首次 plan/launch 前加载。不要拿已经有成员的会话重复 launch 来应用新配置。
 
-模型存在于配置中，不等于已获该根会话授权。launch 会读取该会话的原生 policy，并用原生 resolveCallConfig 检查各成员的路由与 effort，之后才修改 Team、创建任务或成员。路由解析失败、不支持的 max 或未授权路由都会返回失败，不自动换 provider、换模型或降低 effort；可显式改为该模型实际支持的 effort ID。某些 adapter 允许直接填写未列在目录中的远端模型 ID，元数据解析成功不代表远端执行成功。plan 只规划角色创建/冲突，不验证模型授权或输出模型清单。
+模型存在于配置中，不等于已获该根会话授权。launch 在 rc.5 读取根会话持久 policy，在 alpha.2 读取原生实时设置（撤销后不回退旧事件），并用原生 resolveCallConfig 检查各成员的路由与 effort，之后才修改 Team、创建任务或成员。路由解析失败、不支持的 max 或未授权路由都会返回失败，不自动换 provider、换模型或降低 effort；可显式改为该模型实际支持的 effort ID。某些 adapter 允许直接填写未列在目录中的远端模型 ID，元数据解析成功不代表远端执行成功。plan 只规划角色创建/冲突，不验证模型授权或输出模型清单。
 
 ## 两层提示词
 
