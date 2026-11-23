@@ -404,7 +404,11 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       activity: 'running', name: member.name, path: member.name, label: args.description });
     emit(hooks, 'subagent/start', { parentSessionId: root.id, id, runId: `run-${member.name}`, provider: 'spawn', local: true });
     if (released) queueMicrotask(() => child.finish('aborted'));
-    else if (!options.lateStart) queueMicrotask(() => childWork(child).catch(() => child.finish('error')));
+    else if (!options.lateStart) {
+      const work = () => childWork(child).catch(() => child.finish('error'));
+      if (options.childBeforeToolReturn) await work();
+      else queueMicrotask(work);
+    }
     return { results: [{ callId: call.id, result: { isError: false, value: { kind: 'activation', name: member.name }, content: [] } }], additionalContexts: [], concluded: false };
   }
 

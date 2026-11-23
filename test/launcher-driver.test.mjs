@@ -49,6 +49,24 @@ test('launcher rejects route revocation during the native tool preflight before 
   assert.equal(host.counts().providerCalls, 0);
 });
 
+test('bound launcher blocks parent-only directory drift at publication before provider execution', async t => {
+  const host = await launcherHost(t, applyLauncher, { pendingStartup: true, childBeforeToolReturn: true,
+    nativePreflight: async () => { await host.ctx.workingDirectory.set(host.root, '/outside-owned-workspace'); } });
+  const starts = [], ends = [];
+  host.ctx.on('subagent/start', info => starts.push({ ...info,
+    parentCwd: host.ctx.workingDirectory.get(host.root.session),
+    childCwd: host.ctx.workingDirectory.get(host.children.get(info.id).agent.session) }));
+  host.ctx.on('subagent/end', info => ends.push(info));
+  const result = await host.invoke('launch');
+  assert.equal(host.counts().providerCalls, 0);
+  assert.match(result.text, /CHILD_CONFIGURATION_CHANGED/);
+  assert.equal(starts.length, 1); assert.equal(starts[0].childCwd, host.config.workspace);
+  assert.equal(starts[0].parentCwd, '/outside-owned-workspace');
+  assert.equal(ends.length, 1);
+  for (const key of ['id', 'runId', 'parentSessionId']) assert.equal(ends[0][key], starts[0][key]);
+  assert.ok([...host.children.values()].every(child => child.ended && child.agent.status === 'idle'));
+});
+
 test('fresh disabled root creates two native routes, presets, task dependencies and exact startup tool masks', async t => {
   const host = await launcherHost(t, applyLauncher, { rawEnabledMissing: true });
   assert.throws(() => host.board.listTasks(host.root), { code: 'TEAM_DISABLED' });

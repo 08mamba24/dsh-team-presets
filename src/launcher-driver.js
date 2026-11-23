@@ -1,5 +1,5 @@
 import { readAuthorizedRoutes } from './host-adapter.js';
-import { assertWorkingDirectory } from './owned.js';
+import { assertWorkingDirectory, childWorkingDirectoryMatches } from './owned.js';
 import { randomUUID } from 'node:crypto';
 import { LiveError, fail } from './config.js';
 import * as replacementOrchestrator from './launcher-replace.js';
@@ -372,7 +372,7 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
         authorizeTeam(op.controls, readAuthorizedRoutes(ctx, op.agent.session));
         if (!child || child.id !== info.id || child.session?.id !== info.id
           || child.session.header?.origin !== 'subagent' || child.session.header.parentSession !== config.ownedSessionId
-          || ctx.workingDirectory.get(child.session) !== config.workspace
+          || !childWorkingDirectoryMatches(ctx, config, op.agent, child)
           || ctx.agentPresets.composedPreset(child.ctx) !== member.agentPreset
           || child.model.current()?.provider !== route.provider || child.model.current()?.model !== route.model
           || child.model.current()?.reasoningEffort !== route.reasoningEffort || child.options?.maxTokens !== 1024

@@ -190,6 +190,24 @@ test('an incorrect effective child directory is rejected but an ended idle child
   assert.equal(host.presets.size, 0);
 });
 
+test('current launcher blocks parent-only directory drift at publication before provider execution', async t => {
+  const host = await currentHost(t, { pendingStartup: true, childBeforeToolReturn: true,
+    nativePreflight: async () => { await host.ctx.workingDirectory.set(host.root, '/outside-owned-workspace'); } });
+  const starts = [], ends = [];
+  host.ctx.on('subagent/start', info => starts.push({ ...info,
+    parentCwd: host.ctx.workingDirectory.get(host.root.session),
+    childCwd: host.ctx.workingDirectory.get(host.children.get(info.id).agent.session) }));
+  host.ctx.on('subagent/end', info => ends.push(info));
+  const result = await host.invoke('launch');
+  assert.equal(host.counts().providerCalls, 0);
+  assert.match(result.text, /CHILD_CONFIGURATION_CHANGED/);
+  assert.equal(starts.length, 1); assert.equal(starts[0].childCwd, host.config.workspace);
+  assert.equal(starts[0].parentCwd, '/outside-owned-workspace');
+  assert.equal(ends.length, 1);
+  for (const key of ['id', 'runId', 'parentSessionId']) assert.equal(ends[0][key], starts[0][key]);
+  assert.ok([...host.children.values()].every(child => child.ended && child.agent.status === 'idle'));
+});
+
 test('reload restores retained Presets and prepares live or resumed roots without recreating members', async t => {
   const host = await currentHost(t);
   assert.equal(decode(await host.invoke('launch')).kind, 'success');

@@ -15,10 +15,11 @@ const plugin = resolve(process.argv[3] ?? join(dirname(fileURLToPath(import.meta
 const runtime = resolve(process.argv[2] ?? '/Applications/DeepSeek Harness.app/Contents/Resources/app.asar/dsh');
 const receipt = resolve(process.argv[4] ?? 'native-multi-role.json');
 const sourceHead = process.argv[5] ?? 'working-tree';
-const legacyPlugin = process.argv[6] && resolve(process.argv[6]);
+const legacyPlugin = process.argv[6] && !process.argv[6].startsWith('--') && resolve(process.argv[6]);
 const unchangedLegacyDefaults = process.argv[7] === 'unchanged';
 const legacyHostExecutable = process.argv[8] && resolve(process.argv[8]);
 const seedOnly = process.argv.includes('--seed-legacy');
+const publicationOnly = process.argv.includes('--publication-probe-only');
 
 // Profile boot resolves home paths and environment-backed providers during
 // import. Relaunch before importing runtime modules, with only laboratory
@@ -51,6 +52,7 @@ if (process.env.DSH_MULTI_ROLE_ACCEPT_LAB === undefined) {
     if (legacyPlugin) args.push(legacyPlugin);
     if (legacyPlugin) args.push(unchangedLegacyDefaults ? 'unchanged' : 'changed');
     if (legacyHostExecutable) args.push(legacyHostExecutable);
+    if (publicationOnly) args.push('--publication-probe-only');
     const child = spawn(process.execPath, ['--expose-internals', fileURLToPath(import.meta.url), ...args],
       { cwd: join(lab, 'workspace'), env: environment, stdio: 'inherit', windowsHide: true });
     code = await new Promise((done, reject) => {
@@ -102,6 +104,8 @@ let approvalOutcome = 'allowed-once', forceConfigApproval = false;
 let ROOT = 'session-' + randomUUID(), ctx, rootHandle, profileDir, patchPath, records, workTaskId;
 let legacySeed;
 let scenario = 'launch', profileCase = 'multi-role-current';
+let parentDirectoryRace = false;
+let parentPublicationEvidence;
 const check = (name, evidence = {}) => checks.push({ name, passed: true, ...evidence });
 const record = () => records?.()[ROOT];
 const operationFor = id => record()?.operations.find(op => op.newChildId === id || 'session-' + op.id.slice(8) === id);
@@ -195,12 +199,17 @@ async function startFixture({ resume = false, legacy = false, initialTemplate } 
       await writeFile(join(workspace, name + '.txt'), args.text); return args.text;
     },
   }));
-  ctx.on('agent/error', ({ error }) => (error.code === 'ISOLATED_ADDITION_FAILURE' ? expectedErrors : errors).push(describeNativeError(error)));
+  ctx.on('agent/error', ({ error }) => {
+    // During this refusal control, the blocked child and its parent settlement
+    // notice can reach the existing quarantine guards. Neither may stream.
+    const publicationRefusal = parentDirectoryRace && ['UNEXPECTED_CHILD', 'ROOT_QUARANTINED'].includes(error.code);
+    (error.code === 'ISOLATED_ADDITION_FAILURE' || publicationRefusal ? expectedErrors : errors).push(describeNativeError(error));
+  });
   ctx.on('subagent/start', info => { if (info.parentSessionId === ROOT) {
     const child = ctx.agents.get(info.id); starts.push({ childId: info.id, parent: child?.session.header.parentSession,
       preset: child && ctx.agentPresets.composedPreset(child.ctx), model: child?.model.current(), maxTokens: child?.options.maxTokens });
-    assert.equal(ctx.workingDirectory.get(child.session), ctx.workingDirectory.get(rootHandle.agent.session),
-      'every initial/add/replacement child must inherit the effective parent workspace');
+    if (!parentDirectoryRace) assert.equal(ctx.workingDirectory.get(child.session), ctx.workingDirectory.get(rootHandle.agent.session),
+      'every normal initial/add/replacement child must inherit the effective parent workspace');
   } });
   const setup = async agentCtx => { await ctx.agentPresets.mount(agentCtx, 'standard'); };
   rootHandle = resume ? await ctx.agents.resume({ resumeSessionId: ROOT, agentOptions: routeOf('root'), setup })
@@ -352,6 +361,65 @@ async function verifySoloFactory() {
   assert.ok(launched.seedAssignments.every(task => task.owner === 'solo'));
   check('a separate fresh factory profile preserves both seed tasks, explicitly reassigns their responsibilities and launches one independent member');
   await stopFixture();
+}
+async function verifyLauncherParentPublication() {
+  ROOT = 'session-' + randomUUID(); profileDir = undefined; profileCase = 'launcher-parent-publication';
+  await startFixture({ initialTemplate: multiTemplate() });
+  const parent = rootHandle.agent, changedDirectory = join(workspace, 'parent-only-change');
+  await mkdir(changedDirectory, { recursive: true });
+  const publications = [], endings = [], calls = providerCalls.length;
+  const nativeCreate = ctx.agents.create, nativeExecute = parent.ctx.tools.execute;
+  let injection, resolveEnd, timer;
+  const firstEnd = new Promise(done => { resolveEnd = done; });
+  parentDirectoryRace = true;
+  ctx.on('subagent/start', info => {
+    if (info.parentSessionId !== ROOT) return;
+    const child = ctx.agents.get(info.id);
+    publications.push({ id: info.id, runId: info.runId, parentSessionId: info.parentSessionId,
+      parentCwd: ctx.workingDirectory.get(parent.session), childCwd: ctx.workingDirectory.get(child.session) });
+  });
+  ctx.on('subagent/end', info => {
+    if (info.parentSessionId !== ROOT) return;
+    endings.push({ id: info.id, runId: info.runId, parentSessionId: info.parentSessionId, reason: info.stopReason });
+    if (publications[0]?.id === info.id && publications[0]?.runId === info.runId) resolveEnd();
+  });
+  ctx.agents.create = async function(input) {
+    if (!injection && input.meta?.parentSession === ROOT) {
+      injection = { boundary: 'native manager has captured child cwd; entering AgentManager.create',
+        stack: new Error('native child materialization boundary').stack };
+      await Promise.resolve();
+      await ctx.workingDirectory.set(parent, changedDirectory);
+    }
+    return Reflect.apply(nativeCreate, this, [input]);
+  };
+  parent.ctx.tools.execute = async function(input) {
+    const result = await Reflect.apply(nativeExecute, this, [input]);
+    if (input.agent === parent && input.calls.some(call => call.name === 'dsh_team_launcher_spawn')) {
+      // A valid native schedule lets the child run before the tool reply arrives.
+      // Delay only that reply; both the tool and the child manager execute normally.
+      try { await Promise.race([firstEnd, new Promise((_, reject) => {
+        timer = setTimeout(() => reject(new Error('child publication did not settle')), 10000);
+      })]); } finally { clearTimeout(timer); }
+    }
+    return result;
+  };
+  try {
+    const refused = await command('launch');
+    assert.ok(injection, 'native child creation must reach the injected boundary');
+    assert.equal(publications.length, 1);
+    assert.equal(publications[0].childCwd, workspace); assert.equal(publications[0].parentCwd, changedDirectory);
+    assert.equal(providerCalls.length - calls, 0, JSON.stringify({ refused, publications, endings }));
+    assert.equal(refused.operationFailure ?? refused.code, 'CHILD_CONFIGURATION_CHANGED', JSON.stringify(refused));
+    assert.equal(endings.length, 1);
+    for (const key of ['id', 'runId', 'parentSessionId']) assert.equal(endings[0][key], publications[0][key]);
+    check('current launcher refuses parent-only directory drift at native publication before provider stream and drains the exact run',
+      { injection, publications, endings, providerStreams: providerCalls.length - calls,
+        boundary: 'Real native tool/manager and Settings; AgentManager.create delegates unchanged after a parent-directory change, and only the spawn reply is delayed until the actual child end. No Host source patch or fake lifecycle.' });
+  } finally {
+    parentPublicationEvidence = { injection, publications, endings, providerStreams: providerCalls.length - calls };
+    clearTimeout(timer); ctx.agents.create = nativeCreate; parent.ctx.tools.execute = nativeExecute;
+    await stopFixture(); parentDirectoryRace = false;
+  }
 }
 async function verifyAlpha2Contracts() {
   if (boot.getDshRuntimeVersion() !== '0.2.3-alpha.2') return;
@@ -572,6 +640,7 @@ async function runChecks() {
   check('removed original and replacement members remain fenced and hidden after a fresh Loader/registry/JSONL reload');
   await stopFixture();
   await verifySoloFactory();
+  await verifyLauncherParentPublication();
   await verifyAlpha2Contracts();
   if (legacyPlugin) {
     let seed;
@@ -596,13 +665,14 @@ async function runChecks() {
 }
 try {
   if (seedOnly) legacySeed = { seed: await seedLegacyFixture() };
+  else if (publicationOnly) await verifyLauncherParentPublication();
   else await runChecks();
 } catch (error) { errors.push(describeNativeError(error)); }
 finally {
   try { await boundedCleanup(); } catch (error) { errors.push(describeNativeError(error)); }
   const result = { sourceHead, runtime, platform: process.platform, passed: errors.length === 0, checks, errors, expectedErrors,
     hostVersion: boot.getDshRuntimeVersion(), seed: seedOnly ? legacySeed?.seed : undefined, legacySeed: seedOnly ? undefined : legacySeed,
-    legacyPlugin: legacyPlugin ?? null, approvalRequests, providerCalls, observedToolSets: visible, observableBodies: bodies, nativeStarts: starts, accountEnvironmentInherited: false };
+    legacyPlugin: legacyPlugin ?? null, approvalRequests, providerCalls, parentPublicationEvidence, observedToolSets: visible, observableBodies: bodies, nativeStarts: starts, accountEnvironmentInherited: false };
   await writeFile(receipt, JSON.stringify(result, null, 2) + '\n', { flag: 'wx' });
   process.exit(result.passed ? 0 : 1);
 }
