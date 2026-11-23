@@ -1,3 +1,4 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
 import { setTimeout as delay } from 'node:timers/promises';
 import { isDeepStrictEqual } from 'node:util';
 import { fail } from './config.js';
@@ -298,7 +299,7 @@ export function createReplacementRuntime(ctx, config, controlEntry) {
         writeRecord: (_rootId, value, revision) => { assertRoot(); return store.write(value, revision); },
         async preflight(request) {
           assertCurrent();
-          const policy = ctx.sessionProjections.stateOf(root.session, 'subagentModelSelectionPolicy');
+          const policy = readAuthorizedRoutes(ctx, root.session);
           if (!Array.isArray(policy) || !policy.some(route => route.provider === request.provider && route.model === request.model)) fail('REPLACEMENT_ROUTE_UNAUTHORIZED');
           assertRoleToolsAvailable(ctx, root, [request.tools]);
           const route = { provider: request.provider, model: request.model, reasoningEffort: request.reasoningEffort };

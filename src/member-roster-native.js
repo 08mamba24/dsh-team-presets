@@ -1,3 +1,4 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
 import { fail, LiveError } from './config.js';
 import { validateLauncherTemplate } from './launcher-config.js';
 import { observeLauncherMembers } from './launcher-native.js';
@@ -72,7 +73,7 @@ export function createRosterRuntime(ctx, config, { baseMembers, store, registerM
     const assertAdmission = () => {
       signal.throwIfAborted();
       if (ctx.agents.get(root.id) !== root || !ctx.agentTeams.isEnabled(root)) fail('MEMBER_TEAM_NOT_LAUNCHED');
-      const policy = ctx.sessionProjections.stateOf(root.session, 'subagentModelSelectionPolicy');
+      const policy = readAuthorizedRoutes(ctx, root.session);
       if (!Array.isArray(policy) || !policy.some(route => route.provider === member.provider && route.model === member.model)) fail('SESSION_ROUTE_NOT_AUTHORIZED');
       assertRoleToolsAvailable(ctx, root, [member.native_tool_allowlist]);
     };

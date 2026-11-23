@@ -1,3 +1,4 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
 import { randomUUID } from 'node:crypto';
 import { parseConfig, preflight, authorize, LiveError, fail } from './config.js';
 import { assertOwned } from './owned.js';
@@ -40,7 +41,7 @@ export async function applyLive(ctx, raw, nativeSubagent) {
     if (!op.agent.inbox.remove(id) || pending(op.agent).length !== 0) fail('NOTICE_CANCELLATION_FAILED');
     return [id];
   }
-  const readPolicy = agent => ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy');
+  const readPolicy = agent => readAuthorizedRoutes(ctx, agent.session);
 
   async function perform(op, commandSignal) {
     const agent = op.agent;
@@ -75,7 +76,7 @@ export async function applyLive(ctx, raw, nativeSubagent) {
           op.callId = `dsh-live-${randomUUID()}`;
           const batch = await agent.ctx.tools.execute({ agent, signal, toolSet, calls: [{ type: 'tool-call', id: op.callId,
             name: TOOL, arguments: JSON.stringify({ name: config.memberName, description: `Owned synthetic ${config.runTag}`,
-              cwd: config.workspace, provider: config.route.provider, model: config.route.model,
+              provider: config.route.provider, model: config.route.model,
               reasoning_effort: 'low', agent_preset: config.presetId,
               prompt: 'Compute 2+3. Return only a JSON object with role, personaNonce from your system persona, and value. Do not call tools or delegate.' }) }] });
           if (batch.results?.length !== 1 || batch.results[0].callId !== op.callId

@@ -1,3 +1,4 @@
+import { bindRc5Fixture } from './fixtures/host-contract.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
@@ -52,7 +53,7 @@ async function fixture(t, options = {}) {
     assertRoot(agent) { if (agent !== root) throw Object.assign(new Error('root only'), { code: 'WRONG_AGENT' }); },
     hasBinding: () => options.bound ?? false,
   };
-  await applyTeamConfigurator(ctx, launcher, {
+  await applyTeamConfigurator(bindRc5Fixture(ctx), launcher, {
     defineTool: x => x,
     async approveEscalation() { approvals++; if (options.denied) throw Object.assign(new Error('denied'), { code: 'APPROVAL_DENIED' }); if (options.concurrent) revision++; if (options.cancelled) controller.abort(); if (options.removeOnApproval) registered.delete(options.removeOnApproval); },
   });

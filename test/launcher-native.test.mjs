@@ -199,7 +199,7 @@ test('spawn construction uses only explicit selected values and creates unique n
   const call = makeLauncherSpawnCall(value, { workspace: '/tmp/owned-workspace', prompt: 'A supplied startup request' });
   assert.equal(call.type, 'tool-call'); assert.equal(call.name, 'dsh_team_launcher_spawn');
   assert.match(call.id, /^dsh-team-launcher-[a-f0-9-]{36}$/);
-  assert.deepEqual(JSON.parse(call.arguments), { name: value.name, description: value.description, cwd: '/tmp/owned-workspace',
+  assert.deepEqual(JSON.parse(call.arguments), { name: value.name, description: value.description,
     provider: value.provider, model: value.model, reasoning_effort: 'low', agent_preset: value.agentPreset, prompt: 'A supplied startup request' });
   assert.notEqual(makeLauncherSpawnCall(value, { workspace: '/tmp/owned-workspace', prompt: 'Another request' }).id, call.id);
   for (const bad of [{ ...member(), reasoningEffort: undefined }, { ...member(), agentPreset: undefined }]) {

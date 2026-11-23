@@ -7,7 +7,7 @@ import { fail } from './config.js';
 
 /** Use the schema, tool and approval contracts from the same pinned physical Host. */
 export async function nativeConfigurationFromHost() {
-  const { archive, platform } = await nativeHostFromApp();
+  const { adapter, archive, platform } = await nativeHostFromApp();
   const path = hostPathApi(platform), host = createRequire(path.join(archive, 'dsh', 'package.json'));
   const load = async name => {
     const root = path.join(archive, 'dsh', 'node_modules', name);
@@ -25,5 +25,5 @@ export async function nativeConfigurationFromHost() {
   ]);
   if (typeof schema.default?.object !== 'function' || typeof tools.defineTool !== 'function'
     || typeof sandbox.approveEscalation !== 'function') fail('CONFIGURATION_HOST_CONTRACT_UNAVAILABLE');
-  return { Schema: schema.default, defineTool: tools.defineTool, approveEscalation: sandbox.approveEscalation };
+  return { adapter, Schema: schema.default, defineTool: tools.defineTool, approveEscalation: sandbox.approveEscalation };
 }

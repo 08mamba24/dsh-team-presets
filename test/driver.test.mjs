@@ -1,3 +1,4 @@
+import { bindRc5Fixture } from './fixtures/host-contract.mjs';
 // The historical file-bound entry relies on POSIX ownership and mode bits.
 import { test as nodeTest } from 'node:test';
 import assert from 'node:assert/strict';
@@ -98,7 +99,7 @@ async function fixture(t, options = {}) {
     commands: { register(def) { commands.set(def.name, def);return () => commands.delete(def.name); } },
     effect(generator) { for (const dispose of generator()) effects.push(dispose); },
   };
-  await applyLive(ctx, config, native);
+  await applyLive(bindRc5Fixture(ctx), config, native);
   return { ctx, root, config, hooks, calls, invoke: (signal = new AbortController().signal) => commands.get('dsh-subagent-live').handler({ agent: root, rawInput: 'run-one', attachments: [], signal }),
     dispose: async () => { for (const f of effects.slice().reverse()) await f(); }, release: () => finish(),
     stats: () => ({ starts, metadata, mounts, providerCalls, disposed, unregisters, interruptions, nativeMounted }) };

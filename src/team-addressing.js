@@ -155,10 +155,16 @@ export function resolveLogicalTeamTarget(value, target) {
 
 /** Project the append-only native catalog onto stable logical role paths. */
 export function projectLogicalTeamAgents(value, entries) {
-  if (!Array.isArray(entries)) fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
+  const envelope = !Array.isArray(entries);
+  if (envelope && (!entries || typeof entries !== 'object'
+    || Object.keys(entries).sort().join(',') !== 'agents,limit,running'
+    || !Number.isSafeInteger(entries.running) || entries.running < 0
+    || !Number.isSafeInteger(entries.limit) || entries.limit < 1
+    || !Array.isArray(entries.agents))) fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
+  const rows = envelope ? entries.agents : entries;
   const states = statesOf(value);
   const projected = [];
-  for (const entry of entries) {
+  for (const entry of rows) {
     if (!entry || typeof entry !== 'object' || Array.isArray(entry) || typeof entry.name !== 'string') {
       fail('TEAM_ADDRESS_NATIVE_RESULT_INVALID');
     }
@@ -166,7 +172,9 @@ export function projectLogicalTeamAgents(value, entries) {
     if (!projection.managed) projected.push(entry);
     else if (projection.name !== undefined) projected.push({ ...entry, name: projection.name });
   }
-  return projected;
+  // Capacity comes from the native tree pool, including pending reservations.
+  // Visible catalog length cannot substitute for its running/limit values.
+  return envelope ? { ...entries, agents: projected } : projected;
 }
 
 /** Project native descendant rows before the original list_agents body renders them. */
@@ -590,7 +598,7 @@ function bridgeControlForPreset(ctx, agent, presetKey) {
 function startRootInstall(ctx, presetKey, host, bridgeDefinitions) {
   const entry = { owners: new WeakSet(), refs: 0, addon: undefined, layer: undefined, disposing: undefined };
   entry.install = (async () => {
-    const addon = ctx.root.plugin({ name: 'dsh-team-root-addressing', inject: ROOT_ADDRESS_INJECT,
+    const addon = host.adapter.rootContext(ctx).plugin({ name: 'dsh-team-root-addressing', inject: ROOT_ADDRESS_INJECT,
       async apply(injected) {
         const layer = host.scopeApi.createScope(injected, presetKey);
         entry.layer = layer;
@@ -637,7 +645,7 @@ async function releaseRootInstall(presetKey, entry, ctx) {
  */
 export async function installRootAddressing(ctx, agent, host) {
   host ??= await nativeRoleControlFromHost();
-  if (!agent?.ctx || !ctx?.root || typeof ctx.root.plugin !== 'function'
+  if (!agent?.ctx || typeof host?.adapter?.rootContext !== 'function'
     || typeof ctx.effect !== 'function' || typeof ctx.get !== 'function' || typeof ctx.tools?.get !== 'function'
     || typeof host?.scopeApi?.scopeOf !== 'function'
     || typeof host.scopeApi.scopeParentOf !== 'function' || typeof host.scopeApi.createScope !== 'function') {

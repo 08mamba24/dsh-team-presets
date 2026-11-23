@@ -1,3 +1,4 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
 import { randomUUID } from 'node:crypto';
 import { LiveError, fail } from './config.js';
 import * as replacementOrchestrator from './launcher-replace.js';
@@ -507,10 +508,10 @@ export async function applyLauncher(ctx, rawConfig, nativeSubagent, controlEntry
             modelDiscovery: false, allowedAgentPresets: template.members.map(member => member.agentPreset),
             agentOptions: { maxTokens: 1024 }, maxDepth: 1 });
           await mounted; assertCurrent(op, op.signal);
-          await preflightTeam(op.controls, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'), ctx.llm, op.signal);
+          await preflightTeam(op.controls, readAuthorizedRoutes(ctx, agent.session), ctx.llm, op.signal);
           assertCurrent(op, op.signal);
           await assertOwned(agent); assertCurrent(op, op.signal);
-          authorizeTeam(op.controls, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'));
+          authorizeTeam(op.controls, readAuthorizedRoutes(ctx, agent.session));
           toolSet = await agent.ctx.tools.resolve({ agent, modelSelection: agent.model.current(), signal: op.signal });
           assertCurrent(op, op.signal);
           if (!toolSet.view(agent).has(SPAWN)) fail('SCOPED_NATIVE_TOOL_UNAVAILABLE');

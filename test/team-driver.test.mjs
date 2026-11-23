@@ -1,3 +1,4 @@
+import { bindRc5Fixture } from './fixtures/host-contract.mjs';
 import { test as nodeTest } from 'node:test';
 import assert from 'node:assert/strict';
 // This fixture drives the historical file-bound entry and its POSIX marker checks.
@@ -258,7 +259,7 @@ async function fixture(t, options = {}) {
     on: (name, fn) => on(hooks, name, fn), commands: { register(def) { commands.set(def.name, def); return () => commands.delete(def.name); } },
     effect(generator) { for (const dispose of generator()) effects.push(dispose); },
   };
-  await applyTeam(ctx, config, native, { name: CONTROL_ENTRY, config: { interrupt: false } });
+  await applyTeam(bindRc5Fixture(ctx), config, native, { name: CONTROL_ENTRY, config: { interrupt: false } });
   return { config, root, hooks, tasks, order,
     invoke: () => commands.get('dsh-team-live').handler({ agent: root, rawInput: 'run-pair', attachments: [], signal: commandController.signal }),
     dispose: async () => { for (const fn of effects.slice().reverse()) await fn(); },

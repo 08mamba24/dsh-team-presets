@@ -1,3 +1,4 @@
+import { bindRc5Fixture } from './host-contract.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { mkdtemp, realpath, rm, writeFile } from 'node:fs/promises';
@@ -325,7 +326,8 @@ export async function launcherHost(t, applyLauncher, options = {}) {
     assert.deepEqual([...mount.spec.allowedAgentPresets].sort(), presetIds.sort());
     assert.equal(args.provider, member.provider); assert.equal(args.model, member.model); assert.equal(args.reasoning_effort, member.reasoning_effort);
     assert.equal(args.agent_preset, member.agent_preset);
-    assert.equal(args.cwd, options.sessionScopedPresets ? effectiveWorkspace : workspace);
+    assert.equal(Object.hasOwn(args, 'cwd'), false);
+    const inheritedWorkspace = options.sessionScopedPresets ? effectiveWorkspace : workspace;
     assert.ok(args.prompt.includes(member.prompt)); assert.ok(!args.prompt.includes(member.persona_prompt));
     assert.ok(template.members.every(member => preflights.some(route => route.provider === member.provider
       && route.model === member.model && route.reasoningEffort === member.reasoning_effort)));
@@ -394,7 +396,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
         startNewWork([...children.values()].find(row => row.role === 'reviewer'), options.replaceAfterEnd === true, 'external-continuation');
       }
     };
-    childWorkspaces.set(id, options.childWorkspaceDrift ? join(args.cwd, 'unexpected-child-directory') : args.cwd);
+    childWorkspaces.set(id, options.childWorkspaceDrift ? join(inheritedWorkspace, 'unexpected-child-directory') : inheritedWorkspace);
     agents.set(id, agent); children.set(id, child); child.published = true;
     catalog.set(id, { kind: 'child', id, parentId: root.id, depth: 1, hasChildren: false, mode: 'continuable',
       activity: 'running', name: member.name, path: member.name, label: args.description });
@@ -483,7 +485,7 @@ export async function launcherHost(t, applyLauncher, options = {}) {
       }
     } finally { await rm(workspace, { recursive: true, force: true }); }
   });
-  await applyLauncher(ctx, config, nativeSubagent, CONTROL);
+  await applyLauncher(bindRc5Fixture(ctx), config, nativeSubagent, CONTROL);
   return { ctx, config, template, root, board, hooks, tasks, catalog, agents, presets, children, order, writes, bodyCalls,
     providerCalls, preflights, createdPresets, removedPresets, noticesRemoved, release, dispose, newWork, createDeleteForeign,
     publishLateStart: () => latePublication.resolve(),

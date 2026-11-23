@@ -1,3 +1,4 @@
+import { readAuthorizedRoutes } from './host-adapter.js';
 import { randomUUID } from 'node:crypto';
 import { constants } from 'node:fs';
 import { lstat, open, realpath } from 'node:fs/promises';
@@ -374,7 +375,7 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
     try {
       const batch = await op.agent.ctx.tools.execute({ agent: op.agent, signal, toolSet,
         calls: [{ type: 'tool-call', id: child.callId, name: TOOL, arguments: json({ name: binding.memberName,
-          description: `Owned ${role} ${config.runTag}`, cwd: config.workspace, provider: binding.route.provider,
+          description: `Owned ${role} ${config.runTag}`, provider: binding.route.provider,
           model: binding.route.model, reasoning_effort: 'low', agent_preset: binding.presetId,
           prompt: promptFor(role, config, op.tasks) }) }] });
       const failure = delegationFailure(batch, child, role, binding.memberName);
@@ -405,9 +406,9 @@ export async function applyTeam(ctx, raw, nativeSubagent, nativeControlEntry) {
             modelSelection: true, modelDiscovery: false, allowedAgentPresets: ROLES.map(r => config.roles[r].presetId),
             agentOptions: { reasoningEffort: 'low', maxTokens: 1024 }, maxDepth: 1 });
           await mounted;
-          await preflightTeam(config, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'), ctx.llm, signal);
+          await preflightTeam(config, readAuthorizedRoutes(ctx, agent.session), ctx.llm, signal);
           await assertTeamOwned(ctx, config, agent);
-          authorizeTeam(config, ctx.sessionProjections.stateOf(agent.session, 'subagentModelSelectionPolicy'));
+          authorizeTeam(config, readAuthorizedRoutes(ctx, agent.session));
           signal.throwIfAborted();
           toolSet = await agent.ctx.tools.resolve({ agent, modelSelection: agent.model.current(), signal });
           signal.throwIfAborted();

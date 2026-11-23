@@ -166,7 +166,7 @@ export function makeLauncherSpawnCall(member, { workspace, prompt } = {}) {
     || typeof member.agentPreset !== 'string'
     || !ID.test(member.agentPreset) || typeof workspace !== 'string' || !isAbsolute(workspace) || !text(prompt, 8000)) fail('LAUNCHER_SPAWN_INPUT_INVALID');
   return { type: 'tool-call', id: `dsh-team-launcher-${randomUUID()}`, name: SPAWN,
-    arguments: JSON.stringify({ name: member.name, description: member.description, cwd: workspace,
+    arguments: JSON.stringify({ name: member.name, description: member.description,
       provider: member.provider, model: member.model, reasoning_effort: member.reasoningEffort,
       agent_preset: member.agentPreset, prompt }) };
 }
